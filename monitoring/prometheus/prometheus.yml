@@ -1,0 +1,53 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+# Alerting rules (optional, can be extended)
+rule_files: []
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Digital Store API (background jobs run in-process inside this binary, so
+  # the `/metrics` endpoint on the api service covers both HTTP and worker
+  # metrics).
+  - job_name: 'digital-store-api'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['api:8080']
+        labels:
+          service: 'api'
+          environment: 'production'
+
+  # PostgreSQL (requires postgres_exporter sidecar)
+  - job_name: 'postgres'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['postgres:9187']
+        labels:
+          service: 'postgres'
+          environment: 'production'
+
+  # Redis (requires redis_exporter sidecar)
+  - job_name: 'redis'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['redis:9121']
+        labels:
+          service: 'redis'
+          environment: 'production'
+
+  # Nginx (requires nginx_exporter sidecar)
+  - job_name: 'nginx'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['nginx:9113']
+        labels:
+          service: 'nginx'
+          environment: 'production'

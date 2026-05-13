@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
@@ -72,7 +72,7 @@ export default function CartPage() {
       if (item.sku && item.quantity > item.sku.inventory) {
         warnings.set(
           item.sku_id,
-          `搴撳瓨涓嶈冻锛氬綋鍓嶅簱瀛樹粎 ${item.sku.inventory} 浠讹紝宸茶嚜鍔ㄨ皟鏁存暟閲廯
+          `库存不足：当前库存仅 ${item.sku.inventory} 件，已自动调整数量`
         );
       }
     });
@@ -89,7 +89,7 @@ export default function CartPage() {
 
       // Check inventory limit (Requirement 6.6)
       if (item.sku && newQuantity > item.sku.inventory) {
-        message.warning(`搴撳瓨涓嶈冻锛屾渶澶氬彲璐拱 ${item.sku.inventory} 浠禶);
+        message.warning(`库存不足，最多可购买 ${item.sku.inventory} 件`);
         return;
       }
 
@@ -97,7 +97,7 @@ export default function CartPage() {
       try {
         await updateQuantity(skuId, newQuantity);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : '鏇存柊鏁伴噺澶辫触';
+        const errorMessage = err instanceof Error ? err.message : '更新数量失败';
         message.error(errorMessage);
       } finally {
         setUpdatingItems((prev) => {
@@ -115,9 +115,9 @@ export default function CartPage() {
     async (skuId: number) => {
       try {
         await removeItem(skuId);
-        message.success('宸蹭粠璐墿杞︾Щ闄?);
+        message.success('已从购物车移除');
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : '绉婚櫎澶辫触';
+        const errorMessage = err instanceof Error ? err.message : '移除失败';
         message.error(errorMessage);
       }
     },
@@ -128,9 +128,9 @@ export default function CartPage() {
   const handleClearCart = useCallback(async () => {
     try {
       await clearCart();
-      message.success('璐墿杞﹀凡娓呯┖');
+      message.success('购物车已清空');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : '娓呯┖璐墿杞﹀け璐?;
+      const errorMessage = err instanceof Error ? err.message : '清空购物车失败';
       message.error(errorMessage);
     }
   }, [clearCart]);
@@ -139,7 +139,7 @@ export default function CartPage() {
   if (initialLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Spin size="large" tip="鍔犺浇璐墿杞?.." />
+        <Spin size="large" tip="加载购物车..." />
       </div>
     );
   }
@@ -150,16 +150,16 @@ export default function CartPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Title level={2} className="!mb-6">
           <ShoppingCartOutlined className="mr-2" />
-          璐墿杞?
+          购物车
         </Title>
         <div className="flex flex-col items-center justify-center py-16">
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="璐墿杞︽槸绌虹殑"
+            description="购物车是空的"
           >
             <Link href="/products">
               <Button type="primary" size="large">
-                鍘婚€涢€?
+                去逛逛
               </Button>
             </Link>
           </Empty>
@@ -174,20 +174,20 @@ export default function CartPage() {
       <div className="flex items-center justify-between mb-6">
         <Title level={2} className="!mb-0">
           <ShoppingCartOutlined className="mr-2" />
-          璐墿杞?
+          购物车
           <Text type="secondary" className="text-base font-normal ml-2">
-            ({totalItems} 浠跺晢鍝?
+            ({totalItems} 件商品)
           </Text>
         </Title>
         <Popconfirm
-          title="纭畾瑕佹竻绌鸿喘鐗╄溅鍚楋紵"
-          description="姝ゆ搷浣滀笉鍙挙閿€"
+          title="确定要清空购物车吗？"
+          description="此操作不可撤销"
           onConfirm={handleClearCart}
-          okText="纭畾"
-          cancelText="鍙栨秷"
+          okText="确定"
+          cancelText="取消"
         >
           <Button danger type="text" size="small">
-            娓呯┖璐墿杞?
+            清空购物车
           </Button>
         </Popconfirm>
       </div>
@@ -195,8 +195,8 @@ export default function CartPage() {
       {/* Inventory Warnings (Requirement 6.6) */}
       {inventoryWarnings.size > 0 && (
         <Alert
-          message="搴撳瓨鎻愮ず"
-          description="閮ㄥ垎鍟嗗搧搴撳瓨涓嶈冻锛岃璋冩暣鏁伴噺鍚庡啀缁撶畻"
+          message="库存提示"
+          description="部分商品库存不足，请调整数量后再结算"
           type="warning"
           showIcon
           icon={<WarningOutlined />}
@@ -210,11 +210,11 @@ export default function CartPage() {
         <div className="flex-1">
           {/* Desktop Table Header (hidden on mobile) */}
           <div className="hidden md:grid md:grid-cols-12 gap-4 px-4 py-3 bg-gray-50 rounded-t-lg text-sm font-medium text-gray-600">
-            <div className="col-span-5">鍟嗗搧淇℃伅</div>
-            <div className="col-span-2 text-center">鍗曚环</div>
-            <div className="col-span-2 text-center">鏁伴噺</div>
-            <div className="col-span-2 text-center">灏忚</div>
-            <div className="col-span-1 text-center">鎿嶄綔</div>
+            <div className="col-span-5">商品信息</div>
+            <div className="col-span-2 text-center">单价</div>
+            <div className="col-span-2 text-center">数量</div>
+            <div className="col-span-2 text-center">小计</div>
+            <div className="col-span-1 text-center">操作</div>
           </div>
 
           {/* Cart Items */}
@@ -236,21 +236,21 @@ export default function CartPage() {
         <div className="w-full lg:w-80 lg:flex-shrink-0">
           <div className="bg-gray-50 rounded-lg p-6 sticky top-4">
             <Title level={4} className="!mb-4">
-              璁㈠崟鎽樿
+              订单摘要
             </Title>
 
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-sm">
-                <Text type="secondary">鍟嗗搧鏁伴噺</Text>
-                <Text>{totalItems} 浠?/Text>
+                <Text type="secondary">商品数量</Text>
+                <Text>{totalItems} 件</Text>
               </div>
               <div className="flex justify-between text-sm">
-                <Text type="secondary">鍟嗗搧鎬讳环</Text>
-                <Text>楼{totalPrice.toFixed(2)}</Text>
+                <Text type="secondary">商品总价</Text>
+                <Text>￥{totalPrice.toFixed(2)}</Text>
               </div>
               <div className="flex justify-between text-sm">
-                <Text type="secondary">杩愯垂</Text>
-                <Text type="secondary">缁撶畻鏃惰绠?/Text>
+                <Text type="secondary">运费</Text>
+                <Text type="secondary">结算时计算</Text>
               </div>
             </div>
 
@@ -258,10 +258,10 @@ export default function CartPage() {
 
             <div className="flex justify-between items-baseline mb-6">
               <Text strong className="text-base">
-                鍚堣
+                合计
               </Text>
               <div>
-                <span className="text-sm text-red-500">楼</span>
+                <span className="text-sm text-red-500">￥</span>
                 <span className="text-2xl font-bold text-red-500">
                   {totalPrice.toFixed(2)}
                 </span>
@@ -275,19 +275,19 @@ export default function CartPage() {
                 block
                 disabled={inventoryWarnings.size > 0}
               >
-                鍘荤粨绠?
+                去结算
               </Button>
             </Link>
 
             {inventoryWarnings.size > 0 && (
               <Text type="warning" className="text-xs mt-2 block text-center">
-                璇峰厛澶勭悊搴撳瓨涓嶈冻鐨勫晢鍝?
+                请先处理库存不足的商品
               </Text>
             )}
 
             <Link href="/products">
               <Button type="link" block className="mt-2">
-                缁х画璐墿
+                继续购物
               </Button>
             </Link>
           </div>
@@ -331,7 +331,7 @@ function CartItemRow({
             {sku?.image_url ? (
               <Image
                 src={sku.image_url}
-                alt={sku.sku_code || '鍟嗗搧鍥剧墖'}
+                alt={sku.sku_code || '商品图片'}
                 width={80}
                 height={80}
                 className="object-cover"
@@ -365,7 +365,7 @@ function CartItemRow({
             {/* Out of stock indicator */}
             {isOutOfStock && (
               <Tag color="red" className="mt-1 text-xs">
-                宸插敭缃?
+                已售罄
               </Tag>
             )}
           </div>
@@ -373,7 +373,7 @@ function CartItemRow({
 
         {/* Unit Price - col-span-2 */}
         <div className="col-span-2 text-center">
-          <Text className="text-sm">楼{item.unit_price.toFixed(2)}</Text>
+          <Text className="text-sm">￥{item.unit_price.toFixed(2)}</Text>
         </div>
 
         {/* Quantity - col-span-2 */}
@@ -384,7 +384,7 @@ function CartItemRow({
               icon={<MinusOutlined />}
               disabled={item.quantity <= 1 || isUpdating || isOutOfStock}
               onClick={() => onQuantityChange(item.sku_id, item.quantity - 1)}
-              aria-label="鍑忓皯鏁伴噺"
+              aria-label="减少数量"
             />
             <InputNumber
               min={1}
@@ -401,7 +401,7 @@ function CartItemRow({
               icon={<PlusOutlined />}
               disabled={item.quantity >= maxQuantity || isUpdating || isOutOfStock}
               onClick={() => onQuantityChange(item.sku_id, item.quantity + 1)}
-              aria-label="澧炲姞鏁伴噺"
+              aria-label="增加数量"
             />
           </div>
         </div>
@@ -409,24 +409,24 @@ function CartItemRow({
         {/* Subtotal - col-span-2 */}
         <div className="col-span-2 text-center">
           <Text strong className="text-red-500">
-            楼{item.subtotal.toFixed(2)}
+            ￥{item.subtotal.toFixed(2)}
           </Text>
         </div>
 
         {/* Actions - col-span-1 */}
         <div className="col-span-1 text-center">
           <Popconfirm
-            title="纭畾瑕佸垹闄ゆ鍟嗗搧鍚楋紵"
+            title="确定要删除此商品吗？"
             onConfirm={() => onRemove(item.sku_id)}
-            okText="纭畾"
-            cancelText="鍙栨秷"
+            okText="确定"
+            cancelText="取消"
           >
             <Button
               type="text"
               danger
               icon={<DeleteOutlined />}
               size="small"
-              aria-label="鍒犻櫎鍟嗗搧"
+              aria-label="删除商品"
             />
           </Popconfirm>
         </div>
@@ -440,7 +440,7 @@ function CartItemRow({
             {sku?.image_url ? (
               <Image
                 src={sku.image_url}
-                alt={sku.sku_code || '鍟嗗搧鍥剧墖'}
+                alt={sku.sku_code || '商品图片'}
                 width={80}
                 height={80}
                 className="object-cover"
@@ -461,17 +461,17 @@ function CartItemRow({
                 {sku?.sku_code || `SKU #${item.sku_id}`}
               </Text>
               <Popconfirm
-                title="纭畾瑕佸垹闄ゆ鍟嗗搧鍚楋紵"
+                title="确定要删除此商品吗？"
                 onConfirm={() => onRemove(item.sku_id)}
-                okText="纭畾"
-                cancelText="鍙栨秷"
+                okText="确定"
+                cancelText="取消"
               >
                 <Button
                   type="text"
                   danger
                   icon={<DeleteOutlined />}
                   size="small"
-                  aria-label="鍒犻櫎鍟嗗搧"
+                  aria-label="删除商品"
                 />
               </Popconfirm>
             </div>
@@ -490,7 +490,7 @@ function CartItemRow({
             {/* Price and Quantity Row */}
             <div className="flex items-center justify-between mt-3">
               <Text strong className="text-red-500 text-sm">
-                楼{item.unit_price.toFixed(2)}
+                ￥{item.unit_price.toFixed(2)}
               </Text>
 
               <div className="flex items-center gap-1">
@@ -499,7 +499,7 @@ function CartItemRow({
                   icon={<MinusOutlined />}
                   disabled={item.quantity <= 1 || isUpdating || isOutOfStock}
                   onClick={() => onQuantityChange(item.sku_id, item.quantity - 1)}
-                  aria-label="鍑忓皯鏁伴噺"
+                  aria-label="减少数量"
                 />
                 <InputNumber
                   min={1}
@@ -516,7 +516,7 @@ function CartItemRow({
                   icon={<PlusOutlined />}
                   disabled={item.quantity >= maxQuantity || isUpdating || isOutOfStock}
                   onClick={() => onQuantityChange(item.sku_id, item.quantity + 1)}
-                  aria-label="澧炲姞鏁伴噺"
+                  aria-label="增加数量"
                 />
               </div>
             </div>
@@ -524,9 +524,9 @@ function CartItemRow({
             {/* Subtotal */}
             <div className="flex justify-end mt-1">
               <Text type="secondary" className="text-xs">
-                灏忚锛?
+                小计：
                 <Text strong className="text-red-500 text-sm">
-                  楼{item.subtotal.toFixed(2)}
+                  ￥{item.subtotal.toFixed(2)}
                 </Text>
               </Text>
             </div>

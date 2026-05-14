@@ -87,8 +87,11 @@ func setupRoutes(
 		// Public announcements endpoint (Requirement 26.5, 26.6)
 		v1.GET("/announcements", announcementHandler.GetActiveAnnouncements)
 
-		// Cart routes (public - supports both guests and authenticated users)
-		cart := v1.Group("/cart")
+		// Cart routes (public - supports both guests and authenticated users).
+		// OptionalAuth attaches the user_id when a Bearer token is present
+		// so the cart handler can key carts by user instead of session
+		// cookie for signed-in shoppers.
+		cart := v1.Group("/cart", middleware.OptionalAuth(authService))
 		{
 			cart.POST("/items", cartHandler.AddToCart)
 			cart.GET("", cartHandler.GetCart)
@@ -134,6 +137,13 @@ func setupRoutes(
 			payments.POST("/webhook/stripe", paymentHandler.StripeWebhook)
 			payments.POST("/transfer/upload", paymentHandler.UploadTransferProof)
 		}
+
+		// Public analytics event ingestion. Accepts product_view, homepage_view,
+		// add_to_cart, checkout_start events from the storefront so we can
+		// build conversion funnel reports without needing a separate tracking
+		// domain (Requirement 29.1). OptionalAuth attaches the user_id when
+		// the caller is signed in.
+		v1.POST("/analytics/track", middleware.OptionalAuth(authService), analyticsHandler.Track)
 
 		// Admin routes
 		// Admin login (public - no auth required)

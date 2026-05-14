@@ -177,6 +177,11 @@ type AnalyticsService interface {
 
 	// GetOrderStatusDistribution returns order status distribution (Req 29.5).
 	GetOrderStatusDistribution(ctx context.Context, params *DateRangeParams) ([]StatusDistribution, error)
+
+	// TrackEvent records a single analytics event (Req 28.4, 29.1). It is
+	// fire-and-forget from the caller's perspective: failures are logged
+	// but never block the user-facing request that triggered the event.
+	TrackEvent(ctx context.Context, event *models.AnalyticsEvent) error
 }
 
 // analyticsService implements AnalyticsService using GORM.
@@ -664,4 +669,21 @@ func (s *analyticsService) GetOrderStatusDistribution(ctx context.Context, param
 	}
 
 	return distributions, nil
+}
+
+// TrackEvent persists an analytics event. See interface docs for semantics.
+func (s *analyticsService) TrackEvent(ctx context.Context, event *models.AnalyticsEvent) error {
+	if event == nil {
+		return fmt.Errorf("event is required")
+	}
+	if event.EventType == "" {
+		return fmt.Errorf("event_type is required")
+	}
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now()
+	}
+	if event.Metadata == "" {
+		event.Metadata = "{}"
+	}
+	return s.eventRepo.Create(ctx, event)
 }

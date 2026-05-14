@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Badge, Input, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -12,21 +13,47 @@ import {
 } from '@ant-design/icons';
 import Navigation from './Navigation';
 import MobileMenu from './MobileMenu';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useCartStore } from '@/store/useCartStore';
 
 export default function Header() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // TODO: Replace with actual auth state from store
-  const isAuthenticated = false;
-  const cartItemCount = 0;
+  const { isAuthenticated, user, logout, loadUser } = useAuthStore();
+  const cartItemCount = useCartStore((s) => s.totalItems);
 
-  const userMenuItems: MenuProps['items'] = isAuthenticated
+  // Avoid hydration mismatch: Zustand persist populates on the client only,
+  // so we keep the first render as the "logged out" shape and swap once
+  // mounted. Without this, the server-rendered header would briefly show
+  // the login/register items even for logged-in users.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Refresh user profile on first mount when we have a token but no user
+  // object yet (e.g. after a hard refresh).
+  useEffect(() => {
+    if (mounted && isAuthenticated && !user) {
+      loadUser().catch(() => { /* noop */ });
+    }
+  }, [mounted, isAuthenticated, user, loadUser]);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
+  const showAuthed = mounted && isAuthenticated;
+
+  const userMenuItems: MenuProps['items'] = showAuthed
     ? [
         { key: 'profile', label: <Link href="/profile">个人中心</Link> },
         { key: 'orders', label: <Link href="/orders">我的订单</Link> },
         { type: 'divider' },
-        { key: 'logout', label: '退出登录' },
+        { key: 'logout', label: <span onClick={handleLogout}>退出登录</span> },
       ]
     : [
         { key: 'login', label: <Link href="/login">登录</Link> },
@@ -96,7 +123,7 @@ export default function Header() {
               className="flex items-center justify-center w-11 h-11 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
               aria-label={`购物车${cartItemCount > 0 ? `，${cartItemCount}件商品` : ''}`}
             >
-              <Badge count={cartItemCount} size="small" offset={[-2, 2]}>
+              <Badge count={mounted ? cartItemCount : 0} size="small" offset={[-2, 2]}>
                 <ShoppingCartOutlined className="text-xl text-gray-700" />
               </Badge>
             </Link>

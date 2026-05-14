@@ -79,6 +79,8 @@ export interface SKU {
   attributes: SKUAttribute[];
   image_url?: string;
   is_active: boolean;
+  // Optionally preloaded by backend (e.g. cart items, order items detail).
+  product?: Product;
 }
 
 export interface SKUAttribute {

@@ -348,8 +348,13 @@ function CartItemRow({
           {/* SKU Details */}
           <div className="min-w-0 flex-1">
             <Text strong className="block text-sm truncate">
-              {sku?.sku_code || `SKU #${item.sku_id}`}
+              {sku?.product?.name || sku?.sku_code || `SKU #${item.sku_id}`}
             </Text>
+            {sku?.product?.name && sku?.sku_code && (
+              <Text type="secondary" className="block text-xs mt-0.5 truncate">
+                {sku.sku_code}
+              </Text>
+            )}
 
             {/* SKU Attributes (Requirement 6.7) */}
             {sku?.attributes && sku.attributes.length > 0 && (
@@ -458,7 +463,7 @@ function CartItemRow({
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
               <Text strong className="text-sm truncate block max-w-[200px]">
-                {sku?.sku_code || `SKU #${item.sku_id}`}
+                {sku?.product?.name || sku?.sku_code || `SKU #${item.sku_id}`}
               </Text>
               <Popconfirm
                 title="确定要删除此商品吗？"

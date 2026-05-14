@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 
+	"github.com/digital-store/backend/internal/models"
 	"github.com/digital-store/backend/internal/services"
 	"github.com/digital-store/backend/pkg/response"
 )
@@ -31,6 +32,7 @@ type mockAnalyticsService struct {
 	getCartAbandonmentRateFn        func(context.Context, *services.DateRangeParams) (*services.AbandonmentReport, error)
 	getPaymentMethodDistributionFn  func(context.Context, *services.DateRangeParams) ([]services.MethodDistribution, error)
 	getOrderStatusDistributionFn    func(context.Context, *services.DateRangeParams) ([]services.StatusDistribution, error)
+	trackEventFn                    func(context.Context, *models.AnalyticsEvent) error
 }
 
 func (m *mockAnalyticsService) GetRevenueReport(ctx context.Context, params *services.DateRangeParams) (*services.RevenueReport, error) {
@@ -115,6 +117,13 @@ func (m *mockAnalyticsService) GetOrderStatusDistribution(ctx context.Context, p
 		return m.getOrderStatusDistributionFn(ctx, params)
 	}
 	return []services.StatusDistribution{}, nil
+}
+
+func (m *mockAnalyticsService) TrackEvent(ctx context.Context, event *models.AnalyticsEvent) error {
+	if m.trackEventFn != nil {
+		return m.trackEventFn(ctx, event)
+	}
+	return nil
 }
 
 // newAnalyticsTestRouter sets up a gin engine with the response middleware

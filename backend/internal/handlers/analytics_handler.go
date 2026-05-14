@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/digital-store/backend/internal/models"
 	"github.com/digital-store/backend/internal/services"
 	"github.com/digital-store/backend/pkg/response"
 )
@@ -554,4 +556,87 @@ func (h *AnalyticsHandler) GetStatusDistribution(c *gin.Context) {
 	}
 
 	response.Success(c, distribution)
+}
+
+// trackEventRequest is the public payload accepted by POST /analytics/track.
+type trackEventRequest struct {
+	EventType string                 `json:"event_type" binding:"required"`
+	SessionID string                 `json:"session_id"`
+	ProductID *uint                  `json:"product_id"`
+	SKUID     *uint                  `json:"sku_id"`
+	Metadata  map[string]interface{} `json:"metadata"`
+}
+
+// allowedPublicEventTypes restricts what clients can send via the public
+// analytics/track endpoint. Keeps attackers from flooding the pipeline with
+// arbitrary event types or impersonating server-generated events like
+// order_complete. Server-side events (order creation, payment success) are
+// still recorded internally by the services that own those flows.
+var allowedPublicEventTypes = map[string]struct{}{
+	"homepage_view":   {},
+	"product_view":    {},
+	"add_to_cart":     {},
+	"remove_from_cart": {},
+	"checkout_start":  {},
+}
+
+// Track handles POST /api/v1/analytics/track.
+//
+// This endpoint is public (guests can send events too) but behind the global
+// rate limiter. Unknown event types are rejected with 400. The handler reads
+// the user ID from context if an auth token is present (OptionalAuth) but
+// otherwise treats the caller as a guest.
+//
+// @Summary      Track a front-end analytics event
+// @Description  Records a single analytics event (product view, add-to-cart, etc.)
+// @Tags         analytics
+// @Accept       json
+// @Produce      json
+// @Param        body body trackEventRequest true "event payload"
+// @Success      202 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Router       /api/v1/analytics/track [post]
+func (h *AnalyticsHandler) Track(c *gin.Context) {
+	var req trackEventRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request", err.Error())
+		return
+	}
+
+	if _, ok := allowedPublicEventTypes[req.EventType]; !ok {
+		response.BadRequest(c, "unsupported event_type", req.EventType)
+		return
+	}
+
+	// User ID is optional. If the auth middleware set it, attach it.
+	var userID *uint
+	if v, ok := c.Get("user_id"); ok {
+		if uid, ok := v.(uint); ok && uid > 0 {
+			userID = &uid
+		}
+	}
+
+	metaJSON := "{}"
+	if req.Metadata != nil {
+		if b, err := json.Marshal(req.Metadata); err == nil {
+			metaJSON = string(b)
+		}
+	}
+
+	event := &models.AnalyticsEvent{
+		EventType: models.AnalyticsEventType(req.EventType),
+		UserID:    userID,
+		SessionID: req.SessionID,
+		ProductID: req.ProductID,
+		SKUID:     req.SKUID,
+		Metadata:  metaJSON,
+	}
+	if err := h.analyticsService.TrackEvent(c.Request.Context(), event); err != nil {
+		// Never fail the caller over analytics; log-and-accept keeps the
+		// user flow smooth. The global error logger already captures the
+		// underlying DB error.
+		response.Success(c, gin.H{"accepted": false})
+		return
+	}
+	response.Success(c, gin.H{"accepted": true})
 }

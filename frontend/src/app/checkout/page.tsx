@@ -62,11 +62,15 @@ export default function CheckoutPage() {
 
       setSubmitting(true);
 
-      // Create order via API (Requirement 7.1, 8.5)
+      // Create order via API (Requirement 7.1, 8.5).
+      // Field names match the backend's createOrderRequest: guest_name,
+      // guest_email, guest_phone, shipping_address. We send them for both
+      // authenticated and guest checkouts — the backend will attach the
+      // authenticated user's id automatically when a Bearer token is present.
       const orderPayload = {
-        full_name: shippingInfo.full_name,
-        email: shippingInfo.email,
-        phone: shippingInfo.phone,
+        guest_name: shippingInfo.full_name,
+        guest_email: shippingInfo.email,
+        guest_phone: shippingInfo.phone,
         shipping_address: shippingInfo.address,
         payment_method: paymentMethod,
         items: items.map((item) => ({

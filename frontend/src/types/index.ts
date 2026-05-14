@@ -103,9 +103,18 @@ export interface Cart {
 
 export interface CartItem {
   id: number;
-  cart_id: number;
+  cart_id?: number;
   sku_id: number;
+  // Optional embedded SKU (used for guest cart items stored client-side).
   sku?: SKU;
+  // Flat fields populated by the backend's CartItemResponse for authenticated
+  // carts (so the front-end doesn't need a second round-trip to render).
+  sku_code?: string;
+  sku_name?: string;
+  image_url?: string;
+  attributes?: SKUAttribute[];
+  available?: boolean;
+  max_quantity?: number;
   quantity: number;
   unit_price: number;
   subtotal: number;

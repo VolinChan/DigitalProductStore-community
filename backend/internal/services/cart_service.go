@@ -434,10 +434,15 @@ func (s *cartService) getOrCreateCart(ctx context.Context, sessionID string, use
 		return cart, nil
 	}
 
-	// Create new cart
-	cart = &models.Cart{
-		UserID:    userID,
-		SessionID: sessionID,
+	// Create new cart. The DB enforces an XOR check constraint
+	// (chk_carts_user_or_session): exactly one of user_id / session_id
+	// must be NULL. For authenticated users we therefore leave SessionID
+	// empty and let the repository persist it as NULL.
+	cart = &models.Cart{}
+	if userID != nil {
+		cart.UserID = userID
+	} else {
+		cart.SessionID = sessionID
 	}
 	if err := s.cartRepo.Create(ctx, cart); err != nil {
 		return nil, err

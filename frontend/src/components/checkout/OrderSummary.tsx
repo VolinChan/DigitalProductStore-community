@@ -36,14 +36,27 @@ export default function OrderSummary({
 
       {/* Items List */}
       <div className="space-y-3 max-h-80 overflow-y-auto">
-        {items.map((item) => (
+        {items.map((item) => {
+          // Display fields can come either from the embedded SKU (guest cart)
+          // or as flat fields on the cart item itself (auth cart, see
+          // CartItemResponse on the backend).
+          const displayName =
+            item.sku?.product?.name ||
+            item.sku_name ||
+            item.sku?.sku_code ||
+            item.sku_code ||
+            `SKU #${item.sku_id}`;
+          const displayImage = item.image_url || item.sku?.image_url;
+          const displayAttrs = item.attributes || item.sku?.attributes;
+
+          return (
           <div key={item.sku_id} className="flex gap-3 items-center">
             {/* Item Image */}
             <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-              {item.sku?.image_url ? (
+              {displayImage ? (
                 <Image
-                  src={item.sku.image_url}
-                  alt={item.sku.sku_code || '商品'}
+                  src={displayImage}
+                  alt={displayName}
                   width={48}
                   height={48}
                   className="object-cover"
@@ -60,11 +73,11 @@ export default function OrderSummary({
             {/* Item Details */}
             <div className="flex-1 min-w-0">
               <Text className="text-sm block truncate">
-                {item.sku?.sku_code || `SKU #${item.sku_id}`}
+                {displayName}
               </Text>
-              {item.sku?.attributes && item.sku.attributes.length > 0 && (
+              {displayAttrs && displayAttrs.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-0.5">
-                  {item.sku.attributes.map((attr) => (
+                  {displayAttrs.map((attr) => (
                     <Tag key={attr.id} className="text-xs !m-0 !px-1">
                       {attr.name}: {attr.value}
                     </Tag>
@@ -83,7 +96,8 @@ export default function OrderSummary({
               </Text>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <Divider className="!my-4" />

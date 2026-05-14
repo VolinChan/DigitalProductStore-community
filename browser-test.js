@@ -253,19 +253,19 @@ async function runPurchaseFlow() {
   // 4. Go to checkout, fill in form, choose transfer payment
   await page.goto(`${BASE}/checkout`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2500);
-  // Fill form fields if visible
-  const firstNameInput = page.locator('input[id*="name" i], input[placeholder*="姓名"], #full_name, #guest_name').first();
-  if (await firstNameInput.isVisible().catch(() => false)) {
-    await firstNameInput.fill('Buyer User');
-  }
-  const phoneInput = page.locator('input[id*="phone" i], input[placeholder*="电话"]').first();
-  if (await phoneInput.isVisible().catch(() => false)) {
-    await phoneInput.fill('+8612345678901');
-  }
-  const addrInput = page.locator('textarea, input[id*="address" i], input[placeholder*="地址"]').first();
-  if (await addrInput.isVisible().catch(() => false)) {
-    await addrInput.fill('Demo Address 1, Test City');
-  }
+  // ShippingForm uses antd Form fields named full_name / email / phone / address,
+  // which antd renders with matching DOM ids. Fill them directly so the form
+  // validation passes regardless of whether the user profile pre-filled.
+  const fillIfVisible = async (selector, value) => {
+    const loc = page.locator(selector).first();
+    if (await loc.isVisible().catch(() => false)) {
+      await loc.fill(value);
+    }
+  };
+  await fillIfVisible('#full_name', 'Buyer User');
+  await fillIfVisible('#email', buyerEmail);
+  await fillIfVisible('#phone', '+8612345678901');
+  await fillIfVisible('#address', 'Demo Address 1, Test City');
   // Try to pick "转账支付" radio
   await page.locator('label, .ant-radio-button-wrapper').filter({ hasText: '转账' }).first().click().catch(() => {});
   await page.waitForTimeout(500);
@@ -273,11 +273,43 @@ async function runPurchaseFlow() {
   // Click submit (text varies: 提交订单 / 立即下单 / 确认下单)
   const submitBtn = page.locator('button').filter({ hasText: /提交订单|立即下单|确认下单|下单|提交/ }).first();
   let submittedOrderNumber = null;
+  let submitDiagnostic = '';
   if (await submitBtn.isVisible().catch(() => false)) {
+    const tokenAtSubmit = await page.evaluate(() => {
+      const t = localStorage.getItem('access_token');
+      return { hasToken: !!t, len: t?.length || 0 };
+    });
+
+    // Capture the network response for /orders so we can see the failure
+    // mode if the order doesn't go through.
+    const orderRequestPromise = page.waitForRequest(
+      (r) => r.url().endsWith('/api/v1/orders') && r.method() === 'POST',
+      { timeout: 8000 },
+    ).catch(() => null);
+    const orderResponsePromise = page.waitForResponse(
+      (r) => r.url().endsWith('/api/v1/orders') && r.request().method() === 'POST',
+      { timeout: 8000 },
+    ).catch(() => null);
+
     await submitBtn.click();
+    const orderReq = await orderRequestPromise;
+    const orderResp = await orderResponsePromise;
+    const reqAuth = orderReq ? (orderReq.headers().authorization || orderReq.headers().Authorization || 'NONE') : 'NO_REQUEST';
+    if (orderResp) {
+      const status = orderResp.status();
+      let bodyText = '';
+      try { bodyText = (await orderResp.text()).slice(0, 200); } catch {}
+      submitDiagnostic = `tokenAtSubmit=${JSON.stringify(tokenAtSubmit)} reqAuth=${reqAuth.slice(0,30)} POST /orders -> ${status} body=${bodyText}`;
+    } else {
+      const formIssues = await page.evaluate(() => {
+        const errs = Array.from(document.querySelectorAll('.ant-form-item-explain-error'))
+          .map((el) => (el.textContent || '').trim())
+          .filter(Boolean);
+        return errs.join(' | ');
+      });
+      submitDiagnostic = `tokenAtSubmit=${JSON.stringify(tokenAtSubmit)} no /orders POST observed; formErrors=${formIssues || 'none'}`;
+    }
     await page.waitForTimeout(4000);
-    // After submit: either redirected to /checkout/payment or /orders/<id>; also localStorage might
-    // have order info. Easiest is to read order list via API using the auth token we already have.
     submittedOrderNumber = await page.evaluate(async () => {
       try {
         const token = localStorage.getItem('access_token');
@@ -290,7 +322,7 @@ async function runPurchaseFlow() {
       }
     });
   }
-  flowCheck('order created via UI checkout', !!submittedOrderNumber, `orderNo=${submittedOrderNumber}`);
+  flowCheck('order created via UI checkout', !!submittedOrderNumber, `orderNo=${submittedOrderNumber} :: ${submitDiagnostic}`);
 
   await ctx.close();
 
@@ -313,12 +345,17 @@ async function runPurchaseFlow() {
       `tokenLen=${adminToken?.length}`);
 
     // Visit /admin/orders to verify the new order is visible in the admin list
+    const adminUrlTrace = [];
+    adminPage.on('framenavigated', (frame) => {
+      if (frame === adminPage.mainFrame()) adminUrlTrace.push(frame.url());
+    });
     await adminPage.goto(`${BASE}/admin/orders`, { waitUntil: 'domcontentloaded' });
-    await adminPage.waitForTimeout(3000);
+    await adminPage.waitForTimeout(3500);
+    const adminOrdersURL = adminPage.url();
     const adminOrdersText = await adminPage.evaluate(() => document.body.innerText);
     flowCheck('admin orders page lists the new order',
       adminOrdersText.includes(submittedOrderNumber) || adminOrdersText.includes('演示手机'),
-      `sample=${adminOrdersText.replace(/\s+/g, ' ').slice(0, 250)}`);
+      `url=${adminOrdersURL} trace=${adminUrlTrace.join(' -> ')} sample=${adminOrdersText.replace(/\s+/g, ' ').slice(0, 200)}`);
 
     await adminCtx.close();
   }

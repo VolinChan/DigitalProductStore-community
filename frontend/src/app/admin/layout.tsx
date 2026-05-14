@@ -91,14 +91,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     setMounted(true);
-    if (!isAuthenticated) {
-      router.replace('/login?redirect=/admin');
+    // Zustand's persist middleware rehydrates after the first render, which
+    // means `isAuthenticated` is briefly false even when the user is in fact
+    // logged in (token sitting in localStorage). Check the raw token first
+    // so we don't bounce admins to /login on a hard navigation to a deep
+    // /admin/* URL. If there is no token at all, send them to /login while
+    // preserving the intended destination so we can come back here.
+    const hasStoredToken = typeof window !== 'undefined' && !!window.localStorage.getItem('access_token');
+    if (!isAuthenticated && !hasStoredToken) {
+      const redirectTarget = pathname && pathname.startsWith('/admin') ? pathname : '/admin';
+      router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
       return;
     }
     if (!user) {
       loadUser();
     }
-  }, [isAuthenticated, user, router, loadUser]);
+  }, [isAuthenticated, user, router, loadUser, pathname]);
 
   useEffect(() => {
     if (user && !['super_admin', 'product_manager', 'order_manager'].includes(user.role)) {

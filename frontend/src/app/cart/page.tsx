@@ -317,8 +317,15 @@ function CartItemRow({
   onRemove,
 }: CartItemRowProps) {
   const sku = item.sku;
-  const maxQuantity = sku ? sku.inventory : 99;
-  const isOutOfStock = sku ? sku.inventory <= 0 : false;
+  // Fields can come either from the embedded SKU (guest cart) or as flat
+  // fields on the cart item itself (authenticated cart, see CartItemResponse).
+  const displayName = sku?.product?.name || item.sku_name || sku?.sku_code || item.sku_code || `SKU #${item.sku_id}`;
+  const displayCode = item.sku_code || sku?.sku_code;
+  const displayImage = item.image_url || sku?.image_url;
+  const displayAttrs = item.attributes || sku?.attributes;
+  const inventoryQty = item.max_quantity ?? sku?.inventory ?? 99;
+  const maxQuantity = inventoryQty;
+  const isOutOfStock = item.available === false || inventoryQty <= 0;
 
   return (
     <div className="p-4">
@@ -328,10 +335,10 @@ function CartItemRow({
         <div className="col-span-5 flex gap-3">
           {/* SKU Image (Requirement 6.7) */}
           <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
-            {sku?.image_url ? (
+            {displayImage ? (
               <Image
-                src={sku.image_url}
-                alt={sku.sku_code || '商品图片'}
+                src={displayImage}
+                alt={displayCode || displayName}
                 width={80}
                 height={80}
                 className="object-cover"
@@ -348,18 +355,18 @@ function CartItemRow({
           {/* SKU Details */}
           <div className="min-w-0 flex-1">
             <Text strong className="block text-sm truncate">
-              {sku?.product?.name || sku?.sku_code || `SKU #${item.sku_id}`}
+              {displayName}
             </Text>
-            {sku?.product?.name && sku?.sku_code && (
+            {displayCode && displayCode !== displayName && (
               <Text type="secondary" className="block text-xs mt-0.5 truncate">
-                {sku.sku_code}
+                {displayCode}
               </Text>
             )}
 
             {/* SKU Attributes (Requirement 6.7) */}
-            {sku?.attributes && sku.attributes.length > 0 && (
+            {displayAttrs && displayAttrs.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
-                {sku.attributes.map((attr) => (
+                {displayAttrs.map((attr) => (
                   <Tag key={attr.id} className="text-xs !m-0">
                     {attr.name}: {attr.value}
                   </Tag>
@@ -442,10 +449,10 @@ function CartItemRow({
         <div className="flex gap-3">
           {/* SKU Image */}
           <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
-            {sku?.image_url ? (
+            {displayImage ? (
               <Image
-                src={sku.image_url}
-                alt={sku.sku_code || '商品图片'}
+                src={displayImage}
+                alt={displayCode || displayName}
                 width={80}
                 height={80}
                 className="object-cover"
@@ -463,7 +470,7 @@ function CartItemRow({
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start">
               <Text strong className="text-sm truncate block max-w-[200px]">
-                {sku?.product?.name || sku?.sku_code || `SKU #${item.sku_id}`}
+                {displayName}
               </Text>
               <Popconfirm
                 title="确定要删除此商品吗？"
@@ -482,9 +489,9 @@ function CartItemRow({
             </div>
 
             {/* SKU Attributes */}
-            {sku?.attributes && sku.attributes.length > 0 && (
+            {displayAttrs && displayAttrs.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
-                {sku.attributes.map((attr) => (
+                {displayAttrs.map((attr) => (
                   <Tag key={attr.id} className="text-xs !m-0">
                     {attr.name}: {attr.value}
                   </Tag>

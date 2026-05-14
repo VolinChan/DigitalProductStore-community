@@ -60,14 +60,16 @@ type UserResponse struct {
 	IsActive bool   `json:"is_active"`
 }
 
-// Register handles user registration
+// Register handles user registration. On success the user is auto-logged-in
+// and a full AuthToken (access + refresh + user) is returned so the frontend
+// can store the credential without a second round-trip.
 // @Summary Register a new user
 // @Description Register a new user account
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "Registration request"
-// @Success 201 {object} response.Response{data=UserResponse}
+// @Success 201 {object} response.Response{data=services.AuthToken}
 // @Failure 400 {object} response.Response
 // @Failure 500 {object} response.Response
 // @Router /api/v1/auth/register [post]
@@ -86,22 +88,22 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Phone:    req.Phone,
 	}
 
-	user, err := h.authService.Register(c.Request.Context(), serviceReq)
-	if err != nil {
+	if _, err := h.authService.Register(c.Request.Context(), serviceReq); err != nil {
 		response.BadRequest(c, err.Error())
 		return
 	}
 
-	userResp := UserResponse{
-		ID:       user.ID,
-		Email:    user.Email,
-		FullName: user.FullName,
-		Phone:    user.Phone,
-		Role:     string(user.Role),
-		IsActive: user.IsActive,
+	// Auto-login the freshly registered user so the front-end gets a token
+	// pair without an extra request. If login fails for any reason (e.g.
+	// post-create lock), surface a 201 with no token rather than failing the
+	// registration outright; the user can log in manually.
+	token, err := h.authService.Login(c.Request.Context(), req.Email, req.Password)
+	if err != nil {
+		response.Created(c, gin.H{"email": req.Email})
+		return
 	}
 
-	response.Created(c, userResp)
+	response.Created(c, token)
 }
 
 // Login handles user login

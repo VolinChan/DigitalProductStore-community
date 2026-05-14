@@ -61,9 +61,20 @@ func NewCartRepository(db *gorm.DB) CartRepository {
 	return &cartRepository{db: db}
 }
 
-// Create creates a new cart
+// Create creates a new cart.
+//
+// The carts table enforces a CHECK constraint that requires exactly one of
+// user_id / session_id to be NULL. The Cart model uses a non-pointer string
+// for SessionID, so GORM's default behavior would persist the Go zero value
+// ("") into the column instead of SQL NULL, which would violate the
+// constraint for authenticated users. We omit the column explicitly when it
+// is empty so the database default of NULL is used.
 func (r *cartRepository) Create(ctx context.Context, cart *models.Cart) error {
-	if err := r.db.WithContext(ctx).Create(cart).Error; err != nil {
+	db := r.db.WithContext(ctx)
+	if cart.SessionID == "" {
+		db = db.Omit("session_id")
+	}
+	if err := db.Create(cart).Error; err != nil {
 		return fmt.Errorf("failed to create cart: %w", err)
 	}
 	return nil
@@ -85,6 +96,8 @@ func (r *cartRepository) GetByID(ctx context.Context, id uint) (*models.Cart, er
 func (r *cartRepository) GetByUserID(ctx context.Context, userID uint) (*models.Cart, error) {
 	var cart models.Cart
 	if err := r.db.WithContext(ctx).
+		Preload("Items.SKU.Attributes").
+		Preload("Items.SKU.Product").
 		Where("user_id = ?", userID).
 		First(&cart).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -99,6 +112,8 @@ func (r *cartRepository) GetByUserID(ctx context.Context, userID uint) (*models.
 func (r *cartRepository) GetBySessionID(ctx context.Context, sessionID string) (*models.Cart, error) {
 	var cart models.Cart
 	if err := r.db.WithContext(ctx).
+		Preload("Items.SKU.Attributes").
+		Preload("Items.SKU.Product").
 		Where("session_id = ?", sessionID).
 		First(&cart).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {

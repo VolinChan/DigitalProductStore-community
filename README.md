@@ -1,6 +1,6 @@
-# Digital Store 数码产品商城
+# Digital Store
 
-一个现代化的全栈数码产品电商平台，采用前后端分离架构，支持游客下单、多种支付方式、SKU 变体管理和数据分析。
+A modern full-stack e-commerce platform for digital products, featuring a decoupled frontend/backend architecture with guest checkout, multiple payment methods, SKU variant management, and analytics.
 
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
@@ -8,198 +8,200 @@
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
 
-## ✨ 功能特性
+**[中文文档](README_zh.md)**
 
-### 用户端
-- 🛒 **购物车** - 支持游客和登录用户，登录后自动合并购物车
-- 📦 **订单管理** - 完整的订单流程，支持订单追踪
-- 💳 **多种支付** - 在线支付（Stripe）和转账支付
-- 🔍 **商品搜索** - 按分类、关键词搜索商品
-- 📱 **响应式设计** - 适配桌面、平板和移动设备
+## ✨ Features
 
-### 管理端
-- 📊 **数据分析** - 销售报表、热门商品、转化率分析
-- 🏷️ **SKU 管理** - 支持多属性变体（颜色、容量、尺寸等）
-- 📦 **库存管理** - 库存预警、变更日志
-- 🎨 **内容管理** - 轮播图、公告管理
-- 👥 **用户管理** - 多角色权限控制
+### Customer Features
+- 🛒 **Shopping Cart** - Works for guests and logged-in users, auto-merges on login
+- 📦 **Order Management** - Complete order workflow with tracking
+- 💳 **Multiple Payments** - Online payment (Stripe) and bank transfer
+- 🔍 **Product Search** - Search by category and keywords
+- 📱 **Responsive Design** - Desktop, tablet, and mobile friendly
 
-## 🏗️ 技术架构
+### Admin Features
+- 📊 **Analytics** - Sales reports, top products, conversion analysis
+- 🏷️ **SKU Management** - Multi-attribute variants (color, capacity, size, etc.)
+- 📦 **Inventory Management** - Low stock alerts, change logs
+- 🎨 **Content Management** - Banners and announcements
+- 👥 **User Management** - Role-based access control
+
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Nginx (反向代理)                       │
+│                     Nginx (Reverse Proxy)                    │
 ├─────────────────────────────┬───────────────────────────────┤
-│      Next.js 前端 (:3000)    │       Go API 后端 (:8080)      │
+│    Next.js Frontend (:3000)  │      Go API Backend (:8080)   │
 ├─────────────────────────────┴───────────────────────────────┤
 │                    PostgreSQL + Redis                        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-| 层级 | 技术栈 |
-|------|--------|
-| 前端 | Next.js 14, React 18, Ant Design 5, Zustand, Tailwind CSS |
-| 后端 | Go, Gin, GORM, JWT |
-| 数据库 | PostgreSQL 14, Redis 7 |
-| 监控 | Prometheus, Grafana |
-| 部署 | Docker, Docker Compose, Nginx |
+| Layer | Tech Stack |
+|-------|------------|
+| Frontend | Next.js 14, React 18, Ant Design 5, Zustand, Tailwind CSS |
+| Backend | Go, Gin, GORM, JWT |
+| Database | PostgreSQL 14, Redis 7 |
+| Monitoring | Prometheus, Grafana |
+| Deployment | Docker, Docker Compose, Nginx |
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 环境要求
+### Prerequisites
 
 - Docker & Docker Compose
 - Git
 
-### 一键启动
+### One-Command Setup
 
 ```bash
-# 克隆项目
+# Clone the repository
 git clone https://github.com/vigoordi/DigitalProductStore.git
-cd digital-store
+cd DigitalProductStore
 
-# 复制环境变量配置
+# Copy environment configuration
 cp .env.example .env
 
-# 启动所有服务
+# Start all services
 docker-compose up -d
 ```
 
-启动完成后访问：
-- 🌐 商城前端: http://localhost
-- 📡 API 文档: http://localhost/api/swagger/index.html
+Once started, access:
+- 🌐 Store Frontend: http://localhost
+- 📡 API Docs: http://localhost/api/swagger/index.html
 - 📊 Grafana: http://localhost:3001 (admin/admin)
 - 📈 Prometheus: http://localhost:9090
 
-### 默认管理员账号
+### Default Admin Account
 
-启用 `SEED_DEMO_DATA=true`（默认）后会创建演示数据：
+With `SEED_DEMO_DATA=true` (default), demo data is created:
 
-| 邮箱 | 密码 | 角色 |
-|------|------|------|
+| Email | Password | Role |
+|-------|----------|------|
 | admin@demo.local | Admin@1234 | super_admin |
 
-## 📁 项目结构
+## 📁 Project Structure
 
 ```
-digital-store/
-├── backend/                 # Go 后端服务
-│   ├── cmd/api/            # 应用入口
+DigitalProductStore/
+├── backend/                 # Go backend service
+│   ├── cmd/api/            # Application entry point
 │   ├── internal/
-│   │   ├── config/         # 配置管理
-│   │   ├── database/       # 数据库连接和迁移
-│   │   ├── handlers/       # HTTP 处理器
-│   │   ├── middleware/     # 中间件（认证、日志等）
-│   │   ├── models/         # 数据模型
-│   │   ├── repositories/   # 数据访问层
-│   │   └── services/       # 业务逻辑层
-│   └── api/openapi/        # Swagger 文档
-├── frontend/               # Next.js 前端应用
+│   │   ├── config/         # Configuration
+│   │   ├── database/       # Database connection & migrations
+│   │   ├── handlers/       # HTTP handlers
+│   │   ├── middleware/     # Middleware (auth, logging, etc.)
+│   │   ├── models/         # Data models
+│   │   ├── repositories/   # Data access layer
+│   │   └── services/       # Business logic layer
+│   └── api/openapi/        # Swagger documentation
+├── frontend/               # Next.js frontend app
 │   ├── src/
-│   │   ├── app/           # App Router 页面
-│   │   ├── components/    # React 组件
-│   │   ├── lib/           # 工具函数和 API 客户端
-│   │   └── stores/        # Zustand 状态管理
-│   └── public/            # 静态资源
-├── nginx/                  # Nginx 配置
-├── monitoring/             # Prometheus & Grafana 配置
-├── scripts/                # 部署和维护脚本
-└── docker-compose.yml      # Docker 编排配置
+│   │   ├── app/           # App Router pages
+│   │   ├── components/    # React components
+│   │   ├── lib/           # Utilities and API client
+│   │   └── stores/        # Zustand state management
+│   └── public/            # Static assets
+├── nginx/                  # Nginx configuration
+├── monitoring/             # Prometheus & Grafana config
+├── scripts/                # Deployment and maintenance scripts
+└── docker-compose.yml      # Docker orchestration
 ```
 
-## ⚙️ 环境变量
+## ⚙️ Environment Variables
 
-主要配置项（完整配置见 `.env.example`）：
+Key configuration options (see `.env.example` for full list):
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `APP_ENV` | 运行环境 | development |
-| `DB_USER` | 数据库用户 | postgres |
-| `DB_PASSWORD` | 数据库密码 | postgres |
-| `JWT_SECRET` | JWT 密钥 | change-me-in-production |
-| `STRIPE_SECRET_KEY` | Stripe 密钥 | - |
-| `SEED_DEMO_DATA` | 是否创建演示数据 | true |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_ENV` | Runtime environment | development |
+| `DB_USER` | Database user | postgres |
+| `DB_PASSWORD` | Database password | postgres |
+| `JWT_SECRET` | JWT secret key | change-me-in-production |
+| `STRIPE_SECRET_KEY` | Stripe API key | - |
+| `SEED_DEMO_DATA` | Create demo data | true |
 
-## 🔌 API 概览
+## 🔌 API Overview
 
-### 公开接口
+### Public Endpoints
 ```
-GET    /api/v1/products          # 商品列表
-GET    /api/v1/products/:id      # 商品详情
-GET    /api/v1/categories        # 分类列表
-POST   /api/v1/cart/items        # 添加购物车
-POST   /api/v1/orders            # 创建订单
-POST   /api/v1/auth/register     # 用户注册
-POST   /api/v1/auth/login        # 用户登录
-```
-
-### 管理接口 (需认证)
-```
-POST   /api/v1/admin/products    # 创建商品
-PUT    /api/v1/admin/orders/:id  # 更新订单状态
-GET    /api/v1/admin/analytics   # 数据分析
+GET    /api/v1/products          # Product list
+GET    /api/v1/products/:id      # Product details
+GET    /api/v1/categories        # Category list
+POST   /api/v1/cart/items        # Add to cart
+POST   /api/v1/orders            # Create order
+POST   /api/v1/auth/register     # User registration
+POST   /api/v1/auth/login        # User login
 ```
 
-完整 API 文档请访问 `/api/swagger/index.html`
+### Admin Endpoints (Auth Required)
+```
+POST   /api/v1/admin/products    # Create product
+PUT    /api/v1/admin/orders/:id  # Update order status
+GET    /api/v1/admin/analytics   # Analytics data
+```
 
-## 🧪 开发指南
+Full API documentation available at `/api/swagger/index.html`
 
-### 本地开发（不使用 Docker）
+## 🧪 Development
 
-**后端：**
+### Local Development (Without Docker)
+
+**Backend:**
 ```bash
 cd backend
 cp .env.example .env
-# 编辑 .env 配置数据库连接
+# Edit .env with your database connection
 go run ./cmd/api
 ```
 
-**前端：**
+**Frontend:**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### 运行测试
+### Running Tests
 
 ```bash
-# 后端测试
+# Backend tests
 cd backend
 go test ./...
 
-# 前端 lint
+# Frontend lint
 cd frontend
 npm run lint
 ```
 
-## 📊 监控
+## 📊 Monitoring
 
-项目集成了 Prometheus + Grafana 监控：
+The project includes Prometheus + Grafana monitoring:
 
-- **Prometheus** 收集 API 性能指标
-- **Grafana** 提供可视化仪表板
+- **Prometheus** collects API performance metrics
+- **Grafana** provides visualization dashboards
 
-预配置的监控指标：
-- HTTP 请求延迟和吞吐量
-- 数据库连接池状态
-- Redis 缓存命中率
-- 订单和支付成功率
+Pre-configured metrics:
+- HTTP request latency and throughput
+- Database connection pool status
+- Redis cache hit rate
+- Order and payment success rates
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交 Issue 和 Pull Request！
+Contributions are welcome!
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 提交 Pull Request
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 📄 许可证
+## 📄 License
 
 [MIT License](LICENSE)
 
 ---
 
-如有问题或建议，欢迎 [提交 Issue](https://github.com/vigoordi/DigitalProductStore/issues)。
+Questions or suggestions? [Open an issue](https://github.com/vigoordi/DigitalProductStore/issues).

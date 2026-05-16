@@ -1,3 +1,130 @@
-.kiro/*
-.vscode
+# =========================================================
+# Root .gitignore — protects secrets and noisy artifacts
+# Subprojects (backend/, frontend/) have their own ignores.
+# =========================================================
+
+# ---- Secrets & environment ----
+# Ignore every .env variant, but keep the *.example templates.
 .env
+.env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+!**/.env.*.example
+
+# Common secret / credential files
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+secrets/
+secrets.*
+credentials.json
+service-account*.json
+*.gpg
+*.asc
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+known_hosts
+
+# TLS / nginx
+nginx/ssl/*
+!nginx/ssl/.gitkeep
+!nginx/ssl/README.md
+
+# ---- Backups & dumps ----
+scripts/backup/*
+!scripts/backup/.gitkeep
+backups/
+*.bak
+*.backup
+*.dump
+*.sql.gz
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
+# ---- IDE / editor ----
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.history/
+
+# Kiro workspace state (specs/personal settings)
+.kiro/
+
+# ---- OS noise ----
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+
+# ---- Logs ----
+logs/
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Test / coverage artifacts ----
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+.playwright/
+test-output/
+
+# ---- Node / frontend build (root-level safety net) ----
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# ---- Go / backend (root-level safety net) ----
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# ---- Docker / runtime volumes ----
+*.pid
+*.seed
+*.sock
+postgres-data/
+redis-data/
+grafana-data/
+prometheus-data/
+data/
+volumes/
+uploads/
+
+# ---- Temp ----
+tmp/
+temp/
+*.tmp
+
+# ---- Local helper scripts that may contain secrets ----
+*.local.ps1
+*.local.sh
+.local/

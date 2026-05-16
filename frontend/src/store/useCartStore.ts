@@ -210,28 +210,45 @@ export const useCartStore = create<CartStore>()(
       /**
        * Merge guest cart with authenticated user's cart after login.
        * Implements Requirement 6.4 - persist cart data for authenticated users.
-       * Guest items are sent to the backend which handles the merge logic.
+       *
+       * Guest items live in localStorage (not on the backend) because the
+       * cart store keeps them client-side for guests. After login we push
+       * each guest item to the backend with the auth token so it lands in
+       * the user's cart, then call /cart/merge so any cookie-based guest
+       * cart on the server side is also folded in.
        */
       mergeGuestCart: async () => {
         const { isAuthenticated } = useAuthStore.getState();
-        const { items } = get();
+        if (!isAuthenticated) return;
 
-        if (!isAuthenticated || items.length === 0) return;
+        const localItems = get().items;
 
         set({ isLoading: true });
         try {
-          // Send guest cart items to backend for merging
-          const guestItems = items.map((item) => ({
-            sku_id: item.sku_id,
-            quantity: item.quantity,
-          }));
+          // Push each locally-stored guest item to the backend cart.
+          for (const item of localItems) {
+            try {
+              await apiClient.post('/cart/items', {
+                sku_id: item.sku_id,
+                quantity: item.quantity,
+              });
+            } catch {
+              // Ignore individual failures (out of stock, sku gone, etc.)
+              // so a single bad item doesn't abort the whole merge.
+            }
+          }
 
-          await apiClient.post('/cart/merge', { items: guestItems });
+          // Fold in any server-side guest cart keyed by session cookie.
+          // The endpoint is no-op when no guest cart exists.
+          try {
+            await apiClient.post('/cart/merge');
+          } catch {
+            // Best-effort
+          }
 
-          // Fetch the merged cart from backend
+          // Refresh from backend so totals reflect the authoritative state.
           await get().fetchCart();
         } catch {
-          // If merge fails, still fetch the server cart
           await get().fetchCart();
         }
       },

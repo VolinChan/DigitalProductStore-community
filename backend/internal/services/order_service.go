@@ -987,8 +987,12 @@ func (s *orderService) AdminUpdateOrderStatus(
 		if err := s.orderRepo.UpdateStatus(txCtx, orderID, req.Status); err != nil {
 			return fmt.Errorf("failed to update order status: %w", err)
 		}
-		// Persist shipping details when transitioning to shipped.
+		// Persist shipping details when transitioning to shipped. We mirror
+		// the new status into the in-memory order before calling Update so
+		// GORM's struct-based Updates() doesn't overwrite the just-saved
+		// status with the older "pending_shipment" value.
 		if req.Status == models.OrderStatusShipped {
+			order.Status = req.Status
 			order.ShippingCarrier = strings.TrimSpace(req.ShippingCarrier)
 			order.TrackingNumber = strings.TrimSpace(req.TrackingNumber)
 			if err := s.orderRepo.Update(txCtx, order); err != nil {

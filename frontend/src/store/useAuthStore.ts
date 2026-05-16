@@ -54,6 +54,16 @@ export const useAuthStore = create<AuthStore>()(
 
           // Load user profile after login
           await get().loadUser();
+
+          // Fold any guest-cart contents into the now-authenticated cart.
+          // Imported lazily to avoid a circular dependency between the auth
+          // and cart stores.
+          try {
+            const { useCartStore } = await import('./useCartStore');
+            await useCartStore.getState().mergeGuestCart();
+          } catch {
+            // Cart merge is best-effort; never block login on it.
+          }
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -79,6 +89,14 @@ export const useAuthStore = create<AuthStore>()(
 
           // Load user profile after registration
           await get().loadUser();
+
+          // Same guest-cart merge dance as login.
+          try {
+            const { useCartStore } = await import('./useCartStore');
+            await useCartStore.getState().mergeGuestCart();
+          } catch {
+            // Best-effort.
+          }
         } catch (error) {
           set({ isLoading: false });
           throw error;

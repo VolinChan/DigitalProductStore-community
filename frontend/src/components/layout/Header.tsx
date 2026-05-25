@@ -15,6 +15,7 @@ import Navigation from './Navigation';
 import MobileMenu from './MobileMenu';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Header() {
   const router = useRouter();
@@ -119,14 +120,17 @@ export default function Header() {
 
             {/* Cart */}
             <Link
+              id="cart-icon-header"
               href="/cart"
-              className="flex items-center justify-center w-11 h-11 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-center w-11 h-11 rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               aria-label={`购物车${cartItemCount > 0 ? `，${cartItemCount}件商品` : ''}`}
             >
               <Badge count={mounted ? cartItemCount : 0} size="small" offset={[-2, 2]}>
-                <ShoppingCartOutlined className="text-xl text-gray-700" />
+                <ShoppingCartOutlined className="text-xl" />
               </Badge>
             </Link>
+
+            <ThemeToggle />
 
             {/* User menu */}
             <Dropdown

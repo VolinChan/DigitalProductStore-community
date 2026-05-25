@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { MainLayout } from '@/components/layout';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { AntdThemeProvider } from '@/components/AntdThemeProvider';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -14,11 +17,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body>
-        <AntdRegistry>
-          <MainLayout>{children}</MainLayout>
-        </AntdRegistry>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AntdRegistry>
+            <AntdThemeProvider>
+              <MainLayout>{children}</MainLayout>
+              <Toaster richColors position="top-center" />
+            </AntdThemeProvider>
+          </AntdRegistry>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -2,18 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 255, 255, 255;
-  --background-end-rgb: 255, 255, 255;
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #000000;
+  }
+
+  .dark {
+    --background: #141414;
+    --foreground: #ffffff;
+  }
+
+  body {
+    @apply bg-background text-foreground text-base transition-colors duration-200;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+@layer utilities {
+  .micro-interaction {
+    @apply transition-transform duration-150 active:scale-95 hover:brightness-105;
+  }
+
+  /* Bounce animation for Cart */
+  @keyframes bounce-sm {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-25%); }
+  }
+  .animate-bounce-sm {
+    animation: bounce-sm 0.5s ease-in-out;
+  }
+}
+
+/* Global focus states for Accessibility WCAG 2.1 AA */
+*:focus-visible {
+  outline: 2px solid theme('colors.primary.DEFAULT');
+  outline-offset: 2px;
 }

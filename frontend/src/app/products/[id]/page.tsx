@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Spin, Button, InputNumber, message, Tag, Divider, Typography, Breadcrumb } from 'antd';
+import { Spin, Button, InputNumber, Tag, Divider, Typography, Breadcrumb } from 'antd';
 import { ShoppingCartOutlined, HomeOutlined } from '@ant-design/icons';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import apiClient from '@/lib/api';
 import { useCartStore } from '@/store/useCartStore';
@@ -178,27 +179,39 @@ export default function ProductDetailPage() {
   // Handle add to cart
   const handleAddToCart = async () => {
     if (!selectedSku) {
-      message.warning('请先选择商品规格');
+      toast.warning('请先选择商品规格');
       return;
     }
 
     if (!inventoryStatus.available) {
-      message.error('该商品已售罄');
+      toast.error('该商品已售罄');
       return;
     }
 
     if (quantity > selectedSku.inventory) {
-      message.warning(`库存不足，最多可购买 ${selectedSku.inventory} 件`);
+      toast.warning(`库存不足，最多可购买 ${selectedSku.inventory} 件`);
       return;
     }
 
     setAddingToCart(true);
     try {
       await addToCart(selectedSku, quantity);
-      message.success('已加入购物车');
+      
+      const cartIcon = document.getElementById('cart-icon-header');
+      if (cartIcon) {
+        cartIcon.classList.remove('animate-bounce-sm');
+        // Trigger reflow to restart animation
+        void cartIcon.offsetWidth;
+        cartIcon.classList.add('animate-bounce-sm');
+      }
+
+      toast.success('已加入购物车', {
+        description: `${product?.name} x ${quantity}`,
+        icon: <ShoppingCartOutlined />,
+      });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '加入购物车失败';
-      message.error(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setAddingToCart(false);
     }
@@ -404,6 +417,30 @@ export default function ProductDetailPage() {
           </section>
         )}
       </div>
+      {/* Mobile Sticky Add to Cart Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 flex items-center justify-between">
+        <div>
+          {displayPrice.type === 'exact' ? (
+            <span className="text-xl font-bold text-accent">¥{displayPrice.price.toFixed(2)}</span>
+          ) : displayPrice.type === 'range' ? (
+            <span className="text-xl font-bold text-accent">¥{displayPrice.min.toFixed(2)} - ¥{displayPrice.max.toFixed(2)}</span>
+          ) : (
+             <span className="text-xl font-bold text-secondary">暂无价格</span>
+          )}
+        </div>
+        <Button
+          type="primary"
+          size="large"
+          icon={<ShoppingCartOutlined />}
+          onClick={handleAddToCart}
+          loading={addingToCart}
+          disabled={!inventoryStatus.available}
+          className="w-1/2 !h-12 text-base font-medium rounded-full shadow-md"
+        >
+          加入购物车
+        </Button>
+      </div>
+
     </main>
   );
 }

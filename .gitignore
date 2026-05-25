@@ -62,7 +62,7 @@ backups/
 *~
 .history/
 
-# Kiro workspace state (specs/personal settings)
+# Kiro workspace state
 .kiro/
 
 # ---- OS noise ----

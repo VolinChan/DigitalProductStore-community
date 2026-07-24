@@ -64,7 +64,7 @@ cd DigitalProductStore
 cp .env.example .env
 
 # 启动所有服务
-docker-compose up -d
+docker compose up -d
 ```
 
 启动完成后访问：

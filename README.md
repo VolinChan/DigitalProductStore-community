@@ -64,7 +64,7 @@ cd DigitalProductStore
 cp .env.example .env
 
 # Start all services
-docker-compose up -d
+docker compose up -d
 ```
 
 Once started, access:

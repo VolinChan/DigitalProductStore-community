@@ -128,3 +128,5 @@ temp/
 *.local.ps1
 *.local.sh
 .local/
+
+backend/*

@@ -1,0 +1,9 @@
+# Grafana Nginx Basic Auth Password File
+#
+# Generate it on your VPS:
+#   docker run --rm nginx:alpine sh -c 'printf "admin:$(openssl passwd -apr1)\n"' > nginx/.grafana_passwd
+#
+# Or manually:
+#   htpasswd -nbB grafana_admin_user your_password > nginx/.grafana_passwd
+#
+# Do NOT commit real passwords to git.

@@ -64,6 +64,7 @@ backups/
 
 # Kiro workspace state
 .kiro/
+.claude/
 
 # ---- OS noise ----
 .DS_Store
@@ -128,5 +129,3 @@ temp/
 *.local.ps1
 *.local.sh
 .local/
-
-backend/*

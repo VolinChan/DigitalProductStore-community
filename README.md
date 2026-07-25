@@ -1,207 +1,95 @@
-# Digital Store
+# Plexoria Digital Store Community Edition
 
-A modern full-stack e-commerce platform for digital products, featuring a decoupled frontend/backend architecture with guest checkout, multiple payment methods, SKU variant management, and analytics.
+Open-source community edition of the storefront behind Plexoria, a live electronics marketplace.
 
-![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)
-![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?style=flat-square&logo=postgresql)
-![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
+This repository is the public community edition of a real digital-store project. Its main purpose is to showcase the storefront, invite feedback, and send interested visitors to the live store. Production payment credentials, operational data, fulfillment rules, backend services, and private deployment configuration do not belong here.
 
-**[中文文档](README_zh.md)**
+[中文说明](README_zh.md)
 
-## ✨ Features
+## Live store
 
-### Customer Features
-- 🛒 **Shopping Cart** - Works for guests and logged-in users, auto-merges on login
-- 📦 **Order Management** - Complete order workflow with tracking
-- 💳 **Multiple Payments** - Online payment (Stripe) and bank transfer
-- 🔍 **Product Search** - Search by category and keywords
-- 📱 **Responsive Design** - Desktop, tablet, and mobile friendly
+Visit the live store here:
 
-### Admin Features
-- 📊 **Analytics** - Sales reports, top products, conversion analysis
-- 🏷️ **SKU Management** - Multi-attribute variants (color, capacity, size, etc.)
-- 📦 **Inventory Management** - Low stock alerts, change logs
-- 🎨 **Content Management** - Banners and announcements
-- 👥 **User Management** - Role-based access control
+<https://www.plexoria.cl>
 
-## 🏗️ Architecture
+## Repositories
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Nginx (Reverse Proxy)                    │
-├─────────────────────────────┬───────────────────────────────┤
-│    Next.js Frontend (:3000)  │      Go API Backend (:8080)   │
-├─────────────────────────────┴───────────────────────────────┤
-│                    PostgreSQL + Redis                        │
-└─────────────────────────────────────────────────────────────┘
-```
+- Community repository: `vigoordi/DigitalProductStore`
+- Private Pro repository: `vigoordi/DigitalProductStore-Pro`
 
-| Layer | Tech Stack |
-|-------|------------|
-| Frontend | Next.js 14, React 18, Ant Design 5, Zustand, Tailwind CSS |
-| Backend | Go, Gin, GORM, JWT |
-| Database | PostgreSQL 14, Redis 7 |
-| Monitoring | Prometheus, Grafana |
-| Deployment | Docker, Docker Compose, Nginx |
+## What is included
 
-## 🚀 Quick Start
+- Responsive storefront, product listing, search, filtering, and product details
+- Cart, favorites, login, registration, and checkout UI
+- Demo-oriented frontend configuration
+- Next.js storefront code
+- Docker-based frontend preview
 
-### Prerequisites
+## What is intentionally not a production promise
 
-- Docker & Docker Compose
-- Git
+The public repository must not be used as the source of truth for a live store. The following remain private operational concerns and may change without notice:
 
-### One-Command Setup
+- Live payment keys, webhook credentials, and payment settlement rules
+- Production order, inventory, warehouse, customer, and analytics data
+- Admin authorization policy and internal operating procedures
+- Pricing, membership, coupon, recommendation, and fraud rules
+- Production certificates, backups, monitoring credentials, and deployment secrets
+
+The production backend is maintained in the private Pro repository. Before publishing a fork, run the checklist in [`docs/PUBLIC_RELEASE_CHECKLIST.md`](docs/PUBLIC_RELEASE_CHECKLIST.md).
+
+## Quick start: community UI preview
+
+Requirements: Docker Desktop and Git.
 
 ```bash
-# Clone the repository
 git clone https://github.com/vigoordi/DigitalProductStore.git
 cd DigitalProductStore
-
-# Copy environment configuration
-cp .env.example .env
-
-# Start all services
-docker compose up -d
+cp .env.community.example .env
+docker compose -f docker-compose.community.yml up --build
 ```
 
-Once started, access:
-- 🌐 Store Frontend: http://localhost
-- 📡 API Docs: http://localhost/api/swagger/index.html
-- 📊 Grafana: http://localhost:3001 (admin/admin)
-- 📈 Prometheus: http://localhost:9090
+Open <http://localhost:3000>. The community compose file starts the frontend preview only. It does not start the production API, database, Nginx, Grafana, Prometheus, or any live payment integration.
 
-### Default Admin Account
+To stop it:
 
-With `SEED_DEMO_DATA=true` (default), demo data is created:
-
-| Email | Password | Role |
-|-------|----------|------|
-| admin@demo.local | Admin@1234 | super_admin |
-
-## 📁 Project Structure
-
-```
-DigitalProductStore/
-├── backend/                 # Go backend service
-│   ├── cmd/api/            # Application entry point
-│   ├── internal/
-│   │   ├── config/         # Configuration
-│   │   ├── database/       # Database connection & migrations
-│   │   ├── handlers/       # HTTP handlers
-│   │   ├── middleware/     # Middleware (auth, logging, etc.)
-│   │   ├── models/         # Data models
-│   │   ├── repositories/   # Data access layer
-│   │   └── services/       # Business logic layer
-│   └── api/openapi/        # Swagger documentation
-├── frontend/               # Next.js frontend app
-│   ├── src/
-│   │   ├── app/           # App Router pages
-│   │   ├── components/    # React components
-│   │   ├── lib/           # Utilities and API client
-│   │   └── stores/        # Zustand state management
-│   └── public/            # Static assets
-├── nginx/                  # Nginx configuration
-├── monitoring/             # Prometheus & Grafana config
-├── scripts/                # Deployment and maintenance scripts
-└── docker-compose.yml      # Docker orchestration
-```
-
-## ⚙️ Environment Variables
-
-Key configuration options (see `.env.example` for full list):
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `APP_ENV` | Runtime environment | development |
-| `DB_USER` | Database user | postgres |
-| `DB_PASSWORD` | Database password | postgres |
-| `JWT_SECRET` | JWT secret key | change-me-in-production |
-| `STRIPE_SECRET_KEY` | Stripe API key | - |
-| `SEED_DEMO_DATA` | Create demo data | true |
-
-## 🔌 API Overview
-
-### Public Endpoints
-```
-GET    /api/v1/products          # Product list
-GET    /api/v1/products/:id      # Product details
-GET    /api/v1/categories        # Category list
-POST   /api/v1/cart/items        # Add to cart
-POST   /api/v1/orders            # Create order
-POST   /api/v1/auth/register     # User registration
-POST   /api/v1/auth/login        # User login
-```
-
-### Admin Endpoints (Auth Required)
-```
-POST   /api/v1/admin/products    # Create product
-PUT    /api/v1/admin/orders/:id  # Update order status
-GET    /api/v1/admin/analytics   # Analytics data
-```
-
-Full API documentation available at `/api/swagger/index.html`
-
-## 🧪 Development
-
-### Local Development (Without Docker)
-
-**Backend:**
 ```bash
-cd backend
-cp .env.example .env
-# Edit .env with your database connection
-go run ./cmd/api
+docker compose -f docker-compose.community.yml down
 ```
 
-**Frontend:**
+## Local frontend development
+
 ```bash
 cd frontend
-npm install
+copy .env.local.example .env.local
+npm ci
 npm run dev
 ```
 
-### Running Tests
+## Architecture
 
-```bash
-# Backend tests
-cd backend
-go test ./...
-
-# Frontend lint
-cd frontend
-npm run lint
+```text
+Browser -> Next.js storefront preview
 ```
 
-## 📊 Monitoring
+The production API, deployment topology, certificates, monitoring, backups, and commercial services are deliberately excluded from the community quick start.
 
-The project includes Prometheus + Grafana monitoring:
+## Repository map
 
-- **Prometheus** collects API performance metrics
-- **Grafana** provides visualization dashboards
+```text
+frontend/                         Storefront UI
+docker-compose.community.yml      Frontend preview stack
+.env.community.example            Non-secret demo configuration
+docs/                             Public release and contribution notes
+```
 
-Pre-configured metrics:
-- HTTP request latency and throughput
-- Database connection pool status
-- Redis cache hit rate
-- Order and payment success rates
+## Security boundary
 
-## 🤝 Contributing
+Never commit `.env`, credentials, private keys, database dumps, customer data, or real product exports. Public issues should contain reproducible demo information only. See [`SECURITY.md`](SECURITY.md) for reporting instructions.
 
-Contributions are welcome!
+## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Bug fixes, accessibility improvements, documentation, tests, and UI contributions are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
 
-## 📄 License
+## License
 
-[MIT License](LICENSE)
-
----
-
-Questions or suggestions? [Open an issue](https://github.com/vigoordi/DigitalProductStore/issues).
+The community edition is available under the [GNU Affero General Public License v3.0](LICENSE). Commercial/private deployment, support, and production integrations are outside this repository and require a separate commercial agreement.

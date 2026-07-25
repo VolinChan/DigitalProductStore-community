@@ -1,8 +1,11 @@
-# Place your SSL certificates here:
-# - server.crt (SSL certificate)
-# - server.key (SSL private key)
+# Cloudflare Origin CA Certificate
 #
-# For development, generate self-signed certificates:
-# openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-#   -keyout server.key -out server.crt \
-#   -subj "/CN=localhost"
+# 1. Go to: https://dash.cloudflare.com → SSL/TLS → Origin Server
+# 2. Click "Create Certificate" → Use CF-provided CA
+# 3. Domain: plexoria.cl (and *.plexoria.cl)
+# 4. Download the .crt and .key files
+# 5. Place them here:
+#    server.crt  — the certificate
+#    server.key  — the private key
+#
+# The certificate expires after 15 years; renew before expiry.

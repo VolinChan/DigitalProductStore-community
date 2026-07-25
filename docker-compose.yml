@@ -103,17 +103,22 @@ services:
       - app-network
     restart: unless-stopped
 
-  # Nginx Reverse Proxy (local HTTP-only config)
+  # Nginx Reverse Proxy (production — HTTPS with Origin CA cert)
   nginx:
     image: nginx:1.25-alpine
     container_name: digital-store-nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./nginx/nginx.local.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro          # Origin CA cert + key
+      - ./nginx/.grafana_passwd:/etc/nginx/.grafana_passwd:ro  # basic auth for Grafana
     depends_on:
       - api
       - frontend
+      - grafana
+      - prometheus
     networks:
       - app-network
     restart: unless-stopped

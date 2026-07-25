@@ -183,7 +183,7 @@ export default function AdminContentPage() {
       title: '图片',
       dataIndex: 'image_url',
       key: 'image_url',
-      render: (url: string) => url ? <Image src={url} width={80} height={40} style={{ objectFit: 'cover' }} /> : '-',
+      render: (url: string) => url ? <Image src={url} alt="Banner" width={80} height={40} style={{ objectFit: 'cover' }} /> : '-',
     },
     { title: '优先级', dataIndex: 'priority', key: 'priority' },
     {

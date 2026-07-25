@@ -65,7 +65,7 @@ export default function AdminAnalyticsPage() {
   const [statusDist, setStatusDist] = useState<StatusDistribution[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const getPeriodParams = () => {
+  const getPeriodParams = useCallback(() => {
     const now = new Date();
     let start: Date;
     switch (period) {
@@ -85,7 +85,7 @@ export default function AdminAnalyticsPage() {
       start_date: start.toISOString().split('T')[0],
       end_date: now.toISOString().split('T')[0],
     };
-  };
+  }, [period]);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -116,7 +116,7 @@ export default function AdminAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [getPeriodParams]);
 
   useEffect(() => {
     fetchAnalytics();

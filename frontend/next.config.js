@@ -2,6 +2,9 @@
 const nextConfig = {
   output: 'standalone',
   transpilePackages: ['antd', '@ant-design/icons', '@ant-design/nextjs-registry'],
+  turbopack: {
+    root: __dirname,
+  },
 
   // Image optimization (Requirement 23.5-23.6, 32.5-32.6)
   // Next.js Image component provides automatic lazy loading and responsive sizing
@@ -50,18 +53,10 @@ const nextConfig = {
     optimizePackageImports: ['antd', '@ant-design/icons', 'lodash'],
   },
 
-  // Headers for caching static assets
+  // Headers for public assets. Next.js owns the immutable caching policy for
+  // /_next/static and warns if applications override it.
   async headers() {
     return [
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
       {
         source: '/images/:path*',
         headers: [

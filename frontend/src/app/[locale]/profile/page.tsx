@@ -91,23 +91,23 @@ export default function ProfilePage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Title level={2}>个人中心</Title>
+      <Title level={2}>{t('profile.title')}</Title>
 
       {/* ── Profile card ─────────────────────────────────────────────── */}
       <Card className="mt-4">
         <Descriptions column={1} bordered size="medium">
-          <Descriptions.Item label="邮箱">{(user as User).email}</Descriptions.Item>
-          <Descriptions.Item label="姓名">{(user as User).full_name}</Descriptions.Item>
+          <Descriptions.Item label={t('profile.email')}>{(user as User).email}</Descriptions.Item>
+          <Descriptions.Item label={t('profile.fullName')}>{(user as User).full_name}</Descriptions.Item>
           {(user as User).phone && (
-            <Descriptions.Item label="电话">{(user as User).phone}</Descriptions.Item>
+            <Descriptions.Item label={t('profile.phone')}>{(user as User).phone}</Descriptions.Item>
           )}
-          <Descriptions.Item label="账号类型">{(user as User).role}</Descriptions.Item>
+          <Descriptions.Item label={t('profile.accountType')}>{(user as User).role}</Descriptions.Item>
         </Descriptions>
         <div className="mt-4 flex gap-2">
-          <Link href="/orders">
-            <Button type="primary">我的订单</Button>
+          <Link href={`/${locale}/orders`}>
+            <Button type="primary">{t('orders.title')}</Button>
           </Link>
-          <Button onClick={() => { logout(); router.push('/'); }}>退出登录</Button>
+          <Button onClick={() => { logout(); router.push(`/${locale}`); }}>{t('layout.logout')}</Button>
         </div>
       </Card>
 

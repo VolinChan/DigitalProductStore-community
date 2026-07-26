@@ -13,6 +13,7 @@ import type { PaymentMethod } from '@/types';
 import ShippingForm from '@/components/checkout/ShippingForm';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
 import OrderSummary from '@/components/checkout/OrderSummary';
+import { useTranslations } from 'next-intl';
 
 const { Title } = Typography;
 
@@ -21,6 +22,7 @@ const { Title } = Typography;
  * Requirements: 2.2-2.3, 7.1-7.8, 8.1-8.5, 37.1-37.8
  */
 export default function CheckoutPage() {
+  const t = useTranslations();
   const router = useRouter();
   const [form] = Form.useForm();
   const { items, totalPrice, totalItems, clearCart } = useCartStore();
@@ -74,7 +76,7 @@ export default function CheckoutPage() {
             router.push(`/checkout/payment?order_id=${order.id}&order_number=${order.order_number}&method=online`);
           }
         } catch {
-          message.warning('支付会话创建失败，请在订单中重新发起支付');
+          message.warning(t('checkout.paymentSessionFailed'));
           router.push(`/checkout/success?order_number=${order.order_number}&method=online&payment_pending=true`);
         }
       } else {
@@ -83,7 +85,7 @@ export default function CheckoutPage() {
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'errorFields' in error) return;
       const err = error as { response?: { data?: { error?: { message?: string } } } };
-      message.error(err?.response?.data?.error?.message || '订单创建失败，请重试');
+      message.error(err?.response?.data?.error?.message || t('checkout.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -101,10 +103,10 @@ export default function CheckoutPage() {
     return (
       <main className="store-container" id="main-content">
         <div className="animate-fade-in-up">
-          <TitleWrapper title="结算" />
+          <TitleWrapper title={t('checkout.title')} />
           <EmptyState
-            title="购物车是空的，无法结算"
-            actionLabel="去逛逛"
+            title={t('checkout.emptyCart')}
+            actionLabel={t('checkout.goBrowse')}
             actionHref="/products"
           />
         </div>
@@ -118,9 +120,9 @@ export default function CheckoutPage() {
         {/* Header */}
         <div>
           <Link href="/cart" className="inline-flex items-center gap-1 text-sm text-muted hover:text-accent mb-4 transition-colors">
-            <ArrowLeftOutlined /> 返回购物车
+            <ArrowLeftOutlined /> {t('checkout.backToCart')}
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight">结算</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('checkout.title')}</h1>
         </div>
 
         {/* Steps */}
@@ -128,9 +130,9 @@ export default function CheckoutPage() {
           <Steps
             current={1}
             items={[
-              { title: '购物车', icon: <ShoppingCartOutlined /> },
-              { title: '填写信息', icon: <CheckCircleOutlined /> },
-              { title: '完成支付' },
+              { title: t('checkout.stepCart'), icon: <ShoppingCartOutlined /> },
+              { title: t('checkout.stepInfo'), icon: <CheckCircleOutlined /> },
+              { title: t('checkout.stepPayment') },
             ]}
             className="max-w-lg mx-auto"
           />
@@ -140,7 +142,7 @@ export default function CheckoutPage() {
           {/* Forms */}
           <div className="lg:col-span-2 space-y-6">
             <section className="bg-card rounded-xl border shadow-card p-5 sm:p-6">
-              <h2 className="text-lg font-semibold mb-4">收货信息</h2>
+              <h2 className="text-lg font-semibold mb-4">{t('checkout.shippingInfo')}</h2>
               <ShippingForm
                 form={form}
                 initialValues={
@@ -152,7 +154,7 @@ export default function CheckoutPage() {
             </section>
 
             <section className="bg-card rounded-xl border shadow-card p-5 sm:p-6">
-              <h2 className="text-lg font-semibold mb-4">支付方式</h2>
+              <h2 className="text-lg font-semibold mb-4">{t('checkout.paymentMethod')}</h2>
               <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
             </section>
           </div>
@@ -161,16 +163,16 @@ export default function CheckoutPage() {
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="bg-card rounded-xl border shadow-card p-5">
-                <h2 className="text-lg font-semibold mb-4">订单摘要</h2>
+                <h2 className="text-lg font-semibold mb-4">{t('checkout.orderSummary')}</h2>
                 <OrderSummary items={items} totalPrice={totalPrice} shippingFee={0} />
               </div>
 
               <button className="store-btn-primary w-full !py-3 !text-base" onClick={handleSubmitOrder} disabled={submitting}>
-                {submitting ? '提交中...' : paymentMethod === 'online' ? '提交订单并支付' : '提交订单'}
+                {submitting ? t('checkout.submitting') : paymentMethod === 'online' ? t('checkout.submitAndPay') : t('checkout.submitOrder')}
               </button>
 
               <p className="text-xs text-muted text-center">
-                {paymentMethod === 'online' ? '提交后将跳转到支付页面完成付款' : '提交后将显示银行转账信息'}
+                {paymentMethod === 'online' ? t('checkout.submitOnline') : t('checkout.submitTransfer')}
               </p>
             </div>
           </div>

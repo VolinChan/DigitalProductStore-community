@@ -10,6 +10,7 @@ import { Card, Tag } from 'antd';
 import SearchHighlight from '@/components/product/SearchHighlight';
 import apiClient from '@/lib/api';
 import type { Product } from '@/types';
+import { useLocale, useTranslations } from 'next-intl';
 
 const { Title, Text } = Typography;
 
@@ -30,9 +31,7 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Spin size="large" tip="搜索中..." />
-        </div>
+        <SearchFallback />
       }
     >
       <SearchContent />
@@ -40,7 +39,14 @@ export default function SearchPage() {
   );
 }
 
+function SearchFallback() {
+  const t = useTranslations();
+  return <div className="flex items-center justify-center min-h-[400px]"><Spin size="large" tip={t('products.searching')} /></div>;
+}
+
 function SearchContent() {
+  const t = useTranslations();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
 
@@ -86,19 +92,19 @@ function SearchContent() {
           <>
             <Title level={4} className="!mb-1">
               <SearchOutlined className="mr-2 text-gray-400" />
-              搜索结果：&ldquo;{query}&rdquo;
+              {t('products.searchResultsFor', { query })}
             </Title>
             {/* Requirement 22.5: Display count of matching products */}
             {searched && !loading && (
               <Text type="secondary">
-                共找到 <span className="font-medium text-gray-900">{total}</span> 件相关商品
+                {t('products.searchResultCount', { count: total })}
               </Text>
             )}
           </>
         ) : (
           <Title level={4} className="!mb-1">
             <SearchOutlined className="mr-2 text-gray-400" />
-            请输入搜索关键词
+            {t('products.enterSearchTerm')}
           </Title>
         )}
       </div>
@@ -106,7 +112,7 @@ function SearchContent() {
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center min-h-[300px]">
-          <Spin size="large" tip="搜索中..." />
+          <Spin size="large" tip={t('products.searching')} />
         </div>
       )}
 
@@ -114,7 +120,7 @@ function SearchContent() {
       {!loading && products.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
           {products.map((product) => (
-            <SearchResultCard key={product.id} product={product} query={query} />
+            <SearchResultCard key={product.id} product={product} query={query} locale={locale} />
           ))}
         </div>
       )}
@@ -125,10 +131,10 @@ function SearchContent() {
           description={
             <div className="space-y-2">
               <p className="text-gray-600">
-                没有找到与 &ldquo;{query}&rdquo; 相关的商品
+                {t('products.searchNoResults', { query })}
               </p>
               <p className="text-sm text-gray-400">
-                建议尝试其他关键词，或浏览全部商品
+                {t('products.searchSuggestion')}
               </p>
             </div>
           }
@@ -138,7 +144,7 @@ function SearchContent() {
             href="/products"
             className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
-            浏览全部商品
+            {t('products.browseAll')}
           </Link>
         </Empty>
       )}
@@ -147,7 +153,7 @@ function SearchContent() {
       {!loading && !query && (
         <Empty
           description={
-            <p className="text-gray-500">请在搜索框中输入关键词来搜索商品</p>
+            <p className="text-gray-500">{t('products.searchPrompt')}</p>
           }
           className="py-16"
         />
@@ -160,7 +166,8 @@ function SearchContent() {
  * Search result card with highlighted search terms.
  * Requirement 22.7: Highlight search terms in product names and descriptions.
  */
-function SearchResultCard({ product, query }: { product: Product; query: string }) {
+function SearchResultCard({ product, query, locale }: { product: Product; query: string; locale: string }) {
+  const t = useTranslations();
   const primaryImage =
     product.images && product.images.length > 0
       ? product.images[0].thumbnail_url || product.images[0].image_url
@@ -187,7 +194,7 @@ function SearchResultCard({ product, query }: { product: Product; query: string 
             {isOutOfStock && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <Tag color="red" className="text-base px-3 py-1 font-medium">
-                  已售罄
+                  {t('common.soldOut')}
                 </Tag>
               </div>
             )}
@@ -211,14 +218,11 @@ function SearchResultCard({ product, query }: { product: Product; query: string 
         <div className="flex items-baseline gap-1">
           {startingPrice !== null ? (
             <>
-              <span className="text-xs text-gray-500">¥</span>
-              <span className="text-lg font-bold text-red-500">
-                {startingPrice.toFixed(2)}
-              </span>
-              <span className="text-xs text-gray-400 ml-1">起</span>
+              <span className="text-lg font-bold text-red-500">{new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(startingPrice)}</span>
+              <span className="text-xs text-gray-400 ml-1">{t('products.from')}</span>
             </>
           ) : (
-            <span className="text-sm text-gray-400">暂无价格</span>
+            <span className="text-sm text-gray-400">{t('products.noPrice')}</span>
           )}
         </div>
       </Card>

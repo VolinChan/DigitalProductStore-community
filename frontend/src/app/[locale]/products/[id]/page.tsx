@@ -12,6 +12,7 @@ import ImageGallery from '@/components/product/ImageGallery';
 import SKUSelector from '@/components/product/SKUSelector';
 import EmptyState from '@/components/EmptyState';
 import type { Product, SKU } from '@/types';
+import { useLocale, useTranslations } from 'next-intl';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -26,6 +27,11 @@ interface ProductDetailResponse {
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.id as string;
+  const t = useTranslations();
+  const locale = useLocale();
+  const formatPrice = (amount: number) => new Intl.NumberFormat(locale, {
+    style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(amount);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,13 +50,13 @@ export default function ProductDetailPage() {
         const response = await apiClient.get<ProductDetailResponse>(`/products/${productId}`);
         setProduct(response.data.data);
       } catch {
-        setError('商品加载失败，请稍后重试');
+        setError(t('products.loadFailed'));
       } finally {
         setLoading(false);
       }
     }
     if (productId) fetchProduct();
-  }, [productId]);
+  }, [productId, t]);
 
   // Track product view
   useEffect(() => {
@@ -100,13 +106,13 @@ export default function ProductDetailPage() {
   const inventoryStatus = useMemo(() => {
     if (!selectedSku) {
       if (product?.skus && product.skus.every((sku) => sku.inventory <= 0)) {
-        return { available: false, count: 0, label: '已售罄' };
+        return { available: false, count: 0, label: t('common.soldOut') };
       }
-      return { available: true, count: -1, label: '请选择规格' };
+      return { available: true, count: -1, label: t('products.selectSku') };
     }
-    if (selectedSku.inventory <= 0) return { available: false, count: 0, label: '已售罄' };
-    return { available: true, count: selectedSku.inventory, label: `有货 (库存: ${selectedSku.inventory})` };
-  }, [selectedSku, product]);
+    if (selectedSku.inventory <= 0) return { available: false, count: 0, label: t('common.soldOut') };
+    return { available: true, count: selectedSku.inventory, label: t('products.inStockWithQty', { count: selectedSku.inventory }) };
+  }, [selectedSku, product, t]);
 
   const handleAttributeChange = useCallback((name: string, value: string) => {
     setSelectedAttributes((prev) => {
@@ -118,9 +124,9 @@ export default function ProductDetailPage() {
   }, []);
 
   const handleAddToCart = async () => {
-    if (!selectedSku) { toast.warning('请先选择商品规格'); return; }
-    if (!inventoryStatus.available) { toast.error('该商品已售罄'); return; }
-    if (quantity > selectedSku.inventory) { toast.warning(`库存不足，最多可购买 ${selectedSku.inventory} 件`); return; }
+    if (!selectedSku) { toast.warning(t('products.selectSku')); return; }
+    if (!inventoryStatus.available) { toast.error(t('common.soldOut')); return; }
+    if (quantity > selectedSku.inventory) { toast.warning(t('cart.stockLimit', { count: selectedSku.inventory })); return; }
 
     setAddingToCart(true);
     try {
@@ -131,9 +137,9 @@ export default function ProductDetailPage() {
         void cartIcon.offsetWidth;
         cartIcon.classList.add('animate-bounce-sm');
       }
-      toast.success('已加入购物车', { description: `${product?.name} x ${quantity}`, icon: <ShoppingCartOutlined /> });
+      toast.success(t('products.addedToCart'), { description: `${product?.name} x ${quantity}`, icon: <ShoppingCartOutlined /> });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : '加入购物车失败');
+      toast.error(err instanceof Error ? err.message : t('products.addFailed'));
     } finally {
       setAddingToCart(false);
     }
@@ -142,7 +148,7 @@ export default function ProductDetailPage() {
   if (loading) {
     return (
       <main className="store-container flex items-center justify-center min-h-[400px]">
-        <Spin size="large" tip="加载中..." />
+        <Spin size="large" tip={t('common.loading')} />
       </main>
     );
   }
@@ -152,12 +158,12 @@ export default function ProductDetailPage() {
       <main className="store-container" id="main-content">
         <div className="animate-fade-in-up">
           <Breadcrumb className="mb-6" items={[
-            { title: <Link href="/"><HomeOutlined /> 首页</Link> },
-            { title: <Link href="/products">商品列表</Link> },
+            { title: <Link href="/"><HomeOutlined /> {t('layout.home')}</Link> },
+            { title: <Link href="/products">{t('layout.allProducts')}</Link> },
           ]} />
           <EmptyState
-            title={error || '商品不存在'}
-            actionLabel="返回商品列表"
+            title={error || t('products.notFound')}
+            actionLabel={t('products.backToProducts')}
             actionHref="/products"
           />
         </div>
@@ -173,8 +179,8 @@ export default function ProductDetailPage() {
         {/* Breadcrumb */}
         <Breadcrumb
           items={[
-            { title: <Link href="/" className="flex items-center gap-1 hover:text-accent"><HomeOutlined /> 首页</Link> },
-            { title: <Link href="/products" className="hover:text-accent">商品列表</Link> },
+            { title: <Link href="/" className="flex items-center gap-1 hover:text-accent"><HomeOutlined /> {t('layout.home')}</Link> },
+            { title: <Link href="/products" className="hover:text-accent">{t('layout.allProducts')}</Link> },
             { title: <span className="text-foreground">{product.name}</span> },
           ]}
         />
@@ -201,25 +207,20 @@ export default function ProductDetailPage() {
             {/* Price */}
             <div className="bg-card rounded-xl border p-5 shadow-sm">
               <div className="flex items-baseline gap-2">
-                <Text type="secondary" className="text-sm">价格</Text>
+                <Text type="secondary" className="text-sm">{t('products.price')}</Text>
                 {displayPrice.type === 'exact' && (
                   <>
-                    <span className="text-sm text-error">¥</span>
-                    <span className="text-3xl sm:text-4xl font-bold text-error">
-                      {displayPrice.price.toFixed(2)}
-                    </span>
+                    <span className="text-3xl sm:text-4xl font-bold text-error">{formatPrice(displayPrice.price)}</span>
                   </>
                 )}
                 {displayPrice.type === 'range' && (
                   <>
-                    <span className="text-sm text-error">¥</span>
-                    <span className="text-3xl font-bold text-error">{displayPrice.min.toFixed(2)}</span>
+                    <span className="text-3xl font-bold text-error">{formatPrice(displayPrice.min)}</span>
                     <Text type="secondary" className="mx-1">~</Text>
-                    <span className="text-sm text-error">¥</span>
-                    <span className="text-xl font-bold text-error">{displayPrice.max.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-error">{formatPrice(displayPrice.max)}</span>
                   </>
                 )}
-                {displayPrice.type === 'none' && <Text type="secondary">暂无价格</Text>}
+                {displayPrice.type === 'none' && <Text type="secondary">{t('products.noPrice')}</Text>}
               </div>
               <div className="mt-2">
                 {inventoryStatus.available ? (
@@ -242,14 +243,14 @@ export default function ProductDetailPage() {
 
             {/* Quantity */}
             <div className="flex items-center gap-4">
-              <Text strong className="text-sm">数量</Text>
+              <Text strong className="text-sm">{t('common.quantity')}</Text>
               <div className="flex items-center border rounded-lg overflow-hidden w-32">
                 <button
                   type="button"
                   disabled={!inventoryStatus.available || !selectedSku || quantity <= 1}
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="w-9 h-9 flex items-center justify-center text-muted hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-                  aria-label="减少数量"
+                  aria-label={t('products.decreaseQuantity')}
                 >
                   −
                 </button>
@@ -261,20 +262,20 @@ export default function ProductDetailPage() {
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   disabled={!inventoryStatus.available || !selectedSku}
                   className="w-12 h-9 text-center text-sm border-x disabled:opacity-50 bg-transparent"
-                  aria-label="数量"
+                  aria-label={t('common.quantity')}
                 />
                 <button
                   type="button"
                   disabled={!inventoryStatus.available || !selectedSku || quantity >= (selectedSku?.inventory ?? 99)}
                   onClick={() => setQuantity(quantity + 1)}
                   className="w-9 h-9 flex items-center justify-center text-muted hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-                  aria-label="增加数量"
+                  aria-label={t('products.increaseQuantity')}
                 >
                   +
                 </button>
               </div>
               {selectedSku && selectedSku.inventory > 0 && (
-                <Text type="secondary" className="text-xs">最多 {selectedSku.inventory} 件</Text>
+                <Text type="secondary" className="text-xs">{t('products.maxQty', { count: selectedSku.inventory })}</Text>
               )}
             </div>
 
@@ -289,11 +290,11 @@ export default function ProductDetailPage() {
                 disabled={!selectedSku || !inventoryStatus.available}
                 className="store-btn-primary !px-8 !py-3 !text-base flex-1"
               >
-                {!inventoryStatus.available && selectedSku ? '已售罄' : !selectedSku ? '请选择规格' : '加入购物车'}
+                {!inventoryStatus.available && selectedSku ? t('common.soldOut') : !selectedSku ? t('products.selectSku') : t('products.addToCart')}
               </Button>
               <Link href="/products">
                 <Button size="large" icon={<ArrowLeftOutlined />} className="!py-3">
-                  继续购物
+                  {t('products.continueShopping')}
                 </Button>
               </Link>
             </div>
@@ -309,11 +310,11 @@ export default function ProductDetailPage() {
           <section className="border-t pt-8 space-y-8">
             {product.description && (
               <div>
-                <h2 className="text-lg font-bold mb-3">商品描述</h2>
+                <h2 className="text-lg font-bold mb-3">{t('products.description')}</h2>
                 <Paragraph className="text-muted whitespace-pre-wrap">{product.description}</Paragraph>
               </div>
             )}
-            {product.specifications && <SpecificationsTable specifications={product.specifications} />}
+            {product.specifications && <SpecificationsTable specifications={product.specifications} title={t('products.specs')} />}
           </section>
         )}
 
@@ -321,14 +322,14 @@ export default function ProductDetailPage() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t px-4 py-3 shadow-lg z-50 flex items-center justify-between">
           <div>
             {displayPrice.type === 'exact' && (
-              <span className="text-lg font-bold text-error">¥{displayPrice.price.toFixed(2)}</span>
+              <span className="text-lg font-bold text-error">{formatPrice(displayPrice.price)}</span>
             )}
             {displayPrice.type === 'range' && (
-              <span className="text-sm text-muted">¥{displayPrice.min.toFixed(2)} - ¥{displayPrice.max.toFixed(2)}</span>
+              <span className="text-sm text-muted">{formatPrice(displayPrice.min)} - {formatPrice(displayPrice.max)}</span>
             )}
           </div>
           <Button type="primary" size="large" onClick={handleAddToCart} loading={addingToCart} disabled={!inventoryStatus.available} className="!h-10 !px-6 !text-sm font-medium rounded-lg">
-            加入购物车
+            {t('products.addToCart')}
           </Button>
         </div>
       </div>
@@ -336,7 +337,7 @@ export default function ProductDetailPage() {
   );
 }
 
-function SpecificationsTable({ specifications }: { specifications: string }) {
+function SpecificationsTable({ specifications, title }: { specifications: string; title: string }) {
   try {
     const parsed = JSON.parse(specifications);
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
@@ -344,7 +345,7 @@ function SpecificationsTable({ specifications }: { specifications: string }) {
       if (entries.length > 0) {
         return (
           <div>
-            <h2 className="text-lg font-bold mb-3">商品规格</h2>
+            <h2 className="text-lg font-bold mb-3">{title}</h2>
             <div className="border rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <tbody>
@@ -365,7 +366,7 @@ function SpecificationsTable({ specifications }: { specifications: string }) {
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-3">商品规格</h2>
+      <h2 className="text-lg font-bold mb-3">{title}</h2>
       <Paragraph className="text-muted whitespace-pre-wrap">{specifications}</Paragraph>
     </div>
   );

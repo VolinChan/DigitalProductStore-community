@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import type { SKU, SKUAttribute } from '@/types';
 
 interface SKUSelectorProps {
@@ -30,6 +31,7 @@ export default function SKUSelector({
   selectedAttributes,
   onAttributeChange,
 }: SKUSelectorProps) {
+  const t = useTranslations();
   // Extract all unique attribute types and their values
   const attributeGroups = useMemo(() => {
     const groups: Record<string, Set<string>> = {};
@@ -166,7 +168,7 @@ export default function SKUSelector({
                   >
                     {value}
                     {!inStock && isAvailable && (
-                      <span className="ml-1 text-xs text-gray-400">(缺货)</span>
+                      <span className="ml-1 text-xs text-gray-400">({t('common.outOfStock')})</span>
                     )}
                   </button>
                 );

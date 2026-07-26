@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const { Paragraph, Text } = Typography;
 
@@ -21,6 +22,7 @@ const { Paragraph, Text } = Typography;
  * - 7.5: Assign unique order number
  */
 function CheckoutSuccessContent() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
 
   const orderNumber = searchParams.get('order_number');
@@ -32,11 +34,11 @@ function CheckoutSuccessContent() {
       <Result
         status="success"
         icon={<CheckCircleOutlined className="text-green-500" />}
-        title="订单提交成功"
+        title={t('checkout.successTitle')}
         subTitle={
           orderNumber
-            ? `您的订单号为 ${orderNumber}，请妥善保存`
-            : '您的订单已成功创建'
+            ? t('checkout.successSub', { number: orderNumber })
+            : t('checkout.successDefault')
         }
       />
 
@@ -44,30 +46,30 @@ function CheckoutSuccessContent() {
       {orderNumber && (
         <div className="max-w-md mx-auto mt-6">
           <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="订单号">
+            <Descriptions.Item label={t('checkout.orderNumber')}>
               <Text strong copyable>
                 {orderNumber}
               </Text>
             </Descriptions.Item>
-            <Descriptions.Item label="支付方式">
+            <Descriptions.Item label={t('checkout.paymentMethod')}>
               {method === 'online' ? (
-                <Tag color="blue">在线支付</Tag>
+                <Tag color="blue">{t('payment.online')}</Tag>
               ) : (
-                <Tag color="green">转账支付</Tag>
+                <Tag color="green">{t('payment.transfer')}</Tag>
               )}
             </Descriptions.Item>
-            <Descriptions.Item label="订单状态">
+            <Descriptions.Item label={t('checkout.paymentStatus')}>
               {paymentPending ? (
                 <Tag color="orange" icon={<ClockCircleOutlined />}>
-                  待支付
+                  {t('checkout.pendingPayment')}
                 </Tag>
               ) : method === 'transfer' ? (
                 <Tag color="orange" icon={<ClockCircleOutlined />}>
-                  待上传凭证
+                  {t('checkout.pendingProof')}
                 </Tag>
               ) : (
                 <Tag color="green" icon={<CheckCircleOutlined />}>
-                  已支付
+                  {t('checkout.paid')}
                 </Tag>
               )}
             </Descriptions.Item>
@@ -79,31 +81,31 @@ function CheckoutSuccessContent() {
       <div className="max-w-md mx-auto mt-8 bg-gray-50 rounded-lg p-6">
         <Paragraph strong className="!mb-3">
           <ShoppingOutlined className="mr-2" />
-          下一步
+          {t('checkout.nextSteps')}
         </Paragraph>
 
         {method === 'online' && paymentPending && (
           <Paragraph type="secondary">
-            您的订单已创建，但支付尚未完成。请前往订单详情页重新发起支付。
+            {t('checkout.nextStepsOnlinePending')}
           </Paragraph>
         )}
 
         {method === 'online' && !paymentPending && (
           <Paragraph type="secondary">
-            支付已完成，我们将尽快为您安排发货。您可以在订单详情中查看物流信息。
+            {t('checkout.nextStepsOnlinePaid')}
           </Paragraph>
         )}
 
         {method === 'transfer' && (
           <div>
             <Paragraph type="secondary">
-              请按照以下步骤完成转账支付：
+              {t('checkout.nextStepsTransferIntro')}
             </Paragraph>
             <ol className="list-decimal list-inside text-sm text-gray-600 space-y-1">
-              <li>使用银行转账方式支付订单金额</li>
-              <li>转账时请在备注中填写订单号</li>
-              <li>转账完成后上传转账凭证</li>
-              <li>管理员将在 7 天内确认您的付款</li>
+              <li>{t('checkout.step1')}</li>
+              <li>{t('checkout.step2')}</li>
+              <li>{t('checkout.step3')}</li>
+              <li>{t('checkout.step4')}</li>
             </ol>
           </div>
         )}
@@ -113,11 +115,11 @@ function CheckoutSuccessContent() {
       <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
         <Link href="/orders">
           <Button type="primary" size="large">
-            查看我的订单
+            {t('orders.title')}
           </Button>
         </Link>
         <Link href="/products">
-          <Button size="large">继续购物</Button>
+          <Button size="large">{t('products.continueShopping')}</Button>
         </Link>
       </div>
     </main>

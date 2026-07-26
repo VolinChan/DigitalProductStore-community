@@ -11,6 +11,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import TransferPayment from '@/components/checkout/TransferPayment';
 import apiClient from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 const { Title, Paragraph } = Typography;
 
@@ -24,6 +25,7 @@ const { Title, Paragraph } = Typography;
  * - 10.1-10.8: Transfer payment flow (bank info, upload, deadline)
  */
 function PaymentPageContent() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -86,16 +88,16 @@ function PaymentPageContent() {
             size="large"
           />
           <Title level={3} className="!mt-6">
-            正在跳转到支付页面...
+            {t('payment.redirecting')}
           </Title>
           <Paragraph type="secondary">
-            请稍候，正在为您创建支付会话并跳转到支付网关
+            {t('payment.pleaseWait')}
           </Paragraph>
           {loading && (
             <Paragraph type="secondary" className="!mt-4">
-              如果长时间未跳转，请
+              {t('payment.retryHint')}
               <Button type="link" onClick={handleOnlinePayment} className="!px-1">
-                点击这里重试
+                {t('payment.retry')}
               </Button>
             </Paragraph>
           )}
@@ -111,20 +113,20 @@ function PaymentPageContent() {
         <Result
           status="success"
           icon={<CheckCircleOutlined />}
-          title="支付成功"
+          title={t('payment.successTitle')}
           subTitle={
             orderNumber
-              ? `订单号：${orderNumber}，支付已完成`
-              : '您的支付已成功完成'
+              ? `${t('checkout.orderNumber')}: ${orderNumber}. ${t('payment.successSub')}`
+              : t('payment.successDefault')
           }
           extra={[
             <Link key="orders" href="/orders">
               <Button type="primary" size="large">
-                查看订单
+                {t('orders.viewOrder')}
               </Button>
             </Link>,
             <Link key="home" href="/">
-              <Button size="large">返回首页</Button>
+              <Button size="large">{t('layout.home')}</Button>
             </Link>,
           ]}
         />
@@ -139,11 +141,11 @@ function PaymentPageContent() {
         <Result
           status="error"
           icon={<CloseCircleOutlined />}
-          title="支付失败"
+          title={t('payment.failedTitle')}
           subTitle={
             orderNumber
-              ? `订单号：${orderNumber}，支付未完成。您可以稍后重新发起支付。`
-              : '支付过程中出现问题，请重试'
+              ? `${t('checkout.orderNumber')}: ${orderNumber}. ${t('payment.failedSub')}`
+              : t('payment.failedDefault')
           }
           extra={[
             <Button
@@ -152,10 +154,10 @@ function PaymentPageContent() {
               size="large"
               onClick={handleOnlinePayment}
             >
-              重新支付
+              {t('payment.retry')}
             </Button>,
             <Link key="orders" href="/orders">
-              <Button size="large">查看订单</Button>
+              <Button size="large">{t('orders.viewOrder')}</Button>
             </Link>,
           ]}
         />
@@ -168,10 +170,10 @@ function PaymentPageContent() {
     return (
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <Title level={2} className="!mb-6 text-center">
-          转账支付
+          {t('payment.transferTitle')}
         </Title>
         <Paragraph type="secondary" className="text-center !mb-8">
-          订单号：{orderNumber}
+          {t('checkout.orderNumber')}: {orderNumber}
         </Paragraph>
 
         <TransferPayment
@@ -184,7 +186,7 @@ function PaymentPageContent() {
 
         <div className="mt-8 text-center">
           <Link href="/orders">
-            <Button type="link">查看我的订单</Button>
+            <Button type="link">{t('orders.title')}</Button>
           </Link>
         </div>
       </main>
@@ -196,16 +198,16 @@ function PaymentPageContent() {
     <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <Result
         status="warning"
-        title="页面参数错误"
-        subTitle="无法确定支付信息，请从订单页面重新发起支付"
+        title={t('payment.errorTitle')}
+        subTitle={t('payment.errorSub')}
         extra={[
           <Link key="orders" href="/orders">
             <Button type="primary" size="large">
-              查看订单
+              {t('orders.viewOrder')}
             </Button>
           </Link>,
           <Link key="home" href="/">
-            <Button size="large">返回首页</Button>
+            <Button size="large">{t('layout.home')}</Button>
           </Link>,
         ]}
       />
@@ -220,7 +222,7 @@ export default function PaymentPage() {
         <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
             <Spin indicator={<LoadingOutlined className="text-4xl" spin />} size="large" />
-            <Paragraph type="secondary" className="!mt-4">加载中...</Paragraph>
+            <Paragraph type="secondary" className="!mt-4">Loading...</Paragraph>
           </div>
         </main>
       }

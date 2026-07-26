@@ -10,6 +10,7 @@ import {
   UserOutlined,
   SearchOutlined,
   MenuOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import Navigation from './Navigation';
 import MobileMenu from './MobileMenu';
@@ -21,21 +22,16 @@ export default function Header() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
 
   const { isAuthenticated, user, logout, loadUser } = useAuthStore();
   const cartItemCount = useCartStore((s) => s.totalItems);
 
-  // Avoid hydration mismatch: Zustand persist populates on the client only,
-  // so we keep the first render as the "logged out" shape and swap once
-  // mounted. Without this, the server-rendered header would briefly show
-  // the login/register items even for logged-in users.
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Refresh user profile on first mount when we have a token but no user
-  // object yet (e.g. after a hard refresh).
   useEffect(() => {
     if (mounted && isAuthenticated && !user) {
       loadUser().catch(() => { /* noop */ });
@@ -45,6 +41,15 @@ export default function Header() {
   const handleLogout = () => {
     logout();
     router.push('/');
+  };
+
+  const handleSearch = () => {
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/products/search?q=${encodeURIComponent(q)}`);
+      setSearchQuery('');
+      setSearchVisible(false);
+    }
   };
 
   const showAuthed = mounted && isAuthenticated;
@@ -62,119 +67,150 @@ export default function Header() {
       ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left section: Hamburger (mobile) + Logo */}
-          <div className="flex items-center gap-3">
-            {/* Mobile hamburger button */}
-            <button
-              type="button"
-              className="md:hidden flex items-center justify-center w-11 h-11 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="打开菜单"
-            >
-              <MenuOutlined className="text-xl" />
-            </button>
-
-            {/* Logo */}
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-xl font-bold text-primary hover:opacity-80 transition-opacity"
-            >
-              <span className="hidden sm:inline">数码商城</span>
-              <span className="sm:hidden">商城</span>
-            </Link>
-          </div>
-
-          {/* Center section: Navigation (desktop only) */}
-          <div className="hidden md:flex items-center">
-            <Navigation />
-          </div>
-
-          {/* Right section: Search + Cart + User */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            {/* Search - full on desktop, icon on mobile */}
-            <div className="hidden lg:block">
-              <Input
-                placeholder="搜索商品..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                className="w-48 xl:w-64"
-                size="middle"
-                onPressEnter={(e) => {
-                  const value = (e.target as HTMLInputElement).value;
-                  if (value.trim()) {
-                    window.location.href = `/products/search?q=${encodeURIComponent(value.trim())}`;
-                  }
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              className="lg:hidden flex items-center justify-center w-11 h-11 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
-              onClick={() => setSearchVisible(!searchVisible)}
-              aria-label="搜索"
-            >
-              <SearchOutlined className="text-lg" />
-            </button>
-
-            {/* Cart */}
-            <Link
-              id="cart-icon-header"
-              href="/cart"
-              className="flex items-center justify-center w-11 h-11 rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-              aria-label={`购物车${cartItemCount > 0 ? `，${cartItemCount}件商品` : ''}`}
-            >
-              <Badge count={mounted ? cartItemCount : 0} size="small" offset={[-2, 2]}>
-                <ShoppingCartOutlined className="text-xl" />
-              </Badge>
-            </Link>
-
-            <ThemeToggle />
-
-            {/* User menu */}
-            <Dropdown
-              menu={{ items: userMenuItems }}
-              placement="bottomRight"
-              trigger={['click']}
-            >
-              <button
-                type="button"
-                className="flex items-center justify-center w-11 h-11 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
-                aria-label="用户菜单"
-              >
-                <UserOutlined className="text-lg" />
-              </button>
-            </Dropdown>
-          </div>
-        </div>
-
-        {/* Mobile search bar - shown when search icon is clicked */}
-        {searchVisible && (
-          <div className="lg:hidden pb-3">
-            <Input
-              placeholder="搜索商品..."
-              prefix={<SearchOutlined className="text-gray-400" />}
-              size="large"
-              autoFocus
-              onPressEnter={(e) => {
-                const value = (e.target as HTMLInputElement).value;
-                if (value.trim()) {
-                  window.location.href = `/products/search?q=${encodeURIComponent(value.trim())}`;
-                  setSearchVisible(false);
-                }
-              }}
-              onBlur={() => setSearchVisible(false)}
-            />
-          </div>
-        )}
+    <>
+      {/* Top announcement bar */}
+      <div className="bg-accent text-white text-center text-xs sm:text-sm py-1.5 px-4 font-medium tracking-wide">
+        新用户注册享首单优惠 · 全场数码产品正品保障
       </div>
 
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-4">
+            {/* Left: Hamburger + Logo */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <button
+                type="button"
+                className="md:hidden w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="打开菜单"
+              >
+                <MenuOutlined className="text-xl" />
+              </button>
+
+              <Link href="/" className="flex items-center gap-2 text-lg sm:text-xl font-bold text-foreground hover:opacity-80 transition-opacity">
+                <svg className="w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className="hidden sm:inline">数码商城</span>
+                <span className="sm:hidden">商城</span>
+              </Link>
+            </div>
+
+            {/* Center: Desktop Navigation */}
+            <nav className="hidden md:flex items-center flex-1 justify-center" aria-label="主导航">
+              <Navigation />
+            </nav>
+
+            {/* Right: Search + Cart + User */}
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              {/* Search */}
+              <div className={`${searchVisible ? 'flex' : 'hidden'} lg:flex items-center`}>
+                {searchVisible ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      placeholder="搜索商品..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onPressEnter={handleSearch}
+                      className="w-40 sm:w-56"
+                      size="middle"
+                      prefix={<SearchOutlined className="text-muted" />}
+                      suffix={
+                        <button
+                          type="button"
+                          className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10"
+                          onClick={() => { setSearchVisible(false); setSearchQuery(''); }}
+                          aria-label="关闭搜索"
+                        >
+                          <CloseOutlined className="text-muted" />
+                        </button>
+                      }
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="lg:hidden w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                    onClick={() => setSearchVisible(true)}
+                    aria-label="搜索"
+                  >
+                    <SearchOutlined className="text-lg" />
+                  </button>
+                )}
+                {/* Desktop search always visible */}
+                <div className="hidden lg:block">
+                  <Input
+                    placeholder="搜索商品..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onPressEnter={handleSearch}
+                    className="w-44 xl:w-56"
+                    size="middle"
+                    prefix={<SearchOutlined className="text-muted" />}
+                  />
+                </div>
+              </div>
+
+              {/* Cart */}
+              <Link
+                id="cart-icon-header"
+                href="/cart"
+                className="relative w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                aria-label={`购物车${cartItemCount > 0 ? `，${cartItemCount}件商品` : ''}`}
+              >
+                <Badge count={mounted ? cartItemCount : 0} size="small" offset={[-2, 2]}>
+                  <ShoppingCartOutlined className="text-xl" />
+                </Badge>
+              </Link>
+
+              {/* Theme toggle */}
+              <ThemeToggle />
+
+              {/* User menu */}
+              <Dropdown
+                menu={{ items: userMenuItems }}
+                placement="bottomRight"
+                trigger={['click']}
+              >
+                <button
+                  type="button"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                  aria-label="用户菜单"
+                >
+                  <UserOutlined className="text-lg" />
+                </button>
+              </Dropdown>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile search bar */}
+      {searchVisible && (
+        <div className="fixed top-[60px] left-0 right-0 z-40 bg-card border-b px-4 py-2 shadow-md lg:hidden">
+          <Input
+            placeholder="搜索商品..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onPressEnter={handleSearch}
+            autoFocus
+            size="large"
+            prefix={<SearchOutlined className="text-muted" />}
+            suffix={
+              <button
+                type="button"
+                className="p-1"
+                onClick={() => { setSearchVisible(false); setSearchQuery(''); }}
+              >
+                <CloseOutlined />
+              </button>
+            }
+          />
+        </div>
+      )}
+
       {/* Mobile Menu Drawer */}
-      <MobileMenu
-        open={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-      />
-    </header>
+      <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+    </>
   );
 }

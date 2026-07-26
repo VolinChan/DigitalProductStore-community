@@ -56,3 +56,20 @@ docker compose -f docker-compose.community.yml up --build
 ## 许可证
 
 社区版采用 [GNU AGPL v3.0](LICENSE)。私有部署、生产集成和商业支持不属于本公开仓库范围，需要单独的商业协议。
+
+## 技术栈
+
+| 层级 | 技术选型 |
+|------|---------|
+| **前端** | Next.js 16 · React 19 · TypeScript · Ant Design 5 · Tailwind CSS · Framer Motion · Zustand · Axios · Sonner（Toast） |
+| **后端 API** | Go 1.25 · Gin · GORM · PostgreSQL · Redis · JWT 鉴权 · Stripe 支付 · SMTP 邮件 |
+| **基础设施** | Docker Compose · Nginx（反向代理、HTTPS/SSL、限流） · Prometheus · Grafana · Cloudflare Origin CA |
+| **架构模式** | RESTful API · 微服务风格（Docker Compose） · 多子域名路由 · 后台任务（转账截止检查 & 提醒检查器） |
+
+### 生产后端（私有）
+
+生产后端的支付处理、订单管理、库存、分析、管理面板和部署配置等完整商用能力维护在私有 Pro 仓库 (`vigoordi/DigitalProductStore-Pro`) 中，社区版不包含这些内容。
+
+### 商业授权
+
+本项目采用**双重许可**。社区版基于 AGPLv3 开源。如需在不遵守 AGPL 义务的前提下部署私有分支，或需要商业支持、SLA、定制集成、白标授权，请通过 GitHub 联系 **vigoordi**。商业授权条款可按项目个案协商。

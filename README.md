@@ -93,3 +93,20 @@ Bug fixes, accessibility improvements, documentation, tests, and UI contribution
 ## License
 
 The community edition is available under the [GNU Affero General Public License v3.0](LICENSE). Commercial/private deployment, support, and production integrations are outside this repository and require a separate commercial agreement.
+
+## Technology Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | Next.js 16 · React 19 · TypeScript · Ant Design 5 · Tailwind CSS · Framer Motion · Zustand · Axios · Sonner (toasts) |
+| **Backend API** | Go 1.25 · Gin · GORM · PostgreSQL · Redis · JWT auth · Stripe Payments · SMTP email |
+| **Infrastructure** | Docker Compose · Nginx (reverse proxy, HTTPS/SSL, rate limiting) · Prometheus · Grafana · Cloudflare Origin CA |
+| **Architecture** | RESTful API · Microservices-style (Docker Compose) · Multi-subdomain routing · Background worker (transfer deadline & reminder checkers) |
+
+### Production Backend (Private)
+
+The production backend — including payment processing, order management, inventory, analytics, admin panel, and deployment configuration — is maintained in the private Pro repository (`vigoordi/DigitalProductStore-Pro`). It is not included in this community edition.
+
+### Commercial Licensing
+
+This project is dual-licensed. The community edition is open-source under AGPLv3. For organizations that want to deploy a private fork without AGPL obligations, or require commercial support, SLA, custom integrations, or white-label licensing, please contact **vigoordi** via GitHub. Commercial license terms are negotiable on a case-by-case basis.

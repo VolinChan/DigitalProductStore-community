@@ -2,50 +2,59 @@
 
 import React, { Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Spin, Empty, Pagination, Button, Drawer, Typography } from 'antd';
-import { FilterOutlined } from '@ant-design/icons';
+import { Spin, Button, Drawer, Typography } from 'antd';
+import { FilterOutlined, SortAscendingOutlined } from '@ant-design/icons';
 import ProductCard from '@/components/product/ProductCard';
 import ProductFilters, { FilterValues } from '@/components/product/ProductFilters';
 import ProductSort, { SORT_OPTIONS } from '@/components/product/ProductSort';
+import EmptyState from '@/components/EmptyState';
+import { PageSkeleton } from '@/components/Skeleton';
 import apiClient from '@/lib/api';
-import type { Product, Category, PaginationMeta } from '@/types';
+import type { Product, Category } from '@/types';
 
 const { Text } = Typography;
 
 const PAGE_SIZE = 12;
 
 interface ProductListResponse {
-  data: {
-    products: Product[];
-    total: number;
-    page: number;
-    page_size: number;
-  };
+  data: { products: Product[]; total: number; page: number; page_size: number };
 }
 
 /**
- * Product list page with filtering, sorting, and pagination.
- * Requirements: 5.1-5.6 (product display), 22.1-22.7 (search and filter)
- *
- * Features:
- * - Responsive product grid using ProductCard component
- * - Sidebar filters (category, price range) on desktop, drawer on mobile
- * - Sort dropdown (price asc/desc, name, newest)
- * - Pagination at the bottom
- * - Product count display (Requirement 22.5)
- * - URL query params for filters/sort/page (shareable URLs)
+ * Modern product listing page.
+ * Requirements: 5.1-5.6, 22.1-22.7, 42.3
  */
 export default function ProductListPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Spin size="large" tip="加载中..." />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageSkeletonFallback />}>
       <ProductListContent />
     </Suspense>
+  );
+}
+
+function PageSkeletonFallback() {
+  return (
+    <main className="store-container">
+      <div className="animate-fade-in-up">
+        <div className="h-8 w-48 store-skeleton mb-6" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+          {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function ProductCardSkeleton() {
+  return (
+    <div className="rounded-xl border bg-card p-3 shadow-sm">
+      <div className="aspect-[4/3] w-full rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+      <div className="mt-3 space-y-2">
+        <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
+        <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
+        <div className="h-5 w-1/3 mt-2 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
+      </div>
+    </div>
   );
 }
 
@@ -53,20 +62,12 @@ function ProductListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Parse initial state from URL params
   const initialPage = Number(searchParams.get('page')) || 1;
   const initialSort = searchParams.get('sort') || 'newest';
-  const initialCategoryId = searchParams.get('category_id')
-    ? Number(searchParams.get('category_id'))
-    : undefined;
-  const initialMinPrice = searchParams.get('min_price')
-    ? Number(searchParams.get('min_price'))
-    : undefined;
-  const initialMaxPrice = searchParams.get('max_price')
-    ? Number(searchParams.get('max_price'))
-    : undefined;
+  const initialCategoryId = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : undefined;
+  const initialMinPrice = searchParams.get('min_price') ? Number(searchParams.get('min_price')) : undefined;
+  const initialMaxPrice = searchParams.get('max_price') ? Number(searchParams.get('max_price')) : undefined;
 
-  // State
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [total, setTotal] = useState(0);
@@ -80,13 +81,10 @@ function ProductListContent() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Resolve sort params from sort key
   const sortParams = useMemo(() => {
-    const option = SORT_OPTIONS.find((o) => o.value === sortKey);
-    return option || SORT_OPTIONS[0];
+    return SORT_OPTIONS.find((o) => o.value === sortKey) || SORT_OPTIONS[0];
   }, [sortKey]);
 
-  // Update URL with current state
   const updateURL = useCallback(
     (page: number, sort: string, filterValues: FilterValues) => {
       const params = new URLSearchParams();
@@ -95,14 +93,11 @@ function ProductListContent() {
       if (filterValues.category_id) params.set('category_id', String(filterValues.category_id));
       if (filterValues.min_price) params.set('min_price', String(filterValues.min_price));
       if (filterValues.max_price) params.set('max_price', String(filterValues.max_price));
-
-      const queryString = params.toString();
-      router.push(queryString ? `/products?${queryString}` : '/products', { scroll: false });
+      router.push(params.toString() ? `/products?${params.toString()}` : '/products', { scroll: false });
     },
     [router]
   );
 
-  // Fetch products
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -112,7 +107,6 @@ function ProductListContent() {
         sort_by: sortParams.sort_by,
         sort_order: sortParams.sort_order,
       };
-
       if (filters.category_id) params.category_id = filters.category_id;
       if (filters.min_price !== undefined) params.min_price = filters.min_price;
       if (filters.max_price !== undefined) params.max_price = filters.max_price;
@@ -128,25 +122,18 @@ function ProductListContent() {
     }
   }, [currentPage, sortParams, filters]);
 
-  // Fetch categories
   useEffect(() => {
     async function loadCategories() {
       try {
         const response = await apiClient.get<{ data: { categories: Category[] } }>('/categories');
         setCategories(response.data.data?.categories || []);
-      } catch {
-        setCategories([]);
-      }
+      } catch { /* noop */ }
     }
     loadCategories();
   }, []);
 
-  // Fetch products when dependencies change
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  // Handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     updateURL(page, sortKey, filters);
@@ -167,120 +154,137 @@ function ProductListContent() {
   };
 
   const handleFilterReset = () => {
-    const emptyFilters: FilterValues = {};
-    setFilters(emptyFilters);
+    setFilters({});
     setCurrentPage(1);
-    updateURL(1, sortKey, emptyFilters);
+    updateURL(1, sortKey, {});
     setDrawerOpen(false);
   };
 
-  // Check if any filters are active
-  const hasActiveFilters =
-    filters.category_id !== undefined ||
-    filters.min_price !== undefined ||
-    filters.max_price !== undefined;
-
-  // Filter sidebar content (shared between desktop sidebar and mobile drawer)
-  const filterContent = (
-    <ProductFilters
-      categories={categories}
-      initialValues={filters}
-      onApply={handleFilterApply}
-      onReset={handleFilterReset}
-    />
-  );
+  const hasActiveFilters = filters.category_id !== undefined || filters.min_price !== undefined || filters.max_price !== undefined;
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Desktop Sidebar Filters */}
-        <aside className="hidden lg:block w-64 flex-shrink-0" aria-label="商品筛选">
-          <div className="sticky top-4 bg-white rounded-lg border border-gray-200 p-4">
-            {filterContent}
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
-          {/* Toolbar: Sort + Count + Mobile Filter Button */}
-          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              {/* Mobile filter button */}
-              <Button
-                icon={<FilterOutlined />}
-                onClick={() => setDrawerOpen(true)}
-                className="lg:hidden"
-                type={hasActiveFilters ? 'primary' : 'default'}
-                ghost={hasActiveFilters}
-              >
-                筛选
-              </Button>
-
-              {/* Product count (Requirement 22.5) */}
-              <Text type="secondary" className="text-sm">
-                共 <span className="font-medium text-gray-900">{total}</span> 件商品
-              </Text>
-            </div>
-
-            {/* Sort dropdown */}
+    <main className="store-container" id="main-content">
+      <div className="animate-fade-in-up">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <h1 className="text-2xl font-bold tracking-tight">全部商品</h1>
+          <div className="flex items-center gap-3">
+            <Button
+              icon={<FilterOutlined />}
+              onClick={() => setDrawerOpen(true)}
+              className="sm:hidden"
+              type={hasActiveFilters ? 'primary' : 'default'}
+              ghost={hasActiveFilters}
+            >
+              筛选
+            </Button>
+            <Text type="secondary" className="text-sm">
+              共 <span className="font-medium text-foreground">{total}</span> 件商品
+            </Text>
             <ProductSort value={sortKey} onChange={handleSortChange} />
           </div>
-
-          {/* Product Grid */}
-          {loading ? (
-            <div className="flex items-center justify-center min-h-[300px]">
-              <Spin size="large" tip="加载中..." />
-            </div>
-          ) : products.length > 0 ? (
-            <>
-              {/* Requirement 5.5: Grid layout optimized for visual appeal */}
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-
-              {/* Pagination */}
-              {total > PAGE_SIZE && (
-                <div className="flex justify-center mt-8">
-                  <Pagination
-                    current={currentPage}
-                    total={total}
-                    pageSize={PAGE_SIZE}
-                    onChange={handlePageChange}
-                    showSizeChanger={false}
-                    showQuickJumper={total > PAGE_SIZE * 5}
-                    showTotal={(t) => `共 ${t} 件商品`}
-                  />
-                </div>
-              )}
-            </>
-          ) : (
-            <Empty
-              description={hasActiveFilters ? '没有找到符合条件的商品' : '暂无商品'}
-              className="py-16"
-            >
-              {hasActiveFilters && (
-                <Button type="primary" onClick={handleFilterReset}>
-                  清除筛选条件
-                </Button>
-              )}
-            </Empty>
-          )}
         </div>
-      </div>
 
-      {/* Mobile Filter Drawer */}
-      <Drawer
-        title="筛选商品"
-        placement="left"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        width={300}
-        className="lg:hidden"
-      >
-        {filterContent}
-      </Drawer>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Desktop Sidebar */}
+          <aside className="hidden lg:block w-64 flex-shrink-0" aria-label="商品筛选">
+            <div className="sticky top-24 bg-card rounded-xl border shadow-card p-5">
+              <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <FilterOutlined /> 筛选条件
+              </h2>
+              <ProductFilters
+                categories={categories}
+                initialValues={filters}
+                onApply={handleFilterApply}
+                onReset={handleFilterReset}
+              />
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+              </div>
+            ) : products.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+
+                {total > PAGE_SIZE && (
+                  <div className="flex justify-center mt-10">
+                    <PaginationWrapper current={currentPage} total={total} pageSize={PAGE_SIZE} onChange={handlePageChange} />
+                  </div>
+                )}
+              </>
+            ) : (
+              <EmptyState
+                title={hasActiveFilters ? '没有找到符合条件的商品' : '暂无商品'}
+                description={hasActiveFilters ? '试试调整筛选条件' : '商品即将上架，敬请期待'}
+                actionLabel={hasActiveFilters ? '清除筛选条件' : undefined}
+                actionHref={hasActiveFilters ? '/products' : undefined}
+                onAction={handleFilterReset}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Drawer */}
+        <Drawer
+          title={
+            <div className="flex items-center gap-2">
+              <FilterOutlined /> 筛选商品
+            </div>
+          }
+          placement="left"
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          width={300}
+          classNames={{ body: 'pt-4' }}
+        >
+          <ProductFilters categories={categories} initialValues={filters} onApply={handleFilterApply} onReset={handleFilterReset} />
+        </Drawer>
+      </div>
     </main>
+  );
+}
+
+/* ─── Pagination wrapper ──────────────────────────────────────────── */
+
+function PaginationWrapper({
+  current,
+  total,
+  pageSize,
+  onChange,
+}: {
+  current: number;
+  total: number;
+  pageSize: number;
+  onChange: (page: number) => void;
+}) {
+  return (
+    <nav aria-label="分页导航" className="flex items-center gap-2">
+      <button
+        disabled={current <= 1}
+        onClick={() => onChange(current - 1)}
+        className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+      >
+        上一页
+      </button>
+      <span className="text-sm text-muted px-2">
+        第 {current} / {Math.ceil(total / pageSize) || 1} 页
+      </span>
+      <button
+        disabled={current >= Math.ceil(total / pageSize)}
+        onClick={() => onChange(current + 1)}
+        className="px-3 py-1.5 rounded-lg border text-sm disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+      >
+        下一页
+      </button>
+    </nav>
   );
 }

@@ -394,6 +394,8 @@
     "passwordPolicy": "8-72 characters with uppercase, lowercase, a number, and a special character",
     "allRequired": "All fields are required",
     "passwordMismatch": "New passwords do not match",
+    "invalidCurrentPassword": "Your current password is incorrect",
+    "passwordChangeFailed": "We couldn't change your password. Please try again.",
     "accountType": "Account type"
   },
   "privacy": {

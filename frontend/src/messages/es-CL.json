@@ -377,6 +377,8 @@
     "passwordPolicy": "8-72 caracteres con mayúscula, minúscula, número y carácter especial",
     "allRequired": "Todos los campos son obligatorios",
     "passwordMismatch": "Las contraseñas nuevas no coinciden",
+    "invalidCurrentPassword": "La contraseña actual no es correcta",
+    "passwordChangeFailed": "No se pudo cambiar la contraseña. Inténtalo nuevamente.",
     "accountType": "Tipo de cuenta"
   },
   "privacy": {

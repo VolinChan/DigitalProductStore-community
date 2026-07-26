@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, Typography, Button, Descriptions, Spin, Input, message, Alert } from 'antd';
+import { Card, Typography, Button, Descriptions, Spin, Input, message, Form } from 'antd';
 import { EyeInvisibleOutlined, EyeTwoTone, LockOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
 import apiClient from '@/lib/api';
+import { useLocale, useTranslations } from 'next-intl';
 
 const { Title, Text } = Typography;
 
@@ -25,91 +26,56 @@ interface AuthUser {
   role?: string;
 }
 
-// Password policy text used in multiple places so it stays in sync.
-const PASSWORD_POLICY =
-  '8-72 characters with uppercase, lowercase, a number, and a special character';
-
 export default function ProfilePage() {
+  const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading, loadUser, logout } = useAuthStore();
 
   // ── Change-password form state ────────────────────────────────────
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordForm] = Form.useForm();
   const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // Redirect back to profile after a successful password change (the
   // frontend clears auth state and forces re-login).
   useEffect(() => {
     if (searchParams.get('passwordChanged') === '1') {
-      message.success('Password changed successfully. Please sign in again.');
-      router.replace('/profile');
+      message.success(t('profile.passwordChanged'));
+      router.replace(`/${locale}/profile`);
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, locale, t]);
 
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
-      router.push('/login?redirect=/profile');
+      router.push(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/profile`)}`);
       return;
     }
     if (isAuthenticated && !user) {
       loadUser();
     }
-  }, [isAuthenticated, isLoading, user, loadUser, router]);
+  }, [isAuthenticated, isLoading, user, loadUser, router, locale]);
 
-  const handlePasswordReset = useCallback(() => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setPasswordError('');
-    setPasswordSuccess(false);
-  }, []);
-
-  const handlePasswordChange = async () => {
-    setPasswordError('');
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('All fields are required.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match.');
-      return;
-    }
-    if (newPassword.length < 8 || newPassword.length > 72) {
-      setPasswordError(`New password must be ${PASSWORD_POLICY}.`);
-      return;
-    }
+  const handlePasswordChange = async (values: { current_password: string; new_password: string }) => {
 
     setChangingPassword(true);
     try {
       await apiClient.put('/auth/password', {
-        current_password: currentPassword,
-        new_password: newPassword,
+        current_password: values.current_password,
+        new_password: values.new_password,
       });
-      setPasswordSuccess(true);
-      message.success('Password changed successfully.');
-
-      // Clear form
-      handlePasswordReset();
+      message.success(t('profile.passwordChanged'));
+      passwordForm.resetFields();
 
       // Force re-authentication: clear tokens and redirect to login
       setTimeout(() => {
         logout();
-        router.push('/login?redirect=/profile&passwordChanged=1');
+        router.push(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/profile`)}&passwordChanged=1`);
       }, 1500);
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } }; message?: string };
-      setPasswordError(
-        axiosErr.response?.data?.error || axiosErr.message || 'Failed to change password.'
-      );
+      const axiosErr = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
+      const serverMessage = axiosErr.response?.data?.error?.message;
+      passwordForm.setFields([{ name: 'current_password', errors: [serverMessage === 'invalid current password' ? t('profile.invalidCurrentPassword') : serverMessage || t('profile.passwordChangeFailed')] }]);
     } finally {
       setChangingPassword(false);
     }
@@ -146,70 +112,34 @@ export default function ProfilePage() {
       </Card>
 
       {/* ── Change password card ─────────────────────────────────────── */}
-      <Card title="修改密码" className="mt-6">
-        {passwordSuccess && (
-          <Alert
-            title="密码已修改成功"
-            description="正在跳转到登录页面，请使用新密码重新登录。"
-            type="success"
-            showIcon
-            closable
-            className="mb-4"
-            onClose={handlePasswordReset}
-          />
-        )}
+      <Card title={t('profile.changePassword')} className="mt-6">
+        <Form form={passwordForm} layout="vertical" onFinish={handlePasswordChange} autoComplete="off">
+          <Form.Item name="current_password" label={t('profile.currentPassword')} rules={[{ required: true, message: t('profile.currentPasswordPlaceholder') }]}>
+            <Input.Password placeholder={t('profile.currentPasswordPlaceholder')} prefix={<LockOutlined />} />
+          </Form.Item>
 
-        {passwordError && (
-          <Alert title="错误" description={passwordError} type="error" showIcon className="mb-4" />
-        )}
+          <Form.Item name="new_password" label={t('profile.newPassword')} rules={[
+            { required: true, message: t('auth.passwordRequired') },
+            () => ({ validator(_, value) {
+              const valid = typeof value === 'string' && value.length >= 8 && value.length <= 72 && /\p{Lu}/u.test(value) && /\p{Ll}/u.test(value) && /\p{N}/u.test(value) && /[\p{P}\p{S}]/u.test(value);
+              return !value || valid ? Promise.resolve() : Promise.reject(new Error(t('profile.passwordPolicy')));
+            }}),
+          ]}>
+            <Input.Password placeholder={t('profile.newPasswordPlaceholder', { policy: t('profile.passwordPolicy') })} prefix={<LockOutlined />} />
+          </Form.Item>
+          <Text type="secondary" className="text-xs -mt-4 mb-4 block">{t('profile.passwordPolicy')}</Text>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">当前密码</label>
-            <Input.Password
-              placeholder="输入当前密码"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              prefix={<LockOutlined />}
-              visibilityToggle={{ visible: showCurrent, onVisibleChange: setShowCurrent }}
-            />
-          </div>
+          <Form.Item name="confirm_password" label={t('profile.confirmPassword')} dependencies={['new_password']} rules={[
+            { required: true, message: t('profile.confirmPasswordPlaceholder') },
+            ({ getFieldValue }) => ({ validator(_, value) { return !value || getFieldValue('new_password') === value ? Promise.resolve() : Promise.reject(new Error(t('profile.passwordMismatch'))); } }),
+          ]}>
+            <Input.Password placeholder={t('profile.confirmPasswordPlaceholder')} prefix={<LockOutlined />} />
+          </Form.Item>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">新密码</label>
-            <Input.Password
-              placeholder={`至少 8 个字符，${PASSWORD_POLICY}`}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              prefix={<LockOutlined />}
-              visibilityToggle={{ visible: showNew, onVisibleChange: setShowNew }}
-            />
-            <Text type="secondary" className="text-xs mt-1 block">
-              {PASSWORD_POLICY}
-            </Text>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">确认新密码</label>
-            <Input.Password
-              placeholder="再次输入新密码"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              prefix={<LockOutlined />}
-              visibilityToggle={{ visible: showConfirm, onVisibleChange: setShowConfirm }}
-            />
-          </div>
-
-          <Button
-            type="primary"
-            onClick={handlePasswordChange}
-            loading={changingPassword}
-            disabled={passwordSuccess}
-            className="w-full"
-          >
-            确认修改密码
+          <Button type="primary" htmlType="submit" loading={changingPassword} className="w-full">
+            {t('profile.changePassword')}
           </Button>
-        </div>
+        </Form>
       </Card>
     </main>
   );

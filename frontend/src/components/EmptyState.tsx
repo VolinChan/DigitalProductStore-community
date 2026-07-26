@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Button } from 'antd';
+import { useTranslations } from 'next-intl';
 
 interface EmptyStateProps {
   title?: string;
@@ -12,18 +13,21 @@ interface EmptyStateProps {
   icon?: React.ReactNode;
 }
 
-/**
- * Polished empty state with illustration, description and suggested action.
- * Requirement 36.2: Illustrated empty states with descriptive message.
- */
 export default function EmptyState({
-  title = '暂无内容',
-  description = '这里还没有任何数据',
+  title,
+  description,
   actionLabel,
   actionHref,
   icon,
   onAction,
 }: EmptyStateProps) {
+  const t = useTranslations();
+
+  // If title/description are provided as props, use them directly (they're already translated)
+  // Otherwise fall back to defaults
+  const defaultTitle = t('emptyState.defaultTitle');
+  const defaultDesc = t('emptyState.defaultDesc');
+
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="mb-4 text-gray-300 dark:text-gray-600">
@@ -37,8 +41,8 @@ export default function EmptyState({
           </svg>
         )}
       </div>
-      <p className="text-sm font-medium text-muted mb-1">{title}</p>
-      <p className="text-xs text-muted/70 max-w-xs">{description}</p>
+      <p className="text-sm font-medium text-muted mb-1">{title || defaultTitle}</p>
+      <p className="text-xs text-muted/70 max-w-xs">{description || defaultDesc}</p>
       {actionLabel && (onAction || actionHref) && (
         <Button type="primary" className="mt-6" size="large" onClick={onAction}>
           {actionHref ? <a href={actionHref} className="text-white no-underline">{actionLabel}</a> : actionLabel}

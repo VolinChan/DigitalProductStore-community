@@ -3,11 +3,23 @@
 import React from 'react';
 import { Select } from 'antd';
 import { SortAscendingOutlined } from '@ant-design/icons';
+import { useTranslations } from 'next-intl';
 
 export interface SortValue {
   sort_by: string;
   sort_order: 'asc' | 'desc';
 }
+
+/**
+ * Query mapping shared with the product list. Labels are intentionally kept
+ * out of this data so the visible select remains translated by this component.
+ */
+export const SORT_OPTIONS = [
+  { value: 'newest', sort_by: 'created_at', sort_order: 'desc' as const },
+  { value: 'price_asc', sort_by: 'price', sort_order: 'asc' as const },
+  { value: 'price_desc', sort_by: 'price', sort_order: 'desc' as const },
+  { value: 'name_asc', sort_by: 'name', sort_order: 'asc' as const },
+];
 
 interface ProductSortProps {
   value: string;
@@ -15,33 +27,25 @@ interface ProductSortProps {
 }
 
 /**
- * Sort options for the product list.
- * Requirement 22.3: Allow sorting by price asc/desc, name alphabetically, and creation date desc.
- */
-export const SORT_OPTIONS = [
-  { value: 'newest', label: '最新上架', sort_by: 'created_at', sort_order: 'desc' as const },
-  { value: 'price_asc', label: '价格从低到高', sort_by: 'price', sort_order: 'asc' as const },
-  { value: 'price_desc', label: '价格从高到低', sort_by: 'price', sort_order: 'desc' as const },
-  { value: 'name_asc', label: '名称 A-Z', sort_by: 'name', sort_order: 'asc' as const },
-];
-
-/**
  * Product sort dropdown component.
- * Requirement 22.3: Sort products by price ascending, price descending, name, and creation date.
  */
 export default function ProductSort({ value, onChange }: ProductSortProps) {
+  const t = useTranslations();
+
   return (
     <div className="flex items-center gap-2">
       <SortAscendingOutlined className="text-gray-500" />
       <Select
         value={value}
         onChange={onChange}
-        options={SORT_OPTIONS.map((opt) => ({
-          value: opt.value,
-          label: opt.label,
-        }))}
+        options={[
+          { value: 'newest', label: t('products.sortByNewest') },
+          { value: 'price_asc', label: t('products.sortByPriceLow') },
+          { value: 'price_desc', label: t('products.sortByPriceHigh') },
+          { value: 'name_asc', label: t('products.sortByName') },
+        ]}
         className="min-w-[140px]"
-        aria-label="排序方式"
+        aria-label={t('products.sort')}
       />
     </div>
   );

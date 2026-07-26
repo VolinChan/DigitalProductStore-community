@@ -62,7 +62,7 @@ export default function AnnouncementBar({ announcements }: AnnouncementBarProps)
       {visibleAnnouncements.map((announcement) => (
         <Alert
           key={announcement.id}
-          message={announcement.title}
+          title={announcement.title}
           description={announcement.content}
           type={getAlertType(announcement.type)}
           icon={getIcon(announcement.type)}

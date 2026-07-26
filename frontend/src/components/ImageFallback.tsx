@@ -41,7 +41,7 @@ export default function ImageFallback({
         className={`flex items-center justify-center bg-gray-100 dark:bg-gray-800 ${className}`}
         style={{ width, height }}
         role="img"
-        aria-label={alt || '图片加载中'}
+        aria-label={alt || 'Loading image'}
       >
         <svg
           className="w-8 h-8 text-gray-400 dark:text-gray-600"

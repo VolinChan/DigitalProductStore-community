@@ -61,7 +61,7 @@ docker compose -f docker-compose.community.yml up --build
 
 | 层级 | 技术选型 |
 |------|---------|
-| **前端** | Next.js 16 · React 19 · TypeScript · Ant Design 5 · Tailwind CSS · Framer Motion · Zustand · Axios · Sonner（Toast） |
+| **前端** | Next.js 16 · React 19 · TypeScript · Ant Design 6 · Tailwind CSS · Framer Motion · Zustand · Axios · Sonner（Toast） |
 | **后端 API** | Go 1.25 · Gin · GORM · PostgreSQL · Redis · JWT 鉴权 · Stripe 支付 · SMTP 邮件 |
 | **基础设施** | Docker Compose · Nginx（反向代理、HTTPS/SSL、限流） · Prometheus · Grafana · Cloudflare Origin CA |
 | **架构模式** | RESTful API · 微服务风格（Docker Compose） · 多子域名路由 · 后台任务（转账截止检查 & 提醒检查器） |

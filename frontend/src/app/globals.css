@@ -38,6 +38,12 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   }
 
+  /* Tailwind preflight is disabled, so reset the browser's default link underline. */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
   ::selection {
     @apply bg-primary/20 text-foreground;
   }

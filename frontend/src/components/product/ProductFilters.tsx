@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { InputNumber, Button, Space, Typography, Divider } from 'antd';
 import { FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { Category } from '@/types';
+import { useTranslations } from 'next-intl';
 
 const { Title, Text } = Typography;
 
@@ -22,8 +23,6 @@ interface ProductFiltersProps {
 
 /**
  * Product filter sidebar component.
- * Provides category selection and price range filtering.
- * Requirements: 5.2 (category filter), 22.2 (filter by category, price range, availability)
  */
 export default function ProductFilters({
   categories,
@@ -31,6 +30,7 @@ export default function ProductFilters({
   onApply,
   onReset,
 }: ProductFiltersProps) {
+  const t = useTranslations();
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(
     initialValues.category_id
   );
@@ -58,19 +58,19 @@ export default function ProductFilters({
       <div>
         <Title level={5} className="!mb-3">
           <FilterOutlined className="mr-2" />
-          商品分类
+          {t('products.category')}
         </Title>
         <div className="space-y-1">
           <button
             onClick={() => setSelectedCategory(undefined)}
             className={`block w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
               selectedCategory === undefined
-                ? 'bg-blue-50 text-blue-600 font-medium'
-                : 'text-gray-700 hover:bg-gray-50'
+                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
             aria-pressed={selectedCategory === undefined}
           >
-            全部分类
+            {t('common.viewAll')}
           </button>
           {categories.map((category) => (
             <button
@@ -78,8 +78,8 @@ export default function ProductFilters({
               onClick={() => setSelectedCategory(category.id)}
               className={`block w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                 selectedCategory === category.id
-                  ? 'bg-blue-50 text-blue-600 font-medium'
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
               aria-pressed={selectedCategory === category.id}
             >
@@ -94,30 +94,30 @@ export default function ProductFilters({
       {/* Price Range Filter */}
       <div>
         <Title level={5} className="!mb-3">
-          价格范围
+          {t('common.price')}
         </Title>
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <InputNumber
-              placeholder="最低价"
+              placeholder={t('products.filter')}
               min={0}
               value={minPrice}
               onChange={(val) => setMinPrice(val ?? undefined)}
               className="flex-1"
-              prefix="¥"
+              prefix="$"
               size="middle"
-              aria-label="最低价格"
+              aria-label={t('cart.totalPrice')}
             />
             <Text type="secondary">-</Text>
             <InputNumber
-              placeholder="最高价"
+              placeholder={t('products.filter')}
               min={0}
               value={maxPrice}
               onChange={(val) => setMaxPrice(val ?? undefined)}
               className="flex-1"
-              prefix="¥"
+              prefix="$"
               size="middle"
-              aria-label="最高价格"
+              aria-label={t('cart.totalPrice')}
             />
           </div>
         </div>
@@ -126,21 +126,21 @@ export default function ProductFilters({
       <Divider className="!my-4" />
 
       {/* Action Buttons */}
-      <Space direction="vertical" className="w-full">
+      <Space orientation="vertical" className="w-full">
         <Button
           type="primary"
           icon={<FilterOutlined />}
           onClick={handleApply}
           block
         >
-          应用筛选
+          {t('common.confirm')}
         </Button>
         <Button
           icon={<ReloadOutlined />}
           onClick={handleReset}
           block
         >
-          重置筛选
+          {t('common.cancel')}
         </Button>
       </Space>
     </div>

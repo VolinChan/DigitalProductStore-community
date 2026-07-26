@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ImageFallback from '@/components/ImageFallback';
+import { useTranslations } from 'next-intl';
 
 interface ImageGalleryProps {
   images: { id: number; image_url: string; thumbnail_url: string; sort_order: number }[];
@@ -9,12 +10,8 @@ interface ImageGalleryProps {
   productName: string;
 }
 
-/**
- * Modern product image gallery.
- * Requirement 38.1-38.3: Thumbnail navigation, zoom hover, touch swipe.
- * Uses shared ImageFallback for broken-image remediation.
- */
 export default function ImageGallery({ images, skuImageUrl, productName }: ImageGalleryProps) {
+  const t = useTranslations();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const allImages = React.useMemo(() => {
@@ -32,20 +29,16 @@ export default function ImageGallery({ images, skuImageUrl, productName }: Image
     return baseImages;
   }, [images, skuImageUrl]);
 
-  // Reset when SKU image changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [skuImageUrl]);
+  useEffect(() => { setSelectedIndex(0); }, [skuImageUrl]);
 
   const currentImage = allImages[selectedIndex] || allImages[0];
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Main Image */}
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-50 dark:bg-gray-800 border shadow-sm">
         <ImageFallback
           src={currentImage.url}
-          alt={`${productName} - 图片 ${selectedIndex + 1}`}
+          alt={`${productName} - ${t('gallery.image', { num: selectedIndex + 1 })}`}
           fill
           className="object-contain p-2"
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 500px"
@@ -53,12 +46,11 @@ export default function ImageGallery({ images, skuImageUrl, productName }: Image
         />
       </div>
 
-      {/* Thumbnails */}
       {allImages.length > 1 && (
         <div
           className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin"
           role="listbox"
-          aria-label="商品图片选择"
+          aria-label={t('gallery.title')}
         >
           {allImages.map((img, index) => (
             <button
@@ -66,7 +58,7 @@ export default function ImageGallery({ images, skuImageUrl, productName }: Image
               type="button"
               role="option"
               aria-selected={index === selectedIndex}
-              aria-label={`查看图片 ${index + 1}`}
+              aria-label={t('gallery.viewImage', { num: index + 1 })}
               className={`relative flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                 index === selectedIndex
                   ? 'border-accent ring-1 ring-accent/30 shadow-md'

@@ -98,7 +98,7 @@ The community edition is available under the [GNU Affero General Public License 
 
 | Layer | Technologies |
 |-------|-------------|
-| **Frontend** | Next.js 16 · React 19 · TypeScript · Ant Design 5 · Tailwind CSS · Framer Motion · Zustand · Axios · Sonner (toasts) |
+| **Frontend** | Next.js 16 · React 19 · TypeScript · Ant Design 6 · Tailwind CSS · Framer Motion · Zustand · Axios · Sonner (toasts) |
 | **Backend API** | Go 1.25 · Gin · GORM · PostgreSQL · Redis · JWT auth · Stripe Payments · SMTP email |
 | **Infrastructure** | Docker Compose · Nginx (reverse proxy, HTTPS/SSL, rate limiting) · Prometheus · Grafana · Cloudflare Origin CA |
 | **Architecture** | RESTful API · Microservices-style (Docker Compose) · Multi-subdomain routing · Background worker (transfer deadline & reminder checkers) |

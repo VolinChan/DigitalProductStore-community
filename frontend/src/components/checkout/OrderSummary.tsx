@@ -4,6 +4,7 @@ import React from 'react';
 import { Typography, Divider, Tag, Image } from 'antd';
 import { ShoppingOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import type { CartItem } from '@/types';
+import { useTranslations } from 'next-intl';
 
 const { Title, Text } = Typography;
 
@@ -15,31 +16,25 @@ interface OrderSummaryProps {
 
 /**
  * Order summary component for the checkout page.
- * Displays cart items, subtotal, shipping fee, and total amount.
- *
- * Requirements:
- * - 7.4: Calculate total amount including SKU prices and shipping fees
  */
 export default function OrderSummary({
   items,
   totalPrice,
   shippingFee = 0,
 }: OrderSummaryProps) {
+  const t = useTranslations();
   const grandTotal = totalPrice + shippingFee;
 
   return (
     <div className="bg-white rounded-lg p-6 border border-gray-200">
       <Title level={4} className="!mb-4">
         <ShoppingOutlined className="mr-2" />
-        订单摘要
+        {t('checkout.orderSummary')}
       </Title>
 
       {/* Items List */}
       <div className="space-y-3 max-h-80 overflow-y-auto">
         {items.map((item) => {
-          // Display fields can come either from the embedded SKU (guest cart)
-          // or as flat fields on the cart item itself (auth cart, see
-          // CartItemResponse on the backend).
           const displayName =
             item.sku?.product?.name ||
             item.sku_name ||
@@ -72,9 +67,7 @@ export default function OrderSummary({
 
             {/* Item Details */}
             <div className="flex-1 min-w-0">
-              <Text className="text-sm block truncate">
-                {displayName}
-              </Text>
+              <Text className="text-sm block truncate">{displayName}</Text>
               {displayAttrs && displayAttrs.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-0.5">
                   {displayAttrs.map((attr) => (
@@ -88,12 +81,8 @@ export default function OrderSummary({
 
             {/* Quantity and Price */}
             <div className="text-right flex-shrink-0">
-              <Text type="secondary" className="text-xs block">
-                x{item.quantity}
-              </Text>
-              <Text strong className="text-sm">
-                ¥{item.subtotal.toFixed(2)}
-              </Text>
+              <Text type="secondary" className="text-xs block">x{item.quantity}</Text>
+              <Text strong className="text-sm">{formatCLP(item.subtotal)}</Text>
             </div>
           </div>
           );
@@ -105,12 +94,12 @@ export default function OrderSummary({
       {/* Price Breakdown */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <Text type="secondary">商品小计</Text>
-          <Text>¥{totalPrice.toFixed(2)}</Text>
+          <Text type="secondary">{t('cart.itemCount')}</Text>
+          <Text>{formatCLP(totalPrice)}</Text>
         </div>
         <div className="flex justify-between text-sm">
-          <Text type="secondary">运费</Text>
-          <Text>{shippingFee > 0 ? `¥${shippingFee.toFixed(2)}` : '免运费'}</Text>
+          <Text type="secondary">{t('cart.shippingFee')}</Text>
+          <Text>{shippingFee > 0 ? formatCLP(shippingFee) : t('common.free')}</Text>
         </div>
       </div>
 
@@ -118,16 +107,20 @@ export default function OrderSummary({
 
       {/* Grand Total */}
       <div className="flex justify-between items-baseline">
-        <Text strong className="text-base">
-          应付总额
-        </Text>
+        <Text strong className="text-base">{t('cart.total')}</Text>
         <div>
-          <span className="text-sm text-red-500">¥</span>
-          <span className="text-xl font-bold text-red-500">
-            {grandTotal.toFixed(2)}
-          </span>
+          <span className="text-xl font-bold text-error">{formatCLP(grandTotal)}</span>
         </div>
       </div>
     </div>
   );
+}
+
+function formatCLP(amount: number): string {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }

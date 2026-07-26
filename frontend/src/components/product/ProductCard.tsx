@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Tag } from 'antd';
 import ImageFallback from '@/components/ImageFallback';
 import type { Product } from '@/types';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface ProductCardProps {
   product: Product;
@@ -12,9 +13,10 @@ interface ProductCardProps {
 
 /**
  * Modern product card component.
- * Requirement 5.5-5.8: Responsive grid, hover effects, rounded corners, subtle border.
  */
 export default function ProductCard({ product }: ProductCardProps) {
+  const t = useTranslations();
+  const locale = useLocale();
   const primaryImage = product.images && product.images.length > 0
     ? product.images[0].thumbnail_url || product.images[0].image_url
     : '/placeholder-product.svg';
@@ -23,7 +25,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const isOutOfStock = checkOutOfStock(product);
 
   return (
-    <Link href={`/products/${product.id}`} className="group block">
+    <Link href={`/${locale}/products/${product.id}`} className="group block">
       <div className="store-card overflow-hidden flex flex-col h-full">
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-800">
@@ -38,7 +40,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {isOutOfStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <Tag color="error" className="text-xs px-3 py-1 font-semibold rounded-pill">
-                已售罄
+                {t('common.soldOut')}
               </Tag>
             </div>
           )}
@@ -57,20 +59,28 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="mt-auto pt-2 flex items-baseline gap-1">
             {startingPrice !== null ? (
               <>
-                <span className="text-[10px] text-muted">¥</span>
+                <span className="text-xs text-muted">{t('products.from')}</span>
                 <span className="text-lg font-bold text-error">
-                  {startingPrice.toFixed(2)}
+                  {formatCLP(startingPrice)}
                 </span>
-                <span className="text-xs text-muted ml-0.5">起</span>
               </>
             ) : (
-              <span className="text-xs text-muted">暂无价格</span>
+              <span className="text-xs text-muted">{t('common.noPrice')}</span>
             )}
           </div>
         </div>
       </div>
     </Link>
   );
+}
+
+function formatCLP(amount: number): string {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 function getStartingPrice(product: Product): number | null {

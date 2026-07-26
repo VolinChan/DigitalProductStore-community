@@ -8,6 +8,7 @@ import {
   PhoneOutlined,
   EnvironmentOutlined,
 } from '@ant-design/icons';
+import { useTranslations } from 'next-intl';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -17,6 +18,8 @@ export interface ShippingInfo {
   email: string;
   phone: string;
   address: string;
+  region?: string;
+  commune?: string;
 }
 
 interface ShippingFormProps {
@@ -27,17 +30,16 @@ interface ShippingFormProps {
 /**
  * Shipping information form component.
  * Collects full name, email, phone, and shipping address.
- *
- * Requirements:
- * - 2.2: Collect full name, email, phone, and shipping address
- * - 2.3: Validate email format and phone number format
+ * Supports Chilean address fields (Región, Comuna).
  */
 export default function ShippingForm({ form, initialValues }: ShippingFormProps) {
+  const t = useTranslations();
+
   return (
     <div className="bg-white rounded-lg p-6 border border-gray-200">
       <Title level={4} className="!mb-4">
         <EnvironmentOutlined className="mr-2" />
-        收货信息
+        {t('checkout.shippingInfo')}
       </Title>
 
       <Form
@@ -48,63 +50,84 @@ export default function ShippingForm({ form, initialValues }: ShippingFormProps)
       >
         <Form.Item
           name="full_name"
-          label="收货人姓名"
+          label={t('shipping.fullName')}
           rules={[
-            { required: true, message: '请输入收货人姓名' },
-            { min: 2, message: '姓名至少 2 个字符' },
-            { max: 100, message: '姓名不能超过 100 个字符' },
+            { required: true, message: t('shipping.fullNameRequired') },
+            { min: 2, message: t('shipping.fullNameMin') },
+            { max: 100, message: t('shipping.fullNameMax') },
           ]}
         >
           <Input
             prefix={<UserOutlined className="text-gray-400" />}
-            placeholder="请输入收货人姓名"
+            placeholder={t('shipping.fullName')}
             size="large"
           />
         </Form.Item>
 
         <Form.Item
           name="email"
-          label="邮箱地址"
+          label={t('shipping.email')}
           rules={[
-            { required: true, message: '请输入邮箱地址' },
-            { type: 'email', message: '请输入有效的邮箱地址' },
+            { required: true, message: t('shipping.emailRequired') },
+            { type: 'email', message: t('shipping.emailInvalid') },
           ]}
         >
           <Input
             prefix={<MailOutlined className="text-gray-400" />}
-            placeholder="请输入邮箱地址"
+            placeholder={t('shipping.email')}
             size="large"
           />
         </Form.Item>
 
         <Form.Item
           name="phone"
-          label="联系电话"
+          label={t('shipping.phone')}
           rules={[
-            { required: true, message: '请输入联系电话' },
+            { required: true, message: t('shipping.phoneRequired') },
             {
               pattern: /^(\+?\d{1,4}[-\s]?)?(\d{7,15})$/,
-              message: '请输入有效的电话号码',
+              message: t('shipping.phoneInvalid'),
             },
           ]}
         >
           <Input
             prefix={<PhoneOutlined className="text-gray-400" />}
-            placeholder="请输入联系电话"
+            placeholder="+56 9 ..."
             size="large"
           />
         </Form.Item>
 
+        {/* Chilean address fields */}
+        <Form.Item
+          name="region"
+          label={t('shipping.region')}
+          rules={[
+            { required: true, message: t('shipping.regionRequired') },
+          ]}
+        >
+          <Input placeholder={t('shipping.region')} size="large" />
+        </Form.Item>
+
+        <Form.Item
+          name="commune"
+          label={t('shipping.commune')}
+          rules={[
+            { required: true, message: t('shipping.communeRequired') },
+          ]}
+        >
+          <Input placeholder={t('shipping.commune')} size="large" />
+        </Form.Item>
+
         <Form.Item
           name="address"
-          label="收货地址"
+          label={t('shipping.address')}
           rules={[
-            { required: true, message: '请输入收货地址' },
-            { min: 5, message: '地址至少 5 个字符' },
+            { required: true, message: t('shipping.addressRequired') },
+            { min: 5, message: t('shipping.addressMin') },
           ]}
         >
           <TextArea
-            placeholder="请输入详细收货地址（省/市/区/街道/门牌号）"
+            placeholder={t('shipping.addressPlaceholder')}
             rows={3}
             showCount
             maxLength={500}

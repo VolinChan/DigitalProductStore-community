@@ -107,6 +107,11 @@ export default function ProfilePage() {
           <Link href={`/${locale}/orders`}>
             <Button type="primary">{t('orders.title')}</Button>
           </Link>
+          {(user as User).role === 'super_admin' && (
+            <Link href="/admin">
+              <Button>{t('layout.admin')}</Button>
+            </Link>
+          )}
           <Button onClick={() => { logout(); router.push(`/${locale}`); }}>{t('layout.logout')}</Button>
         </div>
       </Card>

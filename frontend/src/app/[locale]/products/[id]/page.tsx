@@ -158,13 +158,13 @@ export default function ProductDetailPage() {
       <main className="store-container" id="main-content">
         <div className="animate-fade-in-up">
           <Breadcrumb className="mb-6" items={[
-            { title: <Link href="/"><HomeOutlined /> {t('layout.home')}</Link> },
-            { title: <Link href="/products">{t('layout.allProducts')}</Link> },
+            { title: <Link href={`/${locale}`}><HomeOutlined /> {t('layout.home')}</Link> },
+            { title: <Link href={`/${locale}/products`}>{t('layout.allProducts')}</Link> },
           ]} />
           <EmptyState
             title={error || t('products.notFound')}
             actionLabel={t('products.backToProducts')}
-            actionHref="/products"
+            actionHref={`/${locale}/products`}
           />
         </div>
       </main>
@@ -179,8 +179,8 @@ export default function ProductDetailPage() {
         {/* Breadcrumb */}
         <Breadcrumb
           items={[
-            { title: <Link href="/" className="flex items-center gap-1 hover:text-accent"><HomeOutlined /> {t('layout.home')}</Link> },
-            { title: <Link href="/products" className="hover:text-accent">{t('layout.allProducts')}</Link> },
+            { title: <Link href={`/${locale}`} className="flex items-center gap-1 hover:text-accent"><HomeOutlined /> {t('layout.home')}</Link> },
+            { title: <Link href={`/${locale}/products`} className="hover:text-accent">{t('layout.allProducts')}</Link> },
             { title: <span className="text-foreground">{product.name}</span> },
           ]}
         />
@@ -292,7 +292,7 @@ export default function ProductDetailPage() {
               >
                 {!inventoryStatus.available && selectedSku ? t('common.soldOut') : !selectedSku ? t('products.selectSku') : t('products.addToCart')}
               </Button>
-              <Link href="/products">
+              <Link href={`/${locale}/products`}>
                 <Button size="large" icon={<ArrowLeftOutlined />} className="!py-3">
                   {t('products.continueShopping')}
                 </Button>

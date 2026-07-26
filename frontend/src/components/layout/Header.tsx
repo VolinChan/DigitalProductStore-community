@@ -70,6 +70,9 @@ export default function Header() {
     ? [
         { key: 'profile', label: <Link href={`/${locale}/profile`} className="text-accent hover:text-accent/80">{t('layout.profile')}</Link> },
         { key: 'orders', label: <Link href={`/${locale}/orders`} className="text-accent hover:text-accent/80">{t('layout.myOrders')}</Link> },
+        ...(user?.role === 'super_admin' ? [
+          { key: 'admin', label: <Link href="/admin" className="text-accent hover:text-accent/80">{t('layout.admin')}</Link> },
+        ] : []),
         { type: 'divider' },
         { key: 'logout', label: <span onClick={handleLogout} className="text-accent hover:text-accent/80 cursor-pointer">{t('layout.logout')}</span> },
       ]

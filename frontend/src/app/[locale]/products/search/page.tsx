@@ -141,7 +141,7 @@ function SearchContent() {
           className="py-16"
         >
           <Link
-            href="/products"
+            href={`/${locale}/products`}
             className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             {t('products.browseAll')}
@@ -177,7 +177,7 @@ function SearchResultCard({ product, query, locale }: { product: Product; query:
   const isOutOfStock = checkOutOfStock(product);
 
   return (
-    <Link href={`/products/${product.id}`} className="block group">
+    <Link href={`/${locale}/products/${product.id}`} className="block group">
       <Card
         hoverable
         className="h-full overflow-hidden"

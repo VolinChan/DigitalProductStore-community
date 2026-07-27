@@ -38,7 +38,7 @@ export default function SKUSelector({
 
     skus.forEach((sku) => {
       if (!sku.is_active) return;
-      sku.attributes.forEach((attr) => {
+      (sku.attributes ?? []).forEach((attr) => {
         if (!groups[attr.name]) {
           groups[attr.name] = new Set();
         }
@@ -65,7 +65,7 @@ export default function SKUSelector({
         const matchesOtherSelections = Object.entries(selectedAttributes).every(
           ([name, value]) => {
             if (name === attributeName) return true; // Skip the current attribute
-            return sku.attributes.some(
+            return (sku.attributes ?? []).some(
               (attr) => attr.name === name && attr.value === value
             );
           }
@@ -73,7 +73,7 @@ export default function SKUSelector({
 
         if (matchesOtherSelections) {
           // This SKU is compatible, so its value for this attribute is available
-          const attr = sku.attributes.find((a) => a.name === attributeName);
+          const attr = (sku.attributes ?? []).find((a) => a.name === attributeName);
           if (attr) {
             available.add(attr.value);
           }
@@ -93,7 +93,7 @@ export default function SKUSelector({
         if (sku.inventory <= 0) return false;
 
         // Check this attribute matches
-        const hasThisAttr = sku.attributes.some(
+        const hasThisAttr = (sku.attributes ?? []).some(
           (attr) => attr.name === attributeName && attr.value === value
         );
         if (!hasThisAttr) return false;
@@ -101,7 +101,7 @@ export default function SKUSelector({
         // Check all other selected attributes match
         return Object.entries(selectedAttributes).every(([name, val]) => {
           if (name === attributeName) return true;
-          return sku.attributes.some(
+          return (sku.attributes ?? []).some(
             (attr) => attr.name === name && attr.value === val
           );
         });

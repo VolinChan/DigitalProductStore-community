@@ -80,7 +80,33 @@
 
   /* Container for pages */
   .store-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10;
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10;
+  }
+
+  /* Ant Radio.Button has an intrinsic 32px height. SKU image choices need a
+     stable media-cell size so short labels cannot collapse into vertical text. */
+  .sku-image-option.ant-radio-button-wrapper {
+    display: flex !important;
+    width: 100% !important;
+    height: 6rem !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    line-height: 1.25;
+    white-space: normal;
+  }
+
+  .sku-image-option.ant-radio-button-wrapper::before {
+    display: none;
+  }
+
+  .sku-image-option > .ant-radio-button-label {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
   }
 }
 

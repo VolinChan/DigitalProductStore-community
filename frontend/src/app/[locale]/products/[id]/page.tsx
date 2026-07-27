@@ -79,7 +79,7 @@ export default function ProductDetailPage() {
     if (activeSKUs.length === 0) return null;
 
     const attributeNames = new Set<string>();
-    activeSKUs.forEach((sku) => sku.attributes.forEach((attr) => attributeNames.add(attr.name)));
+    activeSKUs.forEach((sku) => (sku.attributes ?? []).forEach((attr) => attributeNames.add(attr.name)));
 
     const allSelected = Array.from(attributeNames).every(
       (name) => selectedAttributes[name] && selectedAttributes[name] !== ''
@@ -87,7 +87,7 @@ export default function ProductDetailPage() {
     if (!allSelected) return null;
 
     return activeSKUs.find((sku) =>
-      sku.attributes.every((attr) => selectedAttributes[attr.name] === attr.value)
+      (sku.attributes ?? []).every((attr) => selectedAttributes[attr.name] === attr.value)
     ) || null;
   }, [product, selectedAttributes]);
 

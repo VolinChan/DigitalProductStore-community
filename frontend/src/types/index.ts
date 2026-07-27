@@ -57,8 +57,9 @@ export interface ProductImage {
   id: number;
   product_id: number;
   image_url: string;
-  thumbnail_url: string;
+  thumbnail_url?: string;
   sort_order: number;
+  is_primary: boolean;
 }
 
 export interface Category {
@@ -67,6 +68,9 @@ export interface Category {
   slug: string;
   parent_id?: number;
   sort_order: number;
+  is_active: boolean;
+  product_count?: number;
+  updated_at?: string;
   children?: Category[];
 }
 

@@ -24,14 +24,16 @@ export default function CategoriesPage() {
   }, []);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+    <main className="store-container" id="main-content">
       <Title level={2} className="!mb-6">{t('categories.title')}</Title>
       {loading ? <div className="flex items-center justify-center min-h-[300px]"><Spin size="large" /></div>
         : categories.length === 0 ? <Empty description={t('categories.empty')} />
           : <Row gutter={[16, 16]}>{categories.map((category) => (
-            <Col key={category.id} xs={12} sm={8} md={6} lg={4}>
-              <Link href={`/${locale}/products?category_id=${category.id}`}>
-                <Card hoverable className="text-center"><Paragraph strong className="!mb-0">{category.name}</Paragraph></Card>
+            <Col key={category.id} xs={12} sm={8} md={6} lg={4} className="flex">
+              <Link href={`/${locale}/products?category_id=${category.id}`} className="block h-full w-full">
+                <Card hoverable className="h-full w-full text-center" styles={{ body: { minHeight: 88, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' } }}>
+                  <Paragraph strong className="!mb-0 w-full whitespace-normal break-words !leading-5">{category.name}</Paragraph>
+                </Card>
               </Link>
             </Col>
           ))}</Row>}

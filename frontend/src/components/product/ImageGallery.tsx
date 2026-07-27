@@ -5,7 +5,7 @@ import ImageFallback from '@/components/ImageFallback';
 import { useTranslations } from 'next-intl';
 
 interface ImageGalleryProps {
-  images: { id: number; image_url: string; thumbnail_url: string; sort_order: number }[];
+  images: { id: number; image_url: string; thumbnail_url?: string; sort_order: number; is_primary?: boolean }[];
   skuImageUrl?: string;
   productName: string;
 }
@@ -16,7 +16,7 @@ export default function ImageGallery({ images, skuImageUrl, productName }: Image
 
   const allImages = React.useMemo(() => {
     const baseImages = images.length > 0
-      ? images.map((img) => ({
+      ? [...images].sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)) || a.sort_order - b.sort_order).map((img) => ({
           id: img.id,
           url: img.image_url,
           thumbnail: img.thumbnail_url || img.image_url,

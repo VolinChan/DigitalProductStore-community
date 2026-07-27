@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 
 interface ImageFallbackProps {
@@ -34,6 +34,8 @@ export default function ImageFallback({
   ...props
 }: ImageFallbackProps) {
   const [error, setError] = useState(false);
+
+  useEffect(() => setError(false), [src]);
 
   if (error) {
     return (
@@ -72,6 +74,7 @@ export default function ImageFallback({
       priority={priority}
       loading={loading}
       onError={() => setError(true)}
+      unoptimized={src.startsWith('/uploads/') || src.toLowerCase().split('?')[0].endsWith('.svg')}
       {...props}
     />
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Button, InputNumber, Tag, Divider, Typography, Breadcrumb, Spin } from 'antd';
 import { ShoppingCartOutlined, HomeOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { toast } from 'sonner';
@@ -11,7 +11,9 @@ import { useCartStore } from '@/store/useCartStore';
 import ImageGallery from '@/components/product/ImageGallery';
 import SKUSelector from '@/components/product/SKUSelector';
 import EmptyState from '@/components/EmptyState';
-import type { Product, SKU } from '@/types';
+import type { Product, ProductSpecification, SKU } from '@/types';
+import { getSKUImage } from '@/lib/catalog';
+import { catalogStorefrontEnabled } from '@/lib/catalog-flags';
 import { useLocale, useTranslations } from 'next-intl';
 
 const { Title, Text, Paragraph } = Typography;
@@ -26,7 +28,10 @@ interface ProductDetailResponse {
  */
 export default function ProductDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const productId = params.id as string;
+  const previewToken = searchParams.get('preview_token');
+  const isPreview = Boolean(previewToken);
   const t = useTranslations();
   const locale = useLocale();
   const formatPrice = (amount: number) => new Intl.NumberFormat(locale, {
@@ -47,7 +52,10 @@ export default function ProductDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await apiClient.get<ProductDetailResponse>(`/products/${productId}`);
+        const endpoint = previewToken
+          ? `/admin/products/${productId}/preview?token=${encodeURIComponent(previewToken)}`
+          : `/products/${productId}`;
+        const response = await apiClient.get<ProductDetailResponse>(endpoint);
         setProduct(response.data.data);
       } catch {
         setError(t('products.loadFailed'));
@@ -56,11 +64,11 @@ export default function ProductDetailPage() {
       }
     }
     if (productId) fetchProduct();
-  }, [productId, t]);
+  }, [previewToken, productId, t]);
 
   // Track product view
   useEffect(() => {
-    if (!product) return;
+    if (!product || isPreview) return;
     async function trackView() {
       try {
         await apiClient.post('/analytics/track', {
@@ -71,7 +79,7 @@ export default function ProductDetailPage() {
       } catch { /* silent */ }
     }
     trackView();
-  }, [product]);
+  }, [isPreview, product]);
 
   const selectedSku = useMemo((): SKU | null => {
     if (!product?.skus || product.skus.length === 0) return null;
@@ -124,6 +132,7 @@ export default function ProductDetailPage() {
   }, []);
 
   const handleAddToCart = async () => {
+    if (isPreview) return;
     if (!selectedSku) { toast.warning(t('products.selectSku')); return; }
     if (!inventoryStatus.available) { toast.error(t('common.soldOut')); return; }
     if (quantity > selectedSku.inventory) { toast.warning(t('cart.stockLimit', { count: selectedSku.inventory })); return; }
@@ -176,6 +185,9 @@ export default function ProductDetailPage() {
   return (
     <main className="store-container" id="main-content">
       <div className="animate-fade-in-up space-y-8">
+        {isPreview && <div className="border-y border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+          <strong>Vista previa de administrador</strong><span className="ml-2">Las compras estan desactivadas.</span>
+        </div>}
         {/* Breadcrumb */}
         <Breadcrumb
           items={[
@@ -189,7 +201,7 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Left: Image Gallery */}
           <div>
-            <ImageGallery images={product.images || []} skuImageUrl={selectedSku?.image_url} productName={product.name} />
+            <ImageGallery images={product.images || []} media={catalogStorefrontEnabled ? product.media || [] : []} skuImageUrl={getSKUImage(selectedSku)} productName={product.name} />
           </div>
 
           {/* Right: Product Info */}
@@ -287,10 +299,10 @@ export default function ProductDetailPage() {
                 icon={<ShoppingCartOutlined />}
                 onClick={handleAddToCart}
                 loading={addingToCart}
-                disabled={!selectedSku || !inventoryStatus.available}
+                disabled={isPreview || !selectedSku || !inventoryStatus.available}
                 className="store-btn-primary !px-8 !py-3 !text-base flex-1"
               >
-                {!inventoryStatus.available && selectedSku ? t('common.soldOut') : !selectedSku ? t('products.selectSku') : t('products.addToCart')}
+                {isPreview ? 'Vista previa' : !inventoryStatus.available && selectedSku ? t('common.soldOut') : !selectedSku ? t('products.selectSku') : t('products.addToCart')}
               </Button>
               <Link href={`/${locale}/products`}>
                 <Button size="large" icon={<ArrowLeftOutlined />} className="!py-3">
@@ -306,15 +318,17 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Description & Specifications */}
-        {(product.description || product.specifications) && (
+        {(product.description_html || product.description || product.structured_specifications?.length || product.specifications) && (
           <section className="border-t pt-8 space-y-8">
-            {product.description && (
+            {(product.description_html || product.description) && (
               <div>
                 <h2 className="text-lg font-bold mb-3">{t('products.description')}</h2>
-                <Paragraph className="text-muted whitespace-pre-wrap">{product.description}</Paragraph>
+                {catalogStorefrontEnabled && product.description_html
+                  ? <div className="catalog-product-description text-muted" dangerouslySetInnerHTML={{ __html: product.description_html }} />
+                  : <Paragraph className="whitespace-pre-wrap text-muted">{product.description}</Paragraph>}
               </div>
             )}
-            {product.specifications && <SpecificationsTable specifications={product.specifications} title={t('products.specs')} />}
+            {(product.structured_specifications?.length || product.specifications) && <SpecificationsTable structured={catalogStorefrontEnabled ? product.structured_specifications : []} specifications={product.specifications} title={t('products.specs')} />}
           </section>
         )}
 
@@ -328,8 +342,8 @@ export default function ProductDetailPage() {
               <span className="text-sm text-muted">{formatPrice(displayPrice.min)} - {formatPrice(displayPrice.max)}</span>
             )}
           </div>
-          <Button type="primary" size="large" onClick={handleAddToCart} loading={addingToCart} disabled={!inventoryStatus.available} className="!h-10 !px-6 !text-sm font-medium rounded-lg">
-            {t('products.addToCart')}
+          <Button type="primary" size="large" onClick={handleAddToCart} loading={addingToCart} disabled={isPreview || !inventoryStatus.available} className="!h-10 !px-6 !text-sm font-medium rounded-lg">
+            {isPreview ? 'Vista previa' : t('products.addToCart')}
           </Button>
         </div>
       </div>
@@ -337,7 +351,29 @@ export default function ProductDetailPage() {
   );
 }
 
-function SpecificationsTable({ specifications, title }: { specifications: string; title: string }) {
+function SpecificationsTable({ structured = [], specifications, title }: { structured?: ProductSpecification[]; specifications: string; title: string }) {
+  const populated = structured.filter((item) => item.value_text?.trim() || item.value_number !== undefined);
+  if (populated.length > 0) {
+    const groups = new Map<string, ProductSpecification[]>();
+    populated.sort((a, b) => a.group_name.localeCompare(b.group_name) || a.sort_order - b.sort_order).forEach((item) => {
+      const group = item.group_name || 'General';
+      groups.set(group, [...(groups.get(group) ?? []), item]);
+    });
+    return <div>
+      <h2 className="mb-3 text-lg font-bold">{title}</h2>
+      <div className="space-y-5">
+        {[...groups.entries()].map(([group, rows]) => <section key={group}>
+          <h3 className="mb-2 text-base font-semibold">{group}</h3>
+          <dl className="overflow-hidden rounded-xl border text-sm">
+            {rows.map((item, index) => <div key={`${group}-${item.spec_key}`} className={`grid grid-cols-[minmax(0,42%)_minmax(0,58%)] ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}>
+              <dt className="break-words border-r px-3 py-3 font-medium text-foreground sm:px-4">{item.label}</dt>
+              <dd className="min-w-0 break-words px-3 py-3 text-muted sm:px-4">{item.value_text ?? item.value_number}{item.unit ? ` ${item.unit}` : ''}</dd>
+            </div>)}
+          </dl>
+        </section>)}
+      </div>
+    </div>;
+  }
   try {
     const parsed = JSON.parse(specifications);
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {

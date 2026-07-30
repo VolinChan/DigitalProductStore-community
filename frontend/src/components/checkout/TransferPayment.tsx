@@ -5,7 +5,7 @@ import { Typography, Upload, Button, Alert, Descriptions, message, Spin, Tag } f
 import { BankOutlined, UploadOutlined, ClockCircleOutlined, CheckCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import apiClient from '@/lib/api';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -19,9 +19,14 @@ interface TransferPaymentProps {
 
 export default function TransferPayment({ orderId, orderNumber, totalAmount, confirmationDeadline, onUploadSuccess }: TransferPaymentProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
+  const bankName = process.env.NEXT_PUBLIC_TRANSFER_BANK_NAME?.trim();
+  const accountName = process.env.NEXT_PUBLIC_TRANSFER_ACCOUNT_NAME?.trim();
+  const accountNumber = process.env.NEXT_PUBLIC_TRANSFER_ACCOUNT_NUMBER?.trim();
+  const transferConfigured = Boolean(bankName && accountName && accountNumber);
 
   const handleUpload = async () => {
     if (fileList.length === 0) { message.warning(t('transfer.uploadWarning')); return; }
@@ -56,11 +61,11 @@ export default function TransferPayment({ orderId, orderNumber, totalAmount, con
 
   const formatDeadline = (deadline: string) => {
     const date = new Date(deadline);
-    return date.toLocaleString('es-CL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
 
   function formatCLP(amount: number): string {
-    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   }
 
   return (
@@ -69,11 +74,14 @@ export default function TransferPayment({ orderId, orderNumber, totalAmount, con
       <div className="bg-white rounded-lg p-6 border border-gray-200">
         <Title level={4} className="!mb-4"><BankOutlined className="mr-2" />{t('transfer.bankInfo')}</Title>
         <Alert title={t('transfer.bankInfoAlert')} description={t('transfer.bankInfoDesc')} type="info" showIcon className="mb-4" />
+        {!transferConfigured && (
+          <Alert title={t('transfer.configMissing')} type="warning" showIcon className="mb-4" />
+        )}
         <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label={t('transfer.bankName')}>{t('transfer.defaultBank')}</Descriptions.Item>
-          <Descriptions.Item label={t('transfer.accountName')}>{t('transfer.defaultAccount')}</Descriptions.Item>
+          <Descriptions.Item label={t('transfer.bankName')}>{bankName || t('transfer.notConfigured')}</Descriptions.Item>
+          <Descriptions.Item label={t('transfer.accountName')}>{accountName || t('transfer.notConfigured')}</Descriptions.Item>
           <Descriptions.Item label={t('transfer.accountNumber')}>
-            <div className="flex items-center gap-2"><Text>{t('transfer.defaultAccountNumber')}</Text></div>
+            <div className="flex items-center gap-2"><Text>{accountNumber || t('transfer.notConfigured')}</Text></div>
           </Descriptions.Item>
           <Descriptions.Item label={t('transfer.amount')}>
             <Text strong className="text-red-500 text-lg">{formatCLP(totalAmount)}</Text>
@@ -97,7 +105,7 @@ export default function TransferPayment({ orderId, orderNumber, totalAmount, con
               <p className="ant-upload-text">{t('transfer.dropText')}</p>
               <p className="ant-upload-hint">{t('transfer.hint')}</p>
             </Upload.Dragger>
-            <Button type="primary" onClick={handleUpload} disabled={fileList.length === 0} loading={uploading} icon={uploading ? <Spin size="small" /> : <UploadOutlined />} size="large" block className="mt-4">
+            <Button type="primary" onClick={handleUpload} disabled={!transferConfigured || fileList.length === 0} loading={uploading} icon={uploading ? <Spin size="small" /> : <UploadOutlined />} size="large" block className="mt-4">
               {uploading ? t('common.submitting') : t('transfer.submitProof')}
             </Button>
           </>

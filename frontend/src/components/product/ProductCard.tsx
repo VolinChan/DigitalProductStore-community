@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Tag } from 'antd';
 import ImageFallback from '@/components/ImageFallback';
 import type { Product } from '@/types';
+import { getProductPrimaryImage, getProductSummary } from '@/lib/catalog';
 import { useLocale, useTranslations } from 'next-intl';
 
 interface ProductCardProps {
@@ -17,9 +18,8 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const primaryImage = product.images && product.images.length > 0
-    ? product.images[0].thumbnail_url || product.images[0].image_url
-    : '/placeholder-product.svg';
+  const primaryImage = getProductPrimaryImage(product) || '/placeholder-product.svg';
+  const summary = getProductSummary(product);
 
   const startingPrice = getStartingPrice(product);
   const isOutOfStock = checkOutOfStock(product);
@@ -51,9 +51,9 @@ export default function ProductCard({ product }: ProductCardProps) {
           <h3 className="text-sm sm:text-base font-medium text-foreground line-clamp-2 group-hover:text-accent transition-colors leading-snug">
             {product.name}
           </h3>
-          {product.description && (
+          {summary && (
             <p className="text-xs sm:text-sm text-muted line-clamp-1">
-              {product.description}
+              {summary}
             </p>
           )}
           <div className="mt-auto pt-2 flex items-baseline gap-1">

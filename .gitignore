@@ -63,7 +63,14 @@ backups/
 .history/
 
 # Kiro workspace state
-.kiro/
+.kiro/*
+!.kiro/specs/
+.kiro/specs/*
+!.kiro/specs/catalog-admin-upgrade/
+!.kiro/specs/catalog-admin-upgrade/**
+!.kiro/specs/plexoria-localization/
+!.kiro/specs/plexoria-localization/**
+.kiro/specs/**/.config.kiro
 .claude/
 
 # ---- OS noise ----
@@ -99,6 +106,7 @@ dist/
 build/
 
 # ---- Go / backend (root-level safety net) ----
+.gocache/
 *.exe
 *.exe~
 *.dll

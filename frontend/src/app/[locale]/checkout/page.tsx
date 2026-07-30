@@ -13,7 +13,7 @@ import type { PaymentMethod } from '@/types';
 import ShippingForm from '@/components/checkout/ShippingForm';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
 import OrderSummary from '@/components/checkout/OrderSummary';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const { Title } = Typography;
 
@@ -23,6 +23,7 @@ const { Title } = Typography;
  */
 export default function CheckoutPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [form] = Form.useForm();
   const { items, totalPrice, totalItems, clearCart } = useCartStore();
@@ -65,22 +66,13 @@ export default function CheckoutPage() {
       await clearCart();
 
       if (paymentMethod === 'online') {
-        try {
-          const paymentResponse = await apiClient.post<{ data: { payment_url: string; session_id: string } }>(
-            '/payments/online/session',
-            { order_id: order.id }
-          );
-          if (paymentResponse.data.data?.payment_url) {
-            window.location.href = paymentResponse.data.data.payment_url;
-          } else {
-            router.push(`/checkout/payment?order_id=${order.id}&order_number=${order.order_number}&method=online`);
-          }
-        } catch {
-          message.warning(t('checkout.paymentSessionFailed'));
-          router.push(`/checkout/success?order_number=${order.order_number}&method=online&payment_pending=true`);
-        }
+        router.push(
+          `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&method=online`
+        );
       } else {
-        router.push(`/checkout/payment?order_id=${order.id}&order_number=${order.order_number}&amount=${order.total_amount}&method=transfer`);
+        router.push(
+          `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&amount=${order.total_amount}&method=transfer`
+        );
       }
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'errorFields' in error) return;
@@ -107,7 +99,7 @@ export default function CheckoutPage() {
           <EmptyState
             title={t('checkout.emptyCart')}
             actionLabel={t('checkout.goBrowse')}
-            actionHref="/products"
+            actionHref={`/${locale}/products`}
           />
         </div>
       </main>
@@ -119,7 +111,7 @@ export default function CheckoutPage() {
       <div className="animate-fade-in-up space-y-6 sm:space-y-8">
         {/* Header */}
         <div>
-          <Link href="/cart" className="inline-flex items-center gap-1 text-sm text-muted hover:text-accent mb-4 transition-colors">
+          <Link href={`/${locale}/cart`} className="inline-flex items-center gap-1 text-sm text-muted hover:text-accent mb-4 transition-colors">
             <ArrowLeftOutlined /> {t('checkout.backToCart')}
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">{t('checkout.title')}</h1>

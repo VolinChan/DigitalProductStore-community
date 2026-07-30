@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const { Paragraph, Text } = Typography;
 
@@ -23,8 +23,10 @@ const { Paragraph, Text } = Typography;
  */
 function CheckoutSuccessContent() {
   const t = useTranslations();
+  const locale = useLocale();
   const searchParams = useSearchParams();
 
+  const orderId = searchParams.get('order_id');
   const orderNumber = searchParams.get('order_number');
   const method = searchParams.get('method');
   const paymentPending = searchParams.get('payment_pending') === 'true';
@@ -113,12 +115,12 @@ function CheckoutSuccessContent() {
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
-        <Link href="/orders">
+        <Link href={orderId ? `/${locale}/orders/${orderId}` : `/${locale}/orders`}>
           <Button type="primary" size="large">
-            {t('orders.title')}
+            {orderId ? t('orders.viewOrder') : t('orders.title')}
           </Button>
         </Link>
-        <Link href="/products">
+        <Link href={`/${locale}/products`}>
           <Button size="large">{t('products.continueShopping')}</Button>
         </Link>
       </div>

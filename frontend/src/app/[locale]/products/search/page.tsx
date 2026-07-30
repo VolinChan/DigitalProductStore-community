@@ -10,6 +10,7 @@ import { Card, Tag } from 'antd';
 import SearchHighlight from '@/components/product/SearchHighlight';
 import apiClient from '@/lib/api';
 import type { Product } from '@/types';
+import { getProductPrimaryImage, getProductSummary } from '@/lib/catalog';
 import { useLocale, useTranslations } from 'next-intl';
 
 const { Title, Text } = Typography;
@@ -168,10 +169,8 @@ function SearchContent() {
  */
 function SearchResultCard({ product, query, locale }: { product: Product; query: string; locale: string }) {
   const t = useTranslations();
-  const primaryImage =
-    product.images && product.images.length > 0
-      ? product.images[0].thumbnail_url || product.images[0].image_url
-      : '/placeholder-product.svg';
+  const primaryImage = getProductPrimaryImage(product) || '/placeholder-product.svg';
+  const summary = getProductSummary(product);
 
   const startingPrice = getStartingPrice(product);
   const isOutOfStock = checkOutOfStock(product);
@@ -208,9 +207,9 @@ function SearchResultCard({ product, query, locale }: { product: Product; query:
         </h3>
 
         {/* Description with search term highlighting */}
-        {product.description && (
+        {summary && (
           <p className="text-xs sm:text-sm text-gray-500 line-clamp-2 mb-2">
-            <SearchHighlight text={product.description} query={query} maxLength={80} />
+            <SearchHighlight text={summary} query={query} maxLength={80} />
           </p>
         )}
 

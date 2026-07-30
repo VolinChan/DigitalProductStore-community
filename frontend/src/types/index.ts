@@ -43,7 +43,17 @@ export interface Product {
   id: number;
   name: string;
   description: string;
-  category_id: number;
+  description_html?: string;
+  description_document?: { version: number; blocks: unknown[] };
+  short_description?: string;
+  brand?: string;
+  model?: string;
+  condition?: 'new' | 'used' | 'refurbished';
+  warranty_text?: string;
+  slug?: string;
+  status?: 'draft' | 'published' | 'archived';
+  version?: number;
+  category_id?: number;
   category?: Category;
   specifications: string;
   is_active: boolean;
@@ -51,6 +61,95 @@ export interface Product {
   updated_at: string;
   skus?: SKU[];
   images?: ProductImage[];
+  media?: ProductMedia[];
+  structured_specifications?: ProductSpecification[];
+  variant_dimensions?: ProductVariantDimension[];
+  completion?: ProductCompletion;
+}
+
+export interface ProductCompletion {
+  completed: number;
+  total: number;
+  percent: number;
+  sections: Record<string, boolean>;
+}
+
+export interface PublishIssue {
+  section: 'basic' | 'media' | 'specifications' | 'variants' | 'description';
+  path: string;
+  code: string;
+  message: string;
+}
+
+export interface PublishSectionStatus {
+  complete: boolean;
+  errors: number;
+  warnings: number;
+}
+
+export interface PublishValidationReport {
+  product_id: number;
+  version: number;
+  can_publish: boolean;
+  requires_confirmation: boolean;
+  errors: PublishIssue[];
+  warnings: PublishIssue[];
+  sections: Record<string, PublishSectionStatus>;
+  completion: Pick<ProductCompletion, 'completed' | 'total' | 'percent'>;
+}
+
+export interface PublishProductResult {
+  product_id: number;
+  status: 'published';
+  version: number;
+  published_at: string;
+  validation: PublishValidationReport;
+}
+
+export interface ProductSpecification {
+  id: number;
+  group_name: string;
+  spec_key: string;
+  label: string;
+  value_text?: string;
+  value_number?: string;
+  unit?: string;
+  sort_order: number;
+}
+
+export interface ProductVariantDimension {
+  id: number;
+  name: string;
+  sort_order: number;
+  values?: Array<{ id: number; value: string; color_hex?: string; sort_order: number }>;
+}
+
+export interface ProductMedia {
+  id: number;
+  media_asset_id: number;
+  media_asset?: MediaAsset;
+  role: string;
+  sort_order: number;
+  is_primary: boolean;
+}
+
+export interface MediaAsset {
+  id: number;
+  kind: 'image' | 'video';
+  storage_key: string;
+  url: string;
+  mime_type: string;
+  size_bytes: number;
+  width?: number;
+  height?: number;
+  duration_seconds?: number;
+  thumbnail_key?: string;
+  medium_key?: string;
+  cover_asset_id?: number;
+  cover_asset?: MediaAsset;
+  alt_text?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProductImage {
@@ -72,19 +171,49 @@ export interface Category {
   product_count?: number;
   updated_at?: string;
   children?: Category[];
+  spec_template?: CategorySpecTemplateField[];
+  variant_template?: CategoryVariantTemplate[];
+}
+
+export interface CategorySpecTemplateField {
+  group: string;
+  label: string;
+  key: string;
+  input_type: 'short_text' | 'long_text' | 'number' | 'number_unit' | 'single_select' | 'multi_select' | 'boolean';
+  unit?: string;
+  required?: boolean;
+  sort_order: number;
+  options?: string[];
+}
+
+export interface CategoryVariantTemplate {
+  name: string;
+  sort_order: number;
 }
 
 export interface SKU {
   id: number;
   product_id: number;
   sku_code: string;
+  combination_key?: string;
+  gtin?: string;
+  version?: number;
   price: number;
   inventory: number;
   attributes: SKUAttribute[];
   image_url?: string;
+  media?: SKUMedia[];
   is_active: boolean;
   // Optionally preloaded by backend (e.g. cart items, order items detail).
   product?: Product;
+}
+
+export interface SKUMedia {
+  id: number;
+  sku_id: number;
+  media_asset_id: number;
+  media_asset?: MediaAsset;
+  sort_order: number;
 }
 
 export interface SKUAttribute {

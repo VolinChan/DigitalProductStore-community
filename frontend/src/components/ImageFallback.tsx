@@ -72,7 +72,7 @@ export default function ImageFallback({
       className={className}
       sizes={sizes}
       priority={priority}
-      loading={loading}
+      loading={priority ? undefined : loading}
       onError={() => setError(true)}
       unoptimized={src.startsWith('/uploads/') || src.toLowerCase().split('?')[0].endsWith('.svg')}
       {...props}

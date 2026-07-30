@@ -1,17 +1,17 @@
 'use client';
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { Spin, Result, Button, Typography } from 'antd';
 import {
   LoadingOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import TransferPayment from '@/components/checkout/TransferPayment';
 import apiClient from '@/lib/api';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const { Title, Paragraph } = Typography;
 
@@ -26,8 +26,8 @@ const { Title, Paragraph } = Typography;
  */
 function PaymentPageContent() {
   const t = useTranslations();
+  const locale = useLocale();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const orderId = searchParams.get('order_id');
   const orderNumber = searchParams.get('order_number');
@@ -39,17 +39,28 @@ function PaymentPageContent() {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed'>(
     status === 'success' ? 'success' : status === 'failed' ? 'failed' : 'pending'
   );
+  const [paymentError, setPaymentError] = useState<string | undefined>();
   const [confirmationDeadline, setConfirmationDeadline] = useState<string | undefined>();
+  const automaticallyAttemptedOrderId = useRef<string | null>(null);
 
   // Handle online payment redirect
   useEffect(() => {
-    if (method === 'online' && paymentStatus === 'pending' && orderId && !status) {
+    if (
+      method === 'online' &&
+      paymentStatus === 'pending' &&
+      orderId &&
+      !status &&
+      automaticallyAttemptedOrderId.current !== orderId
+    ) {
+      automaticallyAttemptedOrderId.current = orderId;
       handleOnlinePayment();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, orderId, status]);
 
   const handleOnlinePayment = async () => {
+    setPaymentStatus('pending');
+    setPaymentError(undefined);
     setLoading(true);
     try {
       const response = await apiClient.post<{
@@ -62,9 +73,12 @@ function PaymentPageContent() {
         // Redirect to payment gateway (Requirement 9.2)
         window.location.href = payment_url;
       } else {
+        setPaymentError(t('payment.failedDefault'));
         setPaymentStatus('failed');
       }
-    } catch {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: { message?: string } } } };
+      setPaymentError(err.response?.data?.error?.message || t('payment.failedDefault'));
       setPaymentStatus('failed');
     } finally {
       setLoading(false);
@@ -120,12 +134,12 @@ function PaymentPageContent() {
               : t('payment.successDefault')
           }
           extra={[
-            <Link key="orders" href="/orders">
+            <Link key="orders" href={orderId ? `/${locale}/orders/${orderId}` : `/${locale}/orders`}>
               <Button type="primary" size="large">
                 {t('orders.viewOrder')}
               </Button>
             </Link>,
-            <Link key="home" href="/">
+            <Link key="home" href={`/${locale}`}>
               <Button size="large">{t('layout.home')}</Button>
             </Link>,
           ]}
@@ -144,8 +158,8 @@ function PaymentPageContent() {
           title={t('payment.failedTitle')}
           subTitle={
             orderNumber
-              ? `${t('checkout.orderNumber')}: ${orderNumber}. ${t('payment.failedSub')}`
-              : t('payment.failedDefault')
+              ? `${t('checkout.orderNumber')}: ${orderNumber}. ${paymentError || t('payment.failedSub')}`
+              : paymentError || t('payment.failedDefault')
           }
           extra={[
             <Button
@@ -153,10 +167,11 @@ function PaymentPageContent() {
               type="primary"
               size="large"
               onClick={handleOnlinePayment}
+              loading={loading}
             >
               {t('payment.retry')}
             </Button>,
-            <Link key="orders" href="/orders">
+            <Link key="orders" href={orderId ? `/${locale}/orders/${orderId}` : `/${locale}/orders`}>
               <Button size="large">{t('orders.viewOrder')}</Button>
             </Link>,
           ]}
@@ -185,8 +200,8 @@ function PaymentPageContent() {
         />
 
         <div className="mt-8 text-center">
-          <Link href="/orders">
-            <Button type="link">{t('orders.title')}</Button>
+          <Link href={`/${locale}/orders/${orderId}`}>
+            <Button type="link">{t('orders.viewOrder')}</Button>
           </Link>
         </div>
       </main>
@@ -201,12 +216,12 @@ function PaymentPageContent() {
         title={t('payment.errorTitle')}
         subTitle={t('payment.errorSub')}
         extra={[
-          <Link key="orders" href="/orders">
+          <Link key="orders" href={`/${locale}/orders`}>
             <Button type="primary" size="large">
               {t('orders.viewOrder')}
             </Button>
           </Link>,
-          <Link key="home" href="/">
+          <Link key="home" href={`/${locale}`}>
             <Button size="large">{t('layout.home')}</Button>
           </Link>,
         ]}
@@ -218,16 +233,21 @@ function PaymentPageContent() {
 export default function PaymentPage() {
   return (
     <Suspense
-      fallback={
-        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <Spin indicator={<LoadingOutlined className="text-4xl" spin />} size="large" />
-            <Paragraph type="secondary" className="!mt-4">Loading...</Paragraph>
-          </div>
-        </main>
-      }
+      fallback={<PaymentPageFallback />}
     >
       <PaymentPageContent />
     </Suspense>
+  );
+}
+
+function PaymentPageFallback() {
+  const t = useTranslations();
+  return (
+    <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="text-center">
+        <Spin indicator={<LoadingOutlined className="text-4xl" spin />} size="large" />
+        <Paragraph type="secondary" className="!mt-4">{t('common.loading')}</Paragraph>
+      </div>
+    </main>
   );
 }

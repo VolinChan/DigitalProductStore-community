@@ -30,11 +30,19 @@
   }
 
   * {
+    box-sizing: border-box;
     border-color: var(--card-border);
+  }
+
+  *::before,
+  *::after {
+    box-sizing: border-box;
   }
 
   body {
     @apply bg-background text-foreground text-base transition-colors duration-200 antialiased;
+    margin: 0;
+    min-width: 320px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   }
 
@@ -47,40 +55,164 @@
   ::selection {
     @apply bg-primary/20 text-foreground;
   }
+
+  .storefront {
+    --sf-bg: #fbfaf7;
+    --sf-surface: #ffffff;
+    --sf-ink: #1c2733;
+    --sf-subtle: #425466;
+    --sf-muted: #65727d;
+    --sf-brand: #173f67;
+    --sf-brand-hover: #0f3151;
+    --sf-accent: #1677b8;
+    --sf-warm: #c54833;
+    --sf-aqua: #80d4dc;
+    --sf-success: #25806b;
+    --sf-soft: #edf2f4;
+    --sf-soft-blue: #e8f4fb;
+    --sf-line: rgba(23, 63, 103, 0.12);
+    --background: var(--sf-bg);
+    --foreground: var(--sf-ink);
+    --card-bg: var(--sf-surface);
+    --card-border: var(--sf-line);
+    --muted: var(--sf-muted);
+    --accent: var(--sf-accent);
+    --accent-hover: #12669e;
+    --success: var(--sf-success);
+    background: var(--sf-bg);
+    color: var(--sf-ink);
+  }
+
+  .storefront :where(h1, h2, h3, h4, p, dl, dd, figure, blockquote) {
+    margin: 0;
+  }
+
+  .storefront fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .storefront :where(button, input, textarea, select) {
+    font: inherit;
+  }
 }
 
 @layer components {
-  /* Modern card with elevation and hover */
-  .store-card {
-    @apply rounded-xl border bg-card shadow-sm transition-all duration-200;
-  }
-  .store-card:hover {
-    @apply shadow-md border-primary/20;
-  }
-
-  /* Primary button with consistent styling */
-  .store-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-all duration-150 active:scale-[0.98] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  /* Secondary / ghost button */
-  .store-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.98] hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  /* Skeleton loading block */
-  .store-skeleton {
-    @apply animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700;
-  }
-
-  /* Section heading */
-  .store-section-title {
-    @apply text-xl sm:text-2xl font-bold tracking-tight text-foreground;
-  }
-
   /* Container for pages */
   .store-container {
-    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10;
+    @apply mx-auto w-full px-4 py-7 sm:px-6 sm:py-10 lg:px-8 lg:py-12;
+    max-width: 1240px;
+  }
+
+  .sf-shell {
+    width: 100%;
+    max-width: 1240px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .sf-icon-button {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--sf-ink);
+    transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+  }
+
+  .sf-icon-button:hover {
+    background: var(--sf-soft);
+    color: var(--sf-accent);
+  }
+
+  .sf-icon-button:active {
+    transform: scale(0.96);
+  }
+
+  .sf-button-primary {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--sf-brand);
+    padding-inline: 1.5rem;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .sf-button-primary:hover {
+    background: var(--sf-brand-hover);
+    transform: translateY(-1px);
+  }
+
+  .sf-button-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+  }
+
+  .sf-button-secondary {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--sf-line);
+    border-radius: 9999px;
+    background: #fff;
+    padding-inline: 1.5rem;
+    color: var(--sf-brand);
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .sf-button-secondary:hover {
+    background: var(--sf-soft-blue);
+    transform: translateY(-1px);
+  }
+
+  .storefront .sf-auth-form .ant-form-item-label > label,
+  .storefront .sf-checkout-form .ant-form-item-label > label {
+    color: var(--sf-ink);
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .storefront .sf-auth-form .ant-input,
+  .storefront .sf-auth-form .ant-input-affix-wrapper,
+  .storefront .sf-checkout-form .ant-input,
+  .storefront .sf-checkout-form .ant-input-affix-wrapper,
+  .storefront .sf-checkout-form .ant-input-number {
+    border-color: var(--sf-line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .storefront .sf-auth-form .ant-input-affix-wrapper,
+  .storefront .sf-checkout-form .ant-input-affix-wrapper {
+    min-height: 46px;
+  }
+
+  .storefront .sf-auth-form .ant-input:focus,
+  .storefront .sf-auth-form .ant-input-affix-wrapper:focus-within,
+  .storefront .sf-checkout-form .ant-input:focus,
+  .storefront .sf-checkout-form .ant-input-affix-wrapper:focus-within {
+    border-color: var(--sf-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sf-accent) 14%, transparent);
   }
 
   /* Ant Radio.Button has an intrinsic 32px height. SKU image choices need a
@@ -181,6 +313,29 @@
     max-width: 100%;
     height: auto;
     margin-inline: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .sf-shell {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sf-shell {
+    padding-inline: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront *,
+  .storefront *::before,
+  .storefront *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

@@ -1,54 +1,49 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
-import { Button, InputNumber, Tag, Divider, Typography, Breadcrumb, Spin } from 'antd';
-import { ShoppingCartOutlined, HomeOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeftOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { toast } from 'sonner';
+import { useLocale, useTranslations } from 'next-intl';
 import apiClient from '@/lib/api';
-import { useCartStore } from '@/store/useCartStore';
 import ImageGallery from '@/components/product/ImageGallery';
 import SKUSelector from '@/components/product/SKUSelector';
-import EmptyState from '@/components/EmptyState';
-import type { Product, ProductSpecification, SKU } from '@/types';
+import MiniCart from '@/components/cart/MiniCart';
+import { useCartStore } from '@/store/useCartStore';
+import { useCheckoutIntentStore } from '@/store/useCheckoutIntentStore';
 import { getSKUImage } from '@/lib/catalog';
 import { catalogStorefrontEnabled } from '@/lib/catalog-flags';
-import { useLocale, useTranslations } from 'next-intl';
+import { formatCLP } from '@/lib/utils';
+import type { Product, ProductSpecification, SKU } from '@/types';
 
-const { Title, Text, Paragraph } = Typography;
+interface ProductDetailResponse { data: Product }
 
-interface ProductDetailResponse {
-  data: Product;
-}
-
-/**
- * Modern product detail page.
- * Requirements: 4.1-4.5, 28.4, 38.1-38.8
- */
 export default function ProductDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const t = useTranslations();
+  const locale = useLocale();
   const productId = params.id as string;
   const previewToken = searchParams.get('preview_token');
   const isPreview = Boolean(previewToken);
-  const t = useTranslations();
-  const locale = useLocale();
-  const formatPrice = (amount: number) => new Intl.NumberFormat(locale, {
-    style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(amount);
-
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
-
+  const [buyingNow, setBuyingNow] = useState(false);
+  const [miniCartOpen, setMiniCartOpen] = useState(false);
+  const [lastAdded, setLastAdded] = useState<{ sku: SKU; quantity: number } | null>(null);
+  const addToCartTriggerRef = useRef<HTMLButtonElement | null>(null);
   const addToCart = useCartStore((state) => state.addToCart);
+  const createBuyNow = useCheckoutIntentStore((state) => state.createBuyNow);
 
   useEffect(() => {
-    async function fetchProduct() {
+    let active = true;
+    const fetchProduct = async () => {
       setLoading(true);
       setError(null);
       try {
@@ -56,354 +51,218 @@ export default function ProductDetailPage() {
           ? `/admin/products/${productId}/preview?token=${encodeURIComponent(previewToken)}`
           : `/products/${productId}`;
         const response = await apiClient.get<ProductDetailResponse>(endpoint);
-        setProduct(response.data.data);
+        if (active) setProduct(response.data.data);
       } catch {
-        setError(t('products.loadFailed'));
+        if (active) setError(t('products.loadFailed'));
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
-    }
+    };
     if (productId) fetchProduct();
+    return () => { active = false; };
   }, [previewToken, productId, t]);
 
-  // Track product view
   useEffect(() => {
     if (!product || isPreview) return;
-    async function trackView() {
-      try {
-        await apiClient.post('/analytics/track', {
-          event_type: 'product_view',
-          product_id: product!.id,
-          metadata: { product_name: product!.name, category_id: product!.category_id },
-        });
-      } catch { /* silent */ }
-    }
-    trackView();
+    apiClient.post('/analytics/track', {
+      event_type: 'product_view',
+      product_id: product.id,
+      metadata: { product_name: product.name, category_id: product.category_id },
+    }).catch(() => undefined);
   }, [isPreview, product]);
 
   const selectedSku = useMemo((): SKU | null => {
-    if (!product?.skus || product.skus.length === 0) return null;
-    const activeSKUs = product.skus.filter((sku) => sku.is_active);
+    const activeSKUs = product?.skus?.filter((sku) => sku.is_active) || [];
     if (activeSKUs.length === 0) return null;
-
-    const attributeNames = new Set<string>();
-    activeSKUs.forEach((sku) => (sku.attributes ?? []).forEach((attr) => attributeNames.add(attr.name)));
-
-    const allSelected = Array.from(attributeNames).every(
-      (name) => selectedAttributes[name] && selectedAttributes[name] !== ''
-    );
-    if (!allSelected) return null;
-
-    return activeSKUs.find((sku) =>
-      (sku.attributes ?? []).every((attr) => selectedAttributes[attr.name] === attr.value)
-    ) || null;
+    const attributeNames = new Set(activeSKUs.flatMap((sku) => (sku.attributes || []).map((attribute) => attribute.name)));
+    if (![...attributeNames].every((name) => selectedAttributes[name])) return null;
+    return activeSKUs.find((sku) => (sku.attributes || []).every((attribute) => selectedAttributes[attribute.name] === attribute.value)) || null;
   }, [product, selectedAttributes]);
 
   const displayPrice = useMemo(() => {
-    if (selectedSku) return { type: 'exact' as const, price: selectedSku.price };
-    if (!product?.skus || product.skus.length === 0) return { type: 'none' as const, price: 0 };
-    const activeSKUs = product.skus.filter((sku) => sku.is_active);
-    if (activeSKUs.length === 0) return { type: 'none' as const, price: 0 };
-    const prices = activeSKUs.map((sku) => sku.price);
+    if (selectedSku) return { type: 'exact' as const, price: Number(selectedSku.price) };
+    const prices = (product?.skus || []).filter((sku) => sku.is_active).map((sku) => Number(sku.price)).filter(Number.isFinite);
+    if (prices.length === 0) return { type: 'none' as const };
     const min = Math.min(...prices);
     const max = Math.max(...prices);
-    if (min === max) return { type: 'exact' as const, price: min };
-    return { type: 'range' as const, min, max };
+    return min === max ? { type: 'exact' as const, price: min } : { type: 'range' as const, min, max };
   }, [product, selectedSku]);
 
   const inventoryStatus = useMemo(() => {
     if (!selectedSku) {
-      if (product?.skus && product.skus.every((sku) => sku.inventory <= 0)) {
-        return { available: false, count: 0, label: t('common.soldOut') };
-      }
-      return { available: true, count: -1, label: t('products.selectSku') };
+      const soldOut = Boolean(product?.skus?.length) && product!.skus!.every((sku) => sku.inventory <= 0);
+      return soldOut ? { available: false, label: t('common.soldOut') } : { available: true, label: t('products.selectSku') };
     }
-    if (selectedSku.inventory <= 0) return { available: false, count: 0, label: t('common.soldOut') };
-    return { available: true, count: selectedSku.inventory, label: t('products.inStockWithQty', { count: selectedSku.inventory }) };
-  }, [selectedSku, product, t]);
+    return selectedSku.inventory > 0
+      ? { available: true, label: t('products.inStockWithQty', { count: selectedSku.inventory }) }
+      : { available: false, label: t('common.soldOut') };
+  }, [product, selectedSku, t]);
 
-  const handleAttributeChange = useCallback((name: string, value: string) => {
-    setSelectedAttributes((prev) => {
-      const next = { ...prev };
-      if (value === '') delete next[name]; else next[name] = value;
+  const changeAttribute = useCallback((name: string, value: string) => {
+    setSelectedAttributes((previous) => {
+      const next = { ...previous };
+      if (value) next[name] = value; else delete next[name];
       return next;
     });
     setQuantity(1);
   }, []);
 
-  const handleAddToCart = async () => {
-    if (isPreview) return;
-    if (!selectedSku) { toast.warning(t('products.selectSku')); return; }
-    if (!inventoryStatus.available) { toast.error(t('common.soldOut')); return; }
-    if (quantity > selectedSku.inventory) { toast.warning(t('cart.stockLimit', { count: selectedSku.inventory })); return; }
+  const validatePurchase = () => {
+    if (!selectedSku) { toast.warning(t('products.selectSku')); return false; }
+    if (!inventoryStatus.available) { toast.error(t('common.soldOut')); return false; }
+    if (quantity > selectedSku.inventory) { toast.warning(t('cart.stockLimit', { count: selectedSku.inventory })); return false; }
+    return true;
+  };
 
+  const handleAddToCart = async (event: MouseEvent<HTMLButtonElement>) => {
+    addToCartTriggerRef.current = event.currentTarget;
+    if (isPreview || !validatePurchase() || !selectedSku || !product) return;
     setAddingToCart(true);
     try {
       await addToCart(selectedSku, quantity);
+      apiClient.post('/analytics/track', { event_type: 'add_to_cart', product_id: product.id, sku_id: selectedSku.id, metadata: { quantity } }).catch(() => undefined);
+      setLastAdded({ sku: selectedSku, quantity });
+      setMiniCartOpen(true);
       const cartIcon = document.getElementById('cart-icon-header');
       if (cartIcon) {
         cartIcon.classList.remove('animate-bounce-sm');
         void cartIcon.offsetWidth;
         cartIcon.classList.add('animate-bounce-sm');
       }
-      toast.success(t('products.addedToCart'), { description: `${product?.name} x ${quantity}`, icon: <ShoppingCartOutlined /> });
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('products.addFailed'));
+    } catch (cause: unknown) {
+      toast.error(cause instanceof Error ? cause.message : t('products.addFailed'));
     } finally {
       setAddingToCart(false);
     }
   };
 
-  if (loading) {
-    return (
-      <main className="store-container flex items-center justify-center min-h-[400px]">
-        <Spin size="large" tip={t('common.loading')} />
-      </main>
-    );
-  }
+  const handleBuyNow = () => {
+    if (isPreview || !validatePurchase() || !selectedSku || !product) return;
+    setBuyingNow(true);
+    createBuyNow({ productId: product.id, skuId: selectedSku.id, quantity });
+    apiClient.post('/analytics/track', { event_type: 'buy_now_click', product_id: product.id, sku_id: selectedSku.id, metadata: { quantity } }).catch(() => undefined);
+    router.push(`/${locale}/checkout?mode=buy_now`);
+  };
+
+  if (loading) return <ProductDetailSkeleton />;
 
   if (error || !product) {
     return (
-      <main className="store-container" id="main-content">
-        <div className="animate-fade-in-up">
-          <Breadcrumb className="mb-6" items={[
-            { title: <Link href={`/${locale}`}><HomeOutlined /> {t('layout.home')}</Link> },
-            { title: <Link href={`/${locale}/products`}>{t('layout.allProducts')}</Link> },
-          ]} />
-          <EmptyState
-            title={error || t('products.notFound')}
-            actionLabel={t('products.backToProducts')}
-            actionHref={`/${locale}/products`}
-          />
+      <main className="store-container">
+        <div className="rounded-[22px] bg-white px-5 py-16 text-center">
+          <h1 className="text-2xl font-black text-[var(--sf-ink)]">{error || t('products.notFound')}</h1>
+          <Link href={`/${locale}/products`} className="sf-button-primary mt-6">{t('products.backToProducts')}</Link>
         </div>
       </main>
     );
   }
 
   const activeSKUs = product.skus?.filter((sku) => sku.is_active) || [];
+  const purchaseDisabled = isPreview || !selectedSku || !inventoryStatus.available;
+  const currentPrice = displayPrice.type === 'exact' ? displayPrice.price : displayPrice.type === 'range' ? displayPrice.min : null;
 
   return (
-    <main className="store-container" id="main-content">
-      <div className="animate-fade-in-up space-y-8">
-        {isPreview && <div className="border-y border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
-          <strong>Vista previa de administrador</strong><span className="ml-2">Las compras estan desactivadas.</span>
-        </div>}
-        {/* Breadcrumb */}
-        <Breadcrumb
-          items={[
-            { title: <Link href={`/${locale}`} className="flex items-center gap-1 hover:text-accent"><HomeOutlined /> {t('layout.home')}</Link> },
-            { title: <Link href={`/${locale}/products`} className="hover:text-accent">{t('layout.allProducts')}</Link> },
-            { title: <span className="text-foreground">{product.name}</span> },
-          ]}
-        />
+    <main className="store-container pb-28 lg:pb-12">
+      {isPreview && <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"><strong>{t('products.previewMode')}.</strong> {t('products.previewNotice')}</div>}
 
-        {/* Product Detail Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Left: Image Gallery */}
-          <div>
-            <ImageGallery images={product.images || []} media={catalogStorefrontEnabled ? product.media || [] : []} skuImageUrl={getSKUImage(selectedSku)} productName={product.name} />
+      <nav className="mb-5 flex items-center gap-2 text-xs font-semibold text-[var(--sf-muted)] sm:mb-7" aria-label={t('layout.home')}>
+        <Link href={`/${locale}`} className="hover:text-[var(--sf-accent)]">{t('layout.home')}</Link><span>/</span>
+        <Link href={`/${locale}/products`} className="hover:text-[var(--sf-accent)]">{t('layout.allProducts')}</Link><span>/</span>
+        <span className="truncate text-[var(--sf-subtle)]">{product.name}</span>
+      </nav>
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)] lg:gap-12">
+        <section><ImageGallery images={product.images || []} media={catalogStorefrontEnabled ? product.media || [] : []} skuImageUrl={getSKUImage(selectedSku)} productName={product.name} /></section>
+
+        <section className="lg:sticky lg:top-28 lg:h-fit">
+          {product.category && <p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">{product.category.name}</p>}
+          {product.brand && <p className="mt-3 text-xs font-bold uppercase text-[var(--sf-muted)]">{product.brand}</p>}
+          <h1 className="mt-2 text-2xl font-black leading-tight text-[var(--sf-ink)] sm:text-3xl lg:text-4xl">{product.name}</h1>
+
+          <div className="mt-6 border-y border-[var(--sf-line)] py-5">
+            <p className="text-xs font-bold uppercase text-[var(--sf-muted)]">{t('products.price')}</p>
+            <PriceDisplay displayPrice={displayPrice} locale={locale} noPrice={t('products.noPrice')} />
+            <p className={`mt-2 text-sm font-bold ${inventoryStatus.available ? 'text-[var(--sf-success)]' : 'text-[var(--sf-warm)]'}`}>{inventoryStatus.label}</p>
           </div>
 
-          {/* Right: Product Info */}
-          <div className="space-y-6">
-            {/* Category tag */}
-            {product.category && (
-              <Tag color="blue" className="text-xs font-semibold">{product.category.name}</Tag>
-            )}
+          {activeSKUs.length > 0 && <div className="mt-6"><SKUSelector skus={activeSKUs} selectedSku={selectedSku} selectedAttributes={selectedAttributes} onAttributeChange={changeAttribute} /></div>}
 
-            {/* Title */}
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight leading-tight">
-              {product.name}
-            </h1>
-
-            {/* Price */}
-            <div className="bg-card rounded-xl border p-5 shadow-sm">
-              <div className="flex items-baseline gap-2">
-                <Text type="secondary" className="text-sm">{t('products.price')}</Text>
-                {displayPrice.type === 'exact' && (
-                  <>
-                    <span className="text-3xl sm:text-4xl font-bold text-error">{formatPrice(displayPrice.price)}</span>
-                  </>
-                )}
-                {displayPrice.type === 'range' && (
-                  <>
-                    <span className="text-3xl font-bold text-error">{formatPrice(displayPrice.min)}</span>
-                    <Text type="secondary" className="mx-1">~</Text>
-                    <span className="text-xl font-bold text-error">{formatPrice(displayPrice.max)}</span>
-                  </>
-                )}
-                {displayPrice.type === 'none' && <Text type="secondary">{t('products.noPrice')}</Text>}
-              </div>
-              <div className="mt-2">
-                {inventoryStatus.available ? (
-                  <Text type="success" className="text-sm font-medium">{inventoryStatus.label}</Text>
-                ) : (
-                  <Text type="danger" className="text-sm font-semibold">{inventoryStatus.label}</Text>
-                )}
-              </div>
-            </div>
-
-            {/* SKU Selector */}
-            {activeSKUs.length > 0 && (
-              <SKUSelector
-                skus={activeSKUs}
-                selectedSku={selectedSku}
-                selectedAttributes={selectedAttributes}
-                onAttributeChange={handleAttributeChange}
-              />
-            )}
-
-            {/* Quantity */}
-            <div className="flex items-center gap-4">
-              <Text strong className="text-sm">{t('common.quantity')}</Text>
-              <div className="flex items-center border rounded-lg overflow-hidden w-32">
-                <button
-                  type="button"
-                  disabled={!inventoryStatus.available || !selectedSku || quantity <= 1}
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-9 h-9 flex items-center justify-center text-muted hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-                  aria-label={t('products.decreaseQuantity')}
-                >
-                  −
-                </button>
-                <input
-                  type="number"
-                  min={1}
-                  max={selectedSku?.inventory ?? 99}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  disabled={!inventoryStatus.available || !selectedSku}
-                  className="w-12 h-9 text-center text-sm border-x disabled:opacity-50 bg-transparent"
-                  aria-label={t('common.quantity')}
-                />
-                <button
-                  type="button"
-                  disabled={!inventoryStatus.available || !selectedSku || quantity >= (selectedSku?.inventory ?? 99)}
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-9 h-9 flex items-center justify-center text-muted hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-                  aria-label={t('products.increaseQuantity')}
-                >
-                  +
-                </button>
-              </div>
-              {selectedSku && selectedSku.inventory > 0 && (
-                <Text type="secondary" className="text-xs">{t('products.maxQty', { count: selectedSku.inventory })}</Text>
-              )}
-            </div>
-
-            {/* Add to Cart */}
-            <div className="flex gap-3">
-              <Button
-                type="primary"
-                size="large"
-                icon={<ShoppingCartOutlined />}
-                onClick={handleAddToCart}
-                loading={addingToCart}
-                disabled={isPreview || !selectedSku || !inventoryStatus.available}
-                className="store-btn-primary !px-8 !py-3 !text-base flex-1"
-              >
-                {isPreview ? 'Vista previa' : !inventoryStatus.available && selectedSku ? t('common.soldOut') : !selectedSku ? t('products.selectSku') : t('products.addToCart')}
-              </Button>
-              <Link href={`/${locale}/products`}>
-                <Button size="large" icon={<ArrowLeftOutlined />} className="!py-3">
-                  {t('products.continueShopping')}
-                </Button>
-              </Link>
-            </div>
-
-            {selectedSku && (
-              <Text type="secondary" className="text-xs">SKU: {selectedSku.sku_code}</Text>
-            )}
+          <div className="mt-6 flex items-center gap-4">
+            <span className="text-sm font-black text-[var(--sf-ink)]">{t('common.quantity')}</span>
+            <QuantityControl quantity={quantity} max={selectedSku?.inventory || 1} disabled={!selectedSku || !inventoryStatus.available} onChange={setQuantity} quantityLabel={t('common.quantity')} decreaseLabel={t('products.decreaseQuantity')} increaseLabel={t('products.increaseQuantity')} />
+            {selectedSku && selectedSku.inventory > 0 && <span className="text-xs text-[var(--sf-muted)]">{t('products.maxQty', { count: selectedSku.inventory })}</span>}
           </div>
-        </div>
 
-        {/* Description & Specifications */}
-        {(product.description_html || product.description || product.structured_specifications?.length || product.specifications) && (
-          <section className="border-t pt-8 space-y-8">
-            {(product.description_html || product.description) && (
-              <div>
-                <h2 className="text-lg font-bold mb-3">{t('products.description')}</h2>
-                {catalogStorefrontEnabled && product.description_html
-                  ? <div className="catalog-product-description text-muted" dangerouslySetInnerHTML={{ __html: product.description_html }} />
-                  : <Paragraph className="whitespace-pre-wrap text-muted">{product.description}</Paragraph>}
-              </div>
-            )}
-            {(product.structured_specifications?.length || product.specifications) && <SpecificationsTable structured={catalogStorefrontEnabled ? product.structured_specifications : []} specifications={product.specifications} title={t('products.specs')} />}
-          </section>
+          {selectedSku && <p className="mt-4 text-xs font-medium text-[var(--sf-muted)]">SKU: {selectedSku.sku_code}</p>}
+          <div className="mt-7 hidden gap-3 sm:flex">
+            <button type="button" onClick={handleAddToCart} disabled={purchaseDisabled || addingToCart} className="sf-button-secondary flex-1">{addingToCart ? t('common.loading') : <><ShoppingCartOutlined />{t('products.addToCart')}</>}</button>
+            <button type="button" onClick={handleBuyNow} disabled={purchaseDisabled || buyingNow} className="sf-button-primary flex-1">{buyingNow ? t('common.loading') : <><ThunderboltOutlined />{t('products.buyNow')}</>}</button>
+          </div>
+        </section>
+      </div>
+
+      <section className="mt-12 border-t border-[var(--sf-line)] pt-9 sm:mt-16 sm:pt-12">
+        {product.structured_specifications?.length ? <SpecificationsTable structured={product.structured_specifications} title={t('products.specs')} /> : product.specifications ? <SpecificationsTable specifications={product.specifications} title={t('products.specs')} /> : null}
+        {(product.description_html || product.description) && (
+          <div className="mt-10 max-w-4xl">
+            <h2 className="text-2xl font-black text-[var(--sf-ink)]">{t('products.description')}</h2>
+            {catalogStorefrontEnabled && product.description_html
+              ? <div className="catalog-product-description mt-4 text-[var(--sf-subtle)]" dangerouslySetInnerHTML={{ __html: product.description_html }} />
+              : <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[var(--sf-subtle)] sm:text-base">{product.description}</p>}
+          </div>
         )}
+      </section>
 
-        {/* Mobile Sticky Add to Cart */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t px-4 py-3 shadow-lg z-50 flex items-center justify-between">
-          <div>
-            {displayPrice.type === 'exact' && (
-              <span className="text-lg font-bold text-error">{formatPrice(displayPrice.price)}</span>
-            )}
-            {displayPrice.type === 'range' && (
-              <span className="text-sm text-muted">{formatPrice(displayPrice.min)} - {formatPrice(displayPrice.max)}</span>
-            )}
-          </div>
-          <Button type="primary" size="large" onClick={handleAddToCart} loading={addingToCart} disabled={isPreview || !inventoryStatus.available} className="!h-10 !px-6 !text-sm font-medium rounded-lg">
-            {isPreview ? 'Vista previa' : t('products.addToCart')}
-          </Button>
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--sf-line)] bg-white/95 px-4 py-3 backdrop-blur-xl sm:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto flex max-w-[640px] items-center gap-2">
+          <div className="min-w-0 flex-1"><p className="truncate text-lg font-black text-[var(--sf-brand)]">{currentPrice !== null ? formatCLP(currentPrice, locale) : t('products.noPrice')}</p></div>
+          <button type="button" onClick={handleAddToCart} disabled={purchaseDisabled || addingToCart} className="sf-button-secondary !min-h-12 !px-4" aria-label={t('products.addToCart')}><ShoppingCartOutlined /></button>
+          <button type="button" onClick={handleBuyNow} disabled={purchaseDisabled || buyingNow} className="sf-button-primary !min-h-12 !px-4"><ThunderboltOutlined />{t('products.buyNow')}</button>
         </div>
       </div>
+
+      {lastAdded && <MiniCart open={miniCartOpen} onClose={() => setMiniCartOpen(false)} product={product} sku={lastAdded.sku} quantity={lastAdded.quantity} returnFocusRef={addToCartTriggerRef} />}
     </main>
   );
 }
 
-function SpecificationsTable({ structured = [], specifications, title }: { structured?: ProductSpecification[]; specifications: string; title: string }) {
+function PriceDisplay({ displayPrice, locale, noPrice }: { displayPrice: { type: 'exact'; price: number } | { type: 'range'; min: number; max: number } | { type: 'none' }; locale: string; noPrice: string }) {
+  if (displayPrice.type === 'exact') return <p className="mt-1 text-3xl font-black text-[var(--sf-brand)] sm:text-4xl">{formatCLP(displayPrice.price, locale)}</p>;
+  if (displayPrice.type === 'range') return <p className="mt-1 text-3xl font-black text-[var(--sf-brand)] sm:text-4xl">{formatCLP(displayPrice.min, locale)} <span className="text-xl text-[var(--sf-muted)]">-</span> {formatCLP(displayPrice.max, locale)}</p>;
+  return <p className="mt-1 text-lg font-bold text-[var(--sf-muted)]">{noPrice}</p>;
+}
+
+function QuantityControl({ quantity, max, disabled, onChange, quantityLabel, decreaseLabel, increaseLabel }: { quantity: number; max: number; disabled: boolean; onChange: (quantity: number) => void; quantityLabel: string; decreaseLabel: string; increaseLabel: string }) {
+  const safeMax = Math.max(1, max);
+  const update = (value: number) => onChange(Math.min(safeMax, Math.max(1, value)));
+  return <div className="flex h-11 overflow-hidden rounded-xl border border-[var(--sf-line)] bg-white">
+    <button type="button" disabled={disabled || quantity <= 1} onClick={() => update(quantity - 1)} className="flex w-11 items-center justify-center text-[var(--sf-muted)] hover:bg-[var(--sf-soft)] disabled:opacity-35" aria-label={decreaseLabel}><MinusOutlined /></button>
+    <input type="number" min={1} max={safeMax} value={quantity} disabled={disabled} onChange={(event) => update(Number(event.target.value) || 1)} className="w-11 border-x border-[var(--sf-line)] bg-transparent text-center text-sm font-bold outline-none disabled:opacity-50" aria-label={quantityLabel} />
+    <button type="button" disabled={disabled || quantity >= safeMax} onClick={() => update(quantity + 1)} className="flex w-11 items-center justify-center text-[var(--sf-muted)] hover:bg-[var(--sf-soft)] disabled:opacity-35" aria-label={increaseLabel}><PlusOutlined /></button>
+  </div>;
+}
+
+function SpecificationsTable({ structured = [], specifications, title }: { structured?: ProductSpecification[]; specifications?: string; title: string }) {
   const populated = structured.filter((item) => item.value_text?.trim() || item.value_number !== undefined);
   if (populated.length > 0) {
     const groups = new Map<string, ProductSpecification[]>();
     populated.sort((a, b) => a.group_name.localeCompare(b.group_name) || a.sort_order - b.sort_order).forEach((item) => {
       const group = item.group_name || 'General';
-      groups.set(group, [...(groups.get(group) ?? []), item]);
+      groups.set(group, [...(groups.get(group) || []), item]);
     });
-    return <div>
-      <h2 className="mb-3 text-lg font-bold">{title}</h2>
-      <div className="space-y-5">
-        {[...groups.entries()].map(([group, rows]) => <section key={group}>
-          <h3 className="mb-2 text-base font-semibold">{group}</h3>
-          <dl className="overflow-hidden rounded-xl border text-sm">
-            {rows.map((item, index) => <div key={`${group}-${item.spec_key}`} className={`grid grid-cols-[minmax(0,42%)_minmax(0,58%)] ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}>
-              <dt className="break-words border-r px-3 py-3 font-medium text-foreground sm:px-4">{item.label}</dt>
-              <dd className="min-w-0 break-words px-3 py-3 text-muted sm:px-4">{item.value_text ?? item.value_number}{item.unit ? ` ${item.unit}` : ''}</dd>
-            </div>)}
-          </dl>
-        </section>)}
-      </div>
-    </div>;
+    return <div className="max-w-4xl"><h2 className="text-2xl font-black text-[var(--sf-ink)]">{title}</h2><div className="mt-5 space-y-7">{[...groups.entries()].map(([group, rows]) => <section key={group}><h3 className="mb-2 text-sm font-black text-[var(--sf-subtle)]">{group}</h3><dl className="overflow-hidden rounded-[18px] border border-[var(--sf-line)] text-sm">{rows.map((item, index) => <div key={`${group}-${item.spec_key}`} className={`grid grid-cols-[minmax(0,42%)_minmax(0,58%)] ${index % 2 === 0 ? 'bg-[#f7f8f6]' : 'bg-white'}`}><dt className="break-words border-r border-[var(--sf-line)] px-3 py-3 font-bold text-[var(--sf-ink)] sm:px-4">{item.label}</dt><dd className="min-w-0 break-words px-3 py-3 text-[var(--sf-subtle)] sm:px-4">{item.value_text ?? item.value_number}{item.unit ? ` ${item.unit}` : ''}</dd></div>)}</dl></section>)}</div></div>;
   }
+  if (!specifications) return null;
   try {
     const parsed = JSON.parse(specifications);
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
       const entries = Object.entries(parsed);
-      if (entries.length > 0) {
-        return (
-          <div>
-            <h2 className="text-lg font-bold mb-3">{title}</h2>
-            <div className="border rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <tbody>
-                  {entries.map(([key, value], index) => (
-                    <tr key={key} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800/50' : ''}>
-                      <td className="px-4 py-3 font-medium text-foreground w-1/3 border-r">{key}</td>
-                      <td className="px-4 py-3 text-muted">{String(value)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      }
+      return entries.length ? <div className="max-w-4xl"><h2 className="text-2xl font-black text-[var(--sf-ink)]">{title}</h2><dl className="mt-5 overflow-hidden rounded-[18px] border border-[var(--sf-line)] text-sm">{entries.map(([key, value], index) => <div key={key} className={`grid grid-cols-[minmax(0,42%)_minmax(0,58%)] ${index % 2 === 0 ? 'bg-[#f7f8f6]' : 'bg-white'}`}><dt className="break-words border-r border-[var(--sf-line)] px-3 py-3 font-bold text-[var(--sf-ink)] sm:px-4">{key}</dt><dd className="break-words px-3 py-3 text-[var(--sf-subtle)] sm:px-4">{String(value)}</dd></div>)}</dl></div> : null;
     }
-  } catch { /* not JSON */ }
+  } catch { /* render plain text below */ }
+  return <div className="max-w-4xl"><h2 className="text-2xl font-black text-[var(--sf-ink)]">{title}</h2><p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[var(--sf-subtle)]">{specifications}</p></div>;
+}
 
-  return (
-    <div>
-      <h2 className="text-lg font-bold mb-3">{title}</h2>
-      <Paragraph className="text-muted whitespace-pre-wrap">{specifications}</Paragraph>
-    </div>
-  );
+function ProductDetailSkeleton() {
+  return <main className="store-container"><div className="grid animate-pulse gap-8 lg:grid-cols-2 lg:gap-12"><div className="aspect-square rounded-[28px] bg-[#edf0ee]" /><div className="space-y-5 pt-4"><div className="h-4 w-1/4 rounded bg-[#edf0ee]" /><div className="h-10 w-4/5 rounded bg-[#edf0ee]" /><div className="h-16 w-1/2 rounded bg-[#edf0ee]" /><div className="h-36 rounded bg-[#edf0ee]" /></div></div></main>;
 }

@@ -1,12 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Alert } from 'antd';
-import {
-  InfoCircleOutlined,
-  WarningOutlined,
-  GiftOutlined,
-} from '@ant-design/icons';
+import { useEffect, useState } from 'react';
+import { CloseOutlined, GiftOutlined, InfoCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import { useTranslations } from 'next-intl';
 import type { Announcement, AnnouncementType } from '@/types';
 
 interface AnnouncementBarProps {
@@ -15,87 +11,51 @@ interface AnnouncementBarProps {
 
 const DISMISSED_KEY = 'dismissed_announcements';
 
-/**
- * Announcement display component for the homepage.
- * Requirement 26.5: Display active announcements with priority "high" prominently at the top.
- * Requirement 26.7: Allow users to dismiss announcements and remember dismissal in browser storage.
- */
 export default function AnnouncementBar({ announcements }: AnnouncementBarProps) {
+  const t = useTranslations();
   const [dismissedIds, setDismissedIds] = useState<number[]>([]);
 
   useEffect(() => {
-    // Load dismissed announcements from localStorage
     try {
       const stored = localStorage.getItem(DISMISSED_KEY);
-      if (stored) {
-        setDismissedIds(JSON.parse(stored));
-      }
+      if (stored) setDismissedIds(JSON.parse(stored));
     } catch {
-      // Ignore parse errors
+      setDismissedIds([]);
     }
   }, []);
 
-  const handleDismiss = (id: number) => {
-    const updated = [...dismissedIds, id];
-    setDismissedIds(updated);
-    try {
-      localStorage.setItem(DISMISSED_KEY, JSON.stringify(updated));
-    } catch {
-      // Ignore storage errors
-    }
+  const visible = announcements
+    .filter((announcement) => !dismissedIds.includes(announcement.id))
+    .sort((a, b) => ({ high: 0, medium: 1, low: 2 })[a.priority] - ({ high: 0, medium: 1, low: 2 })[b.priority]);
+
+  if (visible.length === 0) return null;
+
+  const dismiss = (id: number) => {
+    const next = [...dismissedIds, id];
+    setDismissedIds(next);
+    try { localStorage.setItem(DISMISSED_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
   };
-
-  // Filter out dismissed announcements and sort by priority (high first)
-  const visibleAnnouncements = announcements
-    .filter((a) => !dismissedIds.includes(a.id))
-    .sort((a, b) => {
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    });
-
-  if (visibleAnnouncements.length === 0) {
-    return null;
-  }
 
   return (
     <div className="space-y-2">
-      {visibleAnnouncements.map((announcement) => (
-        <Alert
-          key={announcement.id}
-          title={announcement.title}
-          description={announcement.content}
-          type={getAlertType(announcement.type)}
-          icon={getIcon(announcement.type)}
-          showIcon
-          closable
-          onClose={() => handleDismiss(announcement.id)}
-          className={announcement.priority === 'high' ? 'border-2' : ''}
-        />
+      {visible.map((announcement) => (
+        <div key={announcement.id} className="flex items-start gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_2px_16px_rgba(23,63,103,0.05)]">
+          <span className="mt-0.5 text-[var(--sf-accent)]">{announcementIcon(announcement.type)}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-[var(--sf-ink)]">{announcement.title}</p>
+            <p className="mt-0.5 text-xs leading-5 text-[var(--sf-muted)] sm:text-sm">{announcement.content}</p>
+          </div>
+          <button type="button" onClick={() => dismiss(announcement.id)} className="sf-icon-button !h-11 !w-11 !shrink-0" aria-label={t('common.close')}>
+            <CloseOutlined />
+          </button>
+        </div>
       ))}
     </div>
   );
 }
 
-function getAlertType(type: AnnouncementType): 'info' | 'warning' | 'success' | 'error' {
-  switch (type) {
-    case 'warning':
-      return 'warning';
-    case 'promotion':
-      return 'success';
-    case 'info':
-    default:
-      return 'info';
-  }
-}
-
-function getIcon(type: AnnouncementType) {
-  switch (type) {
-    case 'warning':
-      return <WarningOutlined />;
-    case 'promotion':
-      return <GiftOutlined />;
-    case 'info':
-    default:
-      return <InfoCircleOutlined />;
-  }
+function announcementIcon(type: AnnouncementType) {
+  if (type === 'warning') return <WarningOutlined />;
+  if (type === 'promotion') return <GiftOutlined />;
+  return <InfoCircleOutlined />;
 }

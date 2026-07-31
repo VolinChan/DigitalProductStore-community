@@ -1,16 +1,12 @@
 'use client';
 
-import { Typography } from 'antd';
-import { useTranslations } from 'next-intl';
-
-const { Title, Paragraph } = Typography;
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 
 export default function ShippingPage() {
   const t = useTranslations('help.shipping');
-  return <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <Title level={2}>{t('title')}</Title>
-    <Title level={4}>{t('processingTime')}</Title><Paragraph>{t('processingDesc')}</Paragraph>
-    <Title level={4}>{t('deliveryTime')}</Title><Paragraph>{t('deliveryDesc')}</Paragraph>
-    <Title level={4}>{t('cost')}</Title><Paragraph>{t('costDesc')}</Paragraph>
-  </main>;
+  const common = useTranslations();
+  const locale = useLocale();
+  const items = [{ title: t('processingTime'), text: t('processingDesc') }, { title: t('deliveryTime'), text: t('deliveryDesc') }, { title: t('cost'), text: t('costDesc') }];
+  return <main className="store-container"><article className="max-w-3xl"><p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">PLEXORIA</p><h1 className="mt-2 text-4xl font-black text-[var(--sf-ink)]">{t('title')}</h1><div className="mt-8 space-y-7">{items.map((item) => <section key={item.title} className="border-t border-[var(--sf-line)] pt-6"><h2 className="text-lg font-black text-[var(--sf-ink)]">{item.title}</h2><p className="mt-3 text-sm leading-7 text-[var(--sf-subtle)]">{item.text}</p></section>)}</div><Link href={`/${locale}/contact`} className="sf-button-secondary mt-9">{common('layout.contactUs')}</Link></article></main>;
 }

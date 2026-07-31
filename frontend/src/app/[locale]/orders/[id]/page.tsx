@@ -1,465 +1,97 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Card,
-  Tag,
-  Button,
-  Timeline,
-  Descriptions,
-  Table,
-  Spin,
-  message,
-  Modal,
-  Empty,
-} from 'antd';
-import {
-  ClockCircleOutlined,
-  CheckCircleOutlined,
-  CarOutlined,
-  CloseCircleOutlined,
-  DollarOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons';
-import { useRouter, useParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuthStore } from '@/store/useAuthStore';
-import apiClient from '@/lib/api';
-import type { Order, OrderStatus, OrderItem } from '@/types';
+import { useParams, useRouter } from 'next/navigation';
+import { Modal, message } from 'antd';
+import { ArrowLeftOutlined, CheckOutlined, CloseOutlined, LoadingOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
+import OrderStatusBadge from '@/components/storefront/OrderStatusBadge';
+import apiClient from '@/lib/api';
+import { formatCLP, formatDateTime } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
+import type { Order, OrderStatus } from '@/types';
 
-/**
- * Order detail page with status timeline, items, and cancel button.
- *
- * Requirements:
- * - 7.7: Return order details including all order items and current status
- * - 24.1: Cancel orders with status "pending_payment"
- * - 24.2: Cancel orders with status "pending_transfer"
- * - 24.4: Prevent cancellation of shipped or completed orders
- */
-
-const ORDER_STATUS_DEFINITIONS: Record<OrderStatus, { key: string; color: string }> = {
-  pending_payment: { key: 'orders.statusPendingPayment', color: 'orange' },
-  pending_transfer: { key: 'orders.statusPendingTransfer', color: 'gold' },
-  paid: { key: 'orders.statusPaid', color: 'blue' },
-  pending_shipment: { key: 'orders.statusPendingShipment', color: 'cyan' },
-  shipped: { key: 'orders.statusShipped', color: 'geekblue' },
-  completed: { key: 'orders.statusCompleted', color: 'green' },
-  cancelled: { key: 'orders.statusCancelled', color: 'default' },
-  payment_failed: { key: 'orders.statusPaymentFailed', color: 'red' },
+const statusKeys: Record<OrderStatus, string> = {
+  pending_payment: 'orders.statusPendingPayment', pending_transfer: 'orders.statusPendingTransfer', paid: 'orders.statusPaid',
+  pending_shipment: 'orders.statusPendingShipment', shipped: 'orders.statusShipped', completed: 'orders.statusCompleted',
+  cancelled: 'orders.statusCancelled', payment_failed: 'orders.statusPaymentFailed',
 };
-
-const STATUS_TIMELINE: OrderStatus[] = [
-  'pending_payment',
-  'paid',
-  'pending_shipment',
-  'shipped',
-  'completed',
-];
-
-function getTimelineIcon(status: OrderStatus) {
-  switch (status) {
-    case 'pending_payment':
-    case 'pending_transfer':
-      return <ClockCircleOutlined />;
-    case 'paid':
-      return <DollarOutlined />;
-    case 'pending_shipment':
-      return <CheckCircleOutlined />;
-    case 'shipped':
-      return <CarOutlined />;
-    case 'completed':
-      return <CheckCircleOutlined />;
-    case 'cancelled':
-    case 'payment_failed':
-      return <CloseCircleOutlined />;
-    default:
-      return <ClockCircleOutlined />;
-  }
-}
-
-function getTimelineColor(currentStatus: OrderStatus, timelineStatus: OrderStatus): string {
-  const currentIndex = STATUS_TIMELINE.indexOf(currentStatus);
-  const timelineIndex = STATUS_TIMELINE.indexOf(timelineStatus);
-
-  if (currentStatus === 'cancelled' || currentStatus === 'payment_failed') {
-    return 'gray';
-  }
-
-  if (timelineIndex <= currentIndex) {
-    return 'green';
-  }
-  return 'gray';
-}
+const progressStatuses: OrderStatus[] = ['pending_payment', 'paid', 'pending_shipment', 'shipped', 'completed'];
 
 export default function OrderDetailPage() {
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
   const params = useParams();
-  const orderId = params.id as string;
+  const orderId = String(params.id);
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const [modal, modalContextHolder] = Modal.useModal();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && !authLoading && !isAuthenticated) {
-      router.push(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders/${orderId}`)}`);
-    }
-  }, [mounted, authLoading, isAuthenticated, router, orderId, locale]);
+    if (mounted && !authLoading && !isAuthenticated) router.replace(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders/${orderId}`)}`);
+  }, [authLoading, isAuthenticated, locale, mounted, orderId, router]);
 
   const fetchOrder = useCallback(async () => {
+    setLoading(true); setFailed(false);
     try {
-      setLoading(true);
       const response = await apiClient.get<{ data: Order }>(`/orders/${orderId}`);
       setOrder(response.data.data);
     } catch (error: unknown) {
-      const err = error as { response?: { status?: number } };
-      if (err?.response?.status === 401) {
-        router.push(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders/${orderId}`)}`);
-      } else if (err?.response?.status === 404) {
-        message.error(t('orders.notFound'));
-      } else {
-        message.error(t('orders.loadFailed'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [orderId, router, locale, t]);
+      const code = (error as { response?: { status?: number } }).response?.status;
+      if (code === 401) router.replace(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders/${orderId}`)}`);
+      else setFailed(true);
+    } finally { setLoading(false); }
+  }, [locale, orderId, router]);
 
-  useEffect(() => {
-    if (mounted && isAuthenticated && orderId) {
-      fetchOrder();
-    }
-  }, [mounted, isAuthenticated, orderId, fetchOrder]);
+  useEffect(() => { if (mounted && isAuthenticated && orderId) void fetchOrder(); }, [fetchOrder, isAuthenticated, mounted, orderId]);
 
-  const canCancel = (status: OrderStatus): boolean => {
-    return status === 'pending_payment' || status === 'pending_transfer';
-  };
+  const cancelOrder = () => modal.confirm({
+    title: t('orders.cancelConfirm'), content: t('orders.cancelContent'), okText: t('orders.cancelOk'), cancelText: t('common.cancel'), okButtonProps: { danger: true },
+    onOk: async () => { setCancelling(true); try { await apiClient.post(`/orders/${orderId}/cancel`); message.success(t('orders.cancelled')); await fetchOrder(); } catch (error: unknown) { message.error((error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message || t('orders.cancelFailed')); } finally { setCancelling(false); } },
+  });
 
-  const handleCancel = () => {
-    modal.confirm({
-      title: t('orders.cancelConfirm'),
-      icon: <ExclamationCircleOutlined />,
-      content: t('orders.cancelContent'),
-      okText: t('orders.cancelOk'),
-      cancelText: t('common.cancel'),
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        setCancelling(true);
-        try {
-          await apiClient.post(`/orders/${orderId}/cancel`);
-          message.success(t('orders.cancelled'));
-          fetchOrder();
-        } catch (error: unknown) {
-          const err = error as { response?: { data?: { error?: { message?: string } } } };
-          const errorMessage = err?.response?.data?.error?.message || t('orders.cancelFailed');
-          message.error(errorMessage);
-        } finally {
-          setCancelling(false);
-        }
-      },
-    });
-  };
+  if (!mounted || authLoading || loading) return <Loading label={t('orders.loadingDetail')} />;
+  if (!isAuthenticated) return null;
+  if (failed || !order) return <main className="store-container text-center"><h1 className="text-2xl font-black text-[var(--sf-ink)]">{failed ? t('orders.loadFailed') : t('orders.notFound')}</h1><div className="mt-6 flex flex-wrap justify-center gap-3">{failed && <button type="button" onClick={fetchOrder} className="sf-button-primary"><ReloadOutlined />{t('common.retry')}</button>}<Link href={`/${locale}/orders`} className="sf-button-secondary">{t('orders.backToOrders')}</Link></div></main>;
 
-  if (!mounted || authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Spin size="large" description={t('common.loading')} />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Spin size="large" description={t('orders.loadingDetail')} />
-      </div>
-    );
-  }
-
-  if (!order) {
-    return (
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Empty description={t('orders.notFound')}>
-          <Link href={`/${locale}/orders`}>
-            <Button type="primary">{t('orders.backToOrders')}</Button>
-          </Link>
-        </Empty>
-      </main>
-    );
-  }
-
-  const statusInfo = orderStatusInfo(order.status, t);
-
-  const itemColumns = [
-    {
-      title: t('orders.product'),
-      dataIndex: 'sku_name',
-      key: 'sku_name',
-      render: (name: string, record: OrderItem) => (
-        <div>
-          <div className="font-medium">{name}</div>
-          {record.attributes && (
-            <div className="text-sm text-gray-500">{record.attributes}</div>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: t('orders.skuCode'),
-      dataIndex: 'sku_code',
-      key: 'sku_code',
-      responsive: ['md' as const],
-    },
-    {
-      title: t('orders.unitPrice'),
-      dataIndex: 'unit_price',
-      key: 'unit_price',
-      render: (price: number) => formatCLP(price, locale),
-    },
-    {
-      title: t('common.quantity'),
-      dataIndex: 'quantity',
-      key: 'quantity',
-    },
-    {
-      title: t('common.subtotal'),
-      dataIndex: 'subtotal',
-      key: 'subtotal',
-      render: (subtotal: number) => (
-        <span className="font-medium">{formatCLP(subtotal, locale)}</span>
-      ),
-    },
-  ];
+  const canCancel = order.status === 'pending_payment' || order.status === 'pending_transfer';
+  const currentProgressStatus = order.status === 'pending_transfer' ? 'pending_payment' : order.status;
+  const currentIndex = progressStatuses.indexOf(currentProgressStatus);
+  const stopped = order.status === 'cancelled' || order.status === 'payment_failed';
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+    <main className="store-container">
       {modalContextHolder}
-      {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <Link href={`/${locale}/orders`} className="text-blue-500 hover:text-blue-600 text-sm">
-            {t('orders.backToOrders')}
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-800 mt-2">{t('orders.detailTitle')}</h1>
-        </div>
-        {canCancel(order.status) && (
-          <Button
-            danger
-            onClick={handleCancel}
-            loading={cancelling}
-          >
-            {t('orders.cancelBtn')}
-          </Button>
-        )}
-      </div>
+      <Link href={`/${locale}/orders`} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[var(--sf-accent)]"><ArrowLeftOutlined />{t('orders.backToOrders')}</Link>
+      <header className="mt-4 flex flex-col gap-5 border-b border-[var(--sf-line)] pb-7 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="font-mono text-sm font-bold text-[var(--sf-muted)]">{order.order_number}</p><h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('orders.detailTitle')}</h1><div className="mt-4"><OrderStatusBadge status={order.status} label={t(statusKeys[order.status])} /></div></div>
+        {canCancel && <button type="button" onClick={cancelOrder} disabled={cancelling} className="inline-flex min-h-11 w-fit items-center justify-center rounded-full border border-[#d66a60] px-5 text-sm font-bold text-[#a33a32] transition hover:bg-[#fdebea] disabled:opacity-50">{t('orders.cancelBtn')}</button>}
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Order info and items */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Order Basic Info */}
-          <Card title={t('orders.infoTitle')}>
-            <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-              <Descriptions.Item label={t('orders.orderNumber')}>
-                <span className="font-mono">{order.order_number}</span>
-              </Descriptions.Item>
-              <Descriptions.Item label={t('orders.status')}>
-                <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label={t('orders.orderDate')}>
-                {new Date(order.created_at).toLocaleString(locale)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('orders.paymentMethod')}>
-                {order.payment_method === 'online' ? t('payment.online') : t('payment.transfer')}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('orders.shippingAddress')} span={2}>
-                {order.shipping_address}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
+      <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)] lg:gap-14">
+        <div className="min-w-0 space-y-10">
+          <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('orders.itemsTitle')}</h2><div className="mt-4 divide-y divide-[var(--sf-line)] border-y border-[var(--sf-line)]">{order.items.map(item => <div key={item.id} className="grid gap-3 py-5 sm:grid-cols-[1fr_auto] sm:items-center"><div className="min-w-0"><h3 className="break-words text-sm font-black text-[var(--sf-ink)]">{item.sku_name}</h3>{item.attributes && <p className="mt-1 text-xs leading-5 text-[var(--sf-muted)]">{item.attributes}</p>}<p className="mt-2 font-mono text-xs text-[var(--sf-muted)]">{item.sku_code}</p></div><div className="flex items-end justify-between gap-5 sm:block sm:text-right"><p className="text-xs text-[var(--sf-muted)]">{formatCLP(item.unit_price, locale)} × {item.quantity}</p><p className="mt-1 font-black text-[var(--sf-brand)]">{formatCLP(item.subtotal, locale)}</p></div></div>)}</div></section>
 
-          {/* Order Items */}
-          <Card title={t('orders.itemsTitle')}>
-            {/* Desktop table */}
-            <div className="hidden sm:block">
-              <Table
-                columns={itemColumns}
-                dataSource={order.items}
-                rowKey="id"
-                pagination={false}
-                summary={() => (
-                  <Table.Summary>
-                    <Table.Summary.Row>
-                      <Table.Summary.Cell index={0} colSpan={3}>
-                        <span className="font-medium">{t('common.total')}</span>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={1}>
-                        {order.items.reduce((sum, item) => sum + item.quantity, 0)}
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={2}>
-                        <span className="font-bold text-lg">
-                          {formatCLP(order.total_amount, locale)}
-                        </span>
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  </Table.Summary>
-                )}
-              />
-            </div>
-
-            {/* Mobile card list */}
-            <div className="sm:hidden space-y-3">
-              {order.items.map((item) => (
-                <div key={item.id} className="border rounded-lg p-3">
-                  <div className="font-medium">{item.sku_name}</div>
-                  {item.attributes && (
-                    <div className="text-sm text-gray-500 mt-1">{item.attributes}</div>
-                  )}
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-gray-600">
-                      {formatCLP(item.unit_price, locale)} × {item.quantity}
-                    </span>
-                    <span className="font-medium">{formatCLP(item.subtotal, locale)}</span>
-                  </div>
-                </div>
-              ))}
-              <div className="border-t pt-3 flex justify-between items-center">
-                <span className="font-medium">{t('orders.orderTotal')}</span>
-                <span className="font-bold text-lg text-red-500">
-                  {formatCLP(order.total_amount, locale)}
-                </span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Shipping Info */}
-          {(order.shipping_carrier || order.tracking_number) && (
-            <Card title={t('orders.shippingInfo')}>
-              <Descriptions column={1} size="small">
-                {order.shipping_carrier && (
-                  <Descriptions.Item label={t('orders.shippingCarrier')}>
-                    {order.shipping_carrier}
-                  </Descriptions.Item>
-                )}
-                {order.tracking_number && (
-                  <Descriptions.Item label={t('orders.trackingNumber')}>
-                    <span className="font-mono">{order.tracking_number}</span>
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
-            </Card>
-          )}
+          <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('orders.infoTitle')}</h2><dl className="mt-4 grid gap-x-8 gap-y-5 sm:grid-cols-2"><Info label={t('orders.orderDate')} value={formatDateTime(order.created_at, locale)} /><Info label={t('orders.paymentMethod')} value={order.payment_method === 'online' ? t('payment.online') : t('payment.transfer')} /><Info label={t('orders.shippingAddress')} value={order.shipping_address} wide />{order.shipping_carrier && <Info label={t('orders.shippingCarrier')} value={order.shipping_carrier} />}{order.tracking_number && <Info label={t('orders.trackingNumber')} value={order.tracking_number} mono />}</dl></section>
         </div>
 
-        {/* Right: Status Timeline */}
-        <div className="space-y-6">
-          <Card title={t('orders.statusTitle')}>
-            {order.status === 'cancelled' || order.status === 'payment_failed' ? (
-              <Timeline
-                items={[
-                  {
-                    color: 'green',
-                    icon: <ClockCircleOutlined />,
-                    content: (
-                      <div>
-                        <div className="font-medium">{t('orders.created')}</div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(order.created_at).toLocaleString(locale)}
-                        </div>
-                      </div>
-                    ),
-                  },
-                  {
-                    color: 'red',
-                    icon: <CloseCircleOutlined />,
-                    content: (
-                      <div>
-                        <div className="font-medium">{statusInfo.label}</div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(order.updated_at).toLocaleString(locale)}
-                        </div>
-                      </div>
-                    ),
-                  },
-                ]}
-              />
-            ) : (
-              <Timeline
-                items={STATUS_TIMELINE.map((status) => ({
-                  color: getTimelineColor(order.status, status),
-                  icon: getTimelineIcon(status),
-                  content: (
-                    <div>
-                      <div className={`font-medium ${
-                        STATUS_TIMELINE.indexOf(status) <= STATUS_TIMELINE.indexOf(order.status)
-                          ? 'text-gray-800'
-                          : 'text-gray-400'
-                      }`}>
-                        {orderStatusInfo(status, t).label}
-                      </div>
-                    </div>
-                  ),
-                }))}
-              />
-            )}
-          </Card>
-
-          {/* Payment Info */}
-          <Card title={t('orders.paymentInfo')} size="small">
-            <Descriptions column={1} size="small">
-              <Descriptions.Item label={t('common.subtotal')}>
-                {formatCLP(order.subtotal, locale)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('cart.shippingFee')}>
-                {formatCLP(order.shipping_fee, locale)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('orders.orderTotal')}>
-                <span className="font-bold text-red-500">
-                  {formatCLP(order.total_amount, locale)}
-                </span>
-              </Descriptions.Item>
-              {order.confirmation_deadline && order.status === 'pending_transfer' && (
-                <Descriptions.Item label={t('orders.confirmationDeadline')}>
-                  <span className="text-orange-500">
-                    {new Date(order.confirmation_deadline).toLocaleString(locale)}
-                  </span>
-                </Descriptions.Item>
-              )}
-            </Descriptions>
-          </Card>
-        </div>
+        <aside className="space-y-9">
+          <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('orders.statusTitle')}</h2><ol className="mt-5 space-y-0">{stopped ? <><ProgressItem label={t('orders.created')} done /><ProgressItem label={t(statusKeys[order.status])} stopped last /></> : progressStatuses.map((status, index) => <ProgressItem key={status} label={t(statusKeys[status])} done={index <= currentIndex} last={index === progressStatuses.length - 1} />)}</ol></section>
+          <section className="rounded-[18px] bg-[var(--sf-soft)] p-5"><h2 className="text-lg font-black text-[var(--sf-ink)]">{t('orders.paymentInfo')}</h2><dl className="mt-5 space-y-3 text-sm"><PriceRow label={t('common.subtotal')} value={formatCLP(order.subtotal, locale)} /><PriceRow label={t('cart.shippingFee')} value={formatCLP(order.shipping_fee, locale)} /><div className="border-t border-[var(--sf-line)] pt-4"><PriceRow label={t('orders.orderTotal')} value={formatCLP(order.total_amount, locale)} strong /></div>{order.confirmation_deadline && order.status === 'pending_transfer' && <div className="border-t border-[var(--sf-line)] pt-4"><dt className="text-xs font-bold text-[var(--sf-muted)]">{t('orders.confirmationDeadline')}</dt><dd className="mt-1 text-sm font-black text-[#835d00]">{formatDateTime(order.confirmation_deadline, locale)}</dd></div>}</dl></section>
+        </aside>
       </div>
     </main>
   );
 }
 
-function orderStatusInfo(
-  status: OrderStatus,
-  t: ReturnType<typeof useTranslations>
-): { label: string; color: string } {
-  const definition = ORDER_STATUS_DEFINITIONS[status];
-  return definition
-    ? { label: t(definition.key), color: definition.color }
-    : { label: status, color: 'default' };
-}
-
-function formatCLP(amount: number, locale: string): string {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'CLP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+function Loading({ label }: { label: string }) { return <main className="store-container flex min-h-[55vh] items-center justify-center"><span className="inline-flex items-center gap-3 text-sm font-bold text-[var(--sf-muted)]"><LoadingOutlined spin className="text-2xl text-[var(--sf-accent)]" />{label}</span></main>; }
+function Info({ label, value, wide, mono }: { label: string; value: string; wide?: boolean; mono?: boolean }) { return <div className={wide ? 'sm:col-span-2' : ''}><dt className="text-xs font-bold text-[var(--sf-muted)]">{label}</dt><dd className={`mt-1 break-words text-sm font-semibold leading-6 text-[var(--sf-ink)] ${mono ? 'font-mono' : ''}`}>{value}</dd></div>; }
+function PriceRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) { return <div className="flex items-baseline justify-between gap-4"><dt className={strong ? 'font-black text-[var(--sf-ink)]' : 'text-[var(--sf-muted)]'}>{label}</dt><dd className={strong ? 'text-xl font-black text-[var(--sf-brand)]' : 'font-semibold text-[var(--sf-ink)]'}>{value}</dd></div>; }
+function ProgressItem({ label, done = false, stopped = false, last = false }: { label: string; done?: boolean; stopped?: boolean; last?: boolean }) { return <li className="grid grid-cols-[28px_1fr] gap-3"><div className="flex flex-col items-center"><span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ${stopped ? 'bg-[#fdebea] text-[#a33a32]' : done ? 'bg-[#e4f3e9] text-[#24723f]' : 'bg-[#edf0ee] text-[#879196]'}`}>{stopped ? <CloseOutlined /> : done ? <CheckOutlined /> : null}</span>{!last && <span className={`h-8 w-px ${done ? 'bg-[#9ccbad]' : 'bg-[var(--sf-line)]'}`} />}</div><span className={`pt-1 text-sm font-bold ${stopped ? 'text-[#a33a32]' : done ? 'text-[var(--sf-ink)]' : 'text-[var(--sf-muted)]'}`}>{label}</span></li>; }

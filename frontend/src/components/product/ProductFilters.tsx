@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { InputNumber, Button, Space, Typography, Divider } from 'antd';
+import { useEffect, useState } from 'react';
+import { InputNumber } from 'antd';
 import { FilterOutlined, ReloadOutlined } from '@ant-design/icons';
-import type { Category } from '@/types';
 import { useTranslations } from 'next-intl';
-
-const { Title, Text } = Typography;
+import type { Category } from '@/types';
 
 export interface FilterValues {
   category_id?: number;
@@ -21,31 +19,21 @@ interface ProductFiltersProps {
   onReset: () => void;
 }
 
-/**
- * Product filter sidebar component.
- */
-export default function ProductFilters({
-  categories,
-  initialValues,
-  onApply,
-  onReset,
-}: ProductFiltersProps) {
+export default function ProductFilters({ categories, initialValues, onApply, onReset }: ProductFiltersProps) {
   const t = useTranslations();
-  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(
-    initialValues.category_id
-  );
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(initialValues.category_id);
   const [minPrice, setMinPrice] = useState<number | undefined>(initialValues.min_price);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(initialValues.max_price);
+  const invalidRange = minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice;
+  const hasFilters = selectedCategory !== undefined || minPrice !== undefined || maxPrice !== undefined;
 
-  const handleApply = () => {
-    onApply({
-      category_id: selectedCategory,
-      min_price: minPrice,
-      max_price: maxPrice,
-    });
-  };
+  useEffect(() => {
+    setSelectedCategory(initialValues.category_id);
+    setMinPrice(initialValues.min_price);
+    setMaxPrice(initialValues.max_price);
+  }, [initialValues.category_id, initialValues.max_price, initialValues.min_price]);
 
-  const handleReset = () => {
+  const reset = () => {
     setSelectedCategory(undefined);
     setMinPrice(undefined);
     setMaxPrice(undefined);
@@ -53,96 +41,50 @@ export default function ProductFilters({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Category Filter */}
-      <div>
-        <Title level={5} className="!mb-3">
-          <FilterOutlined className="mr-2" />
-          {t('products.category')}
-        </Title>
+    <div className="space-y-7">
+      <fieldset>
+        <legend className="mb-3 text-sm font-black text-[var(--sf-ink)]">{t('products.category')}</legend>
         <div className="space-y-1">
-          <button
-            onClick={() => setSelectedCategory(undefined)}
-            className={`block w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-              selectedCategory === undefined
-                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
-            aria-pressed={selectedCategory === undefined}
-          >
-            {t('common.viewAll')}
-          </button>
+          <FilterChoice active={selectedCategory === undefined} onClick={() => setSelectedCategory(undefined)}>{t('common.viewAll')}</FilterChoice>
           {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`block w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                selectedCategory === category.id
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
-              aria-pressed={selectedCategory === category.id}
-            >
-              {category.name}
-            </button>
+            <FilterChoice key={category.id} active={selectedCategory === category.id} onClick={() => setSelectedCategory(category.id)}>{category.name}</FilterChoice>
           ))}
         </div>
-      </div>
+      </fieldset>
 
-      <Divider className="!my-4" />
-
-      {/* Price Range Filter */}
-      <div>
-        <Title level={5} className="!mb-3">
-          {t('common.price')}
-        </Title>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <InputNumber
-              placeholder={t('products.filter')}
-              min={0}
-              value={minPrice}
-              onChange={(val) => setMinPrice(val ?? undefined)}
-              className="flex-1"
-              prefix="$"
-              size="middle"
-              aria-label={t('cart.totalPrice')}
-            />
-            <Text type="secondary">-</Text>
-            <InputNumber
-              placeholder={t('products.filter')}
-              min={0}
-              value={maxPrice}
-              onChange={(val) => setMaxPrice(val ?? undefined)}
-              className="flex-1"
-              prefix="$"
-              size="middle"
-              aria-label={t('cart.totalPrice')}
-            />
-          </div>
+      <fieldset className="border-t border-[var(--sf-line)] pt-6">
+        <legend className="mb-3 text-sm font-black text-[var(--sf-ink)]">{t('common.price')}</legend>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="min-w-0 text-xs font-semibold text-[var(--sf-muted)]">
+            {t('products.minPrice')}
+            <InputNumber min={0} value={minPrice} onChange={(value) => setMinPrice(value ?? undefined)} prefix="$" className="mt-2 !w-full" controls={false} />
+          </label>
+          <label className="min-w-0 text-xs font-semibold text-[var(--sf-muted)]">
+            {t('products.maxPrice')}
+            <InputNumber min={0} value={maxPrice} onChange={(value) => setMaxPrice(value ?? undefined)} prefix="$" className="mt-2 !w-full" controls={false} />
+          </label>
         </div>
+      </fieldset>
+
+      <div className="space-y-2 border-t border-[var(--sf-line)] pt-6">
+        {invalidRange && <p role="alert" className="text-xs font-semibold text-[#a33a32]">{t('products.priceRangeInvalid')}</p>}
+        <button type="button" disabled={invalidRange} onClick={() => onApply({ category_id: selectedCategory, min_price: minPrice, max_price: maxPrice })} className="sf-button-primary w-full">
+          <FilterOutlined />{t('products.applyFilters')}
+        </button>
+        {hasFilters && (
+          <button type="button" onClick={reset} className="sf-button-secondary w-full">
+            <ReloadOutlined />{t('products.clearFilters')}
+          </button>
+        )}
       </div>
-
-      <Divider className="!my-4" />
-
-      {/* Action Buttons */}
-      <Space orientation="vertical" className="w-full">
-        <Button
-          type="primary"
-          icon={<FilterOutlined />}
-          onClick={handleApply}
-          block
-        >
-          {t('common.confirm')}
-        </Button>
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={handleReset}
-          block
-        >
-          {t('common.cancel')}
-        </Button>
-      </Space>
     </div>
+  );
+}
+
+function FilterChoice({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active} className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-semibold transition-colors ${active ? 'bg-[var(--sf-soft-blue)] text-[var(--sf-accent)]' : 'text-[var(--sf-subtle)] hover:bg-[var(--sf-soft)]'}`}>
+      {children}
+    </button>
   );
 }

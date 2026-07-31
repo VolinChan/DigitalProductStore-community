@@ -1,23 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Tag, Button, Empty, Spin, message } from 'antd';
-import { EyeOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuthStore } from '@/store/useAuthStore';
-import apiClient from '@/lib/api';
-import type { Order, OrderStatus } from '@/types';
+import { useRouter } from 'next/navigation';
+import { ArrowRightOutlined, LoadingOutlined, ReloadOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
+import OrderStatusBadge from '@/components/storefront/OrderStatusBadge';
+import apiClient from '@/lib/api';
+import { formatCLP, formatDate } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
+import type { Order, OrderStatus } from '@/types';
 
-/**
- * User orders list page (requires authentication).
- * Displays all orders associated with the user account.
- *
- * Requirements:
- * - 7.6: Display all orders with status and total amount
- * - 7.8: Record order creation timestamp
- */
+const statusKeys: Record<OrderStatus, string> = {
+  pending_payment: 'orders.statusPendingPayment', pending_transfer: 'orders.statusPendingTransfer', paid: 'orders.statusPaid',
+  pending_shipment: 'orders.statusPendingShipment', shipped: 'orders.statusShipped', completed: 'orders.statusCompleted',
+  cancelled: 'orders.statusCancelled', payment_failed: 'orders.statusPaymentFailed',
+};
 
 export default function OrdersPage() {
   const t = useTranslations();
@@ -26,180 +24,50 @@ export default function OrdersPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (mounted && !authLoading && !isAuthenticated) {
-      router.push(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders`)}`);
-    }
-  }, [mounted, authLoading, isAuthenticated, router, locale]);
+    if (mounted && !authLoading && !isAuthenticated) router.replace(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders`)}`);
+  }, [authLoading, isAuthenticated, locale, mounted, router]);
 
   const fetchOrders = useCallback(async () => {
+    setLoading(true); setFailed(false);
     try {
-      setLoading(true);
-      const response = await apiClient.get<{ data: { orders: Order[]; total: number; page: number; page_size: number } }>('/orders');
+      const response = await apiClient.get<{ data: { orders: Order[] } }>('/orders');
       setOrders(response.data.data?.orders || []);
     } catch (error: unknown) {
-      const err = error as { response?: { status?: number } };
-      if (err?.response?.status === 401) {
-        router.push(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders`)}`);
-      } else {
-        message.error(t('common.error'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [router, locale, t]);
+      if ((error as { response?: { status?: number } }).response?.status === 401) router.replace(`/${locale}/login?redirect=${encodeURIComponent(`/${locale}/orders`)}`);
+      else setFailed(true);
+    } finally { setLoading(false); }
+  }, [locale, router]);
 
-  useEffect(() => {
-    if (mounted && isAuthenticated) {
-      fetchOrders();
-    }
-  }, [mounted, isAuthenticated, fetchOrders]);
+  useEffect(() => { if (mounted && isAuthenticated) void fetchOrders(); }, [fetchOrders, isAuthenticated, mounted]);
 
-  if (!mounted || authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Spin size="large" tip={t('common.loading')} />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  const columns = [
-    {
-      title: t('orders.orderNumber'),
-      dataIndex: 'order_number',
-      key: 'order_number',
-      render: (text: string, record: Order) => (
-        <Link href={`/${locale}/orders/${record.id}`} className="text-blue-500 hover:text-blue-600 font-mono">
-          {text}
-        </Link>
-      ),
-    },
-    {
-      title: t('orders.status'),
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: OrderStatus) => {
-        const statusInfo = statusInfoFor(status, t);
-        return <Tag color={statusInfo.color}>{statusInfo.label}</Tag>;
-      },
-    },
-    {
-      title: t('orders.amount'),
-      dataIndex: 'total_amount',
-      key: 'total_amount',
-      render: (amount: number) => (
-        <span className="font-medium text-gray-800">{formatCLP(amount, locale)}</span>
-      ),
-    },
-    {
-      title: t('orders.date'),
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (date: string) => new Date(date).toLocaleString(locale),
-    },
-    {
-      title: t('common.actions'),
-      key: 'action',
-      render: (_: unknown, record: Order) => (
-        <Link href={`/${locale}/orders/${record.id}`}>
-          <Button type="link" icon={<EyeOutlined />}>
-            {t('orders.viewOrder')}
-          </Button>
-        </Link>
-      ),
-    },
-  ];
+  if (!mounted || authLoading || (loading && orders.length === 0)) return <PageLoading label={t('common.loading')} />;
+  if (!isAuthenticated) return null;
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">{t('orders.title')}</h1>
-        <Link href={`/${locale}/orders/track`}>
-          <Button>{t('orders.tracking')}</Button>
-        </Link>
+    <main className="store-container">
+      <div className="flex flex-col gap-4 border-b border-[var(--sf-line)] pb-7 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">PLEXORIA</p><h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('orders.title')}</h1></div>
+        <Link href={`/${locale}/orders/track`} className="sf-button-secondary">{t('orders.tracking')} <ArrowRightOutlined /></Link>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Spin size="large" tip={t('common.loading')} />
-        </div>
-      ) : orders.length === 0 ? (
-        <Empty
-          description={t('orders.noOrders')}
-          className="py-16"
-        >
-          <Link href={`/${locale}/products`}>
-            <Button type="primary">{t('orders.browseProducts')}</Button>
-          </Link>
-        </Empty>
-      ) : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden sm:block">
-            <Table
-              columns={columns}
-              dataSource={orders}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
-          </div>
-
-          {/* Mobile card list */}
-          <div className="sm:hidden space-y-4">
-            {orders.map((order) => {
-              const statusInfo = statusInfoFor(order.status, t);
-              return (
-                <Link href={`/${locale}/orders/${order.id}`} key={order.id} className="block">
-                  <div className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-mono text-sm text-gray-600">{order.order_number}</span>
-                      <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-medium text-gray-800">
-                        {formatCLP(order.total_amount, locale)}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(order.created_at).toLocaleDateString(locale)}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </>
-      )}
+      {failed ? <State title={t('common.error')} action={<button type="button" onClick={fetchOrders} className="sf-button-primary"><ReloadOutlined />{t('common.retry')}</button>} />
+        : orders.length === 0 ? <State title={t('orders.noOrders')} icon={<ShoppingOutlined />} action={<Link href={`/${locale}/products`} className="sf-button-primary">{t('orders.browseProducts')}</Link>} />
+        : <div className="divide-y divide-[var(--sf-line)]">
+          {orders.map((order) => <Link key={order.id} href={`/${locale}/orders/${order.id}`} className="group grid min-h-[118px] gap-4 py-6 transition sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-center">
+            <div className="min-w-0"><p className="text-xs font-bold text-[var(--sf-muted)]">{t('orders.orderNumber')}</p><p className="mt-1 break-all font-mono text-sm font-black text-[var(--sf-ink)] group-hover:text-[var(--sf-accent)]">{order.order_number}</p></div>
+            <div><p className="text-xs font-bold text-[var(--sf-muted)] sm:hidden">{t('orders.status')}</p><div className="mt-1 sm:mt-0"><OrderStatusBadge status={order.status} label={t(statusKeys[order.status])} /></div></div>
+            <div className="flex items-end justify-between gap-4 sm:block"><div><p className="text-xs font-bold text-[var(--sf-muted)]">{formatDate(order.created_at, locale)}</p><p className="mt-1 text-lg font-black text-[var(--sf-brand)]">{formatCLP(order.total_amount, locale)}</p></div><ArrowRightOutlined className="mb-1 text-[var(--sf-accent)] sm:hidden" /></div>
+            <ArrowRightOutlined className="hidden text-[var(--sf-accent)] transition group-hover:translate-x-1 sm:block" />
+          </Link>)}
+        </div>}
     </main>
   );
 }
 
-function statusInfoFor(status: OrderStatus, t: ReturnType<typeof useTranslations>): { label: string; color: string } {
-  const definitions: Record<OrderStatus, { key: string; color: string }> = {
-    pending_payment: { key: 'orders.statusPendingPayment', color: 'orange' },
-    pending_transfer: { key: 'orders.statusPendingTransfer', color: 'gold' },
-    paid: { key: 'orders.statusPaid', color: 'blue' },
-    pending_shipment: { key: 'orders.statusPendingShipment', color: 'cyan' },
-    shipped: { key: 'orders.statusShipped', color: 'geekblue' },
-    completed: { key: 'orders.statusCompleted', color: 'green' },
-    cancelled: { key: 'orders.statusCancelled', color: 'default' },
-    payment_failed: { key: 'orders.statusPaymentFailed', color: 'red' },
-  };
-  const definition = definitions[status];
-  return definition ? { label: t(definition.key), color: definition.color } : { label: status, color: 'default' };
-}
-
-function formatCLP(amount: number, locale: string): string {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-}
+function PageLoading({ label }: { label: string }) { return <main className="store-container flex min-h-[55vh] items-center justify-center"><span className="inline-flex items-center gap-3 text-sm font-bold text-[var(--sf-muted)]"><LoadingOutlined spin className="text-2xl text-[var(--sf-accent)]" />{label}</span></main>; }
+function State({ title, icon, action }: { title: string; icon?: React.ReactNode; action: React.ReactNode }) { return <section className="py-20 text-center">{icon && <span className="text-4xl text-[var(--sf-accent)]">{icon}</span>}<h2 className="mt-4 text-xl font-black text-[var(--sf-ink)]">{title}</h2><div className="mt-6 flex justify-center">{action}</div></section>; }

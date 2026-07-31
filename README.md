@@ -19,8 +19,13 @@ Visit the live store here:
 
 ## What is included
 
-- Responsive storefront, product listing, search, filtering, and product details
-- Cart, favorites, login, registration, and checkout UI
+- Mobile-first responsive storefront from 320px to desktop widths
+- Localized English and Spanish (Chile) routes with locale-preserving navigation
+- Product discovery with URL-persisted search, filters, sorting, and pagination
+- Product detail pages with SKU selection, live price, stock, media, and purchase-state updates
+- Cart, mini-cart, Buy Now, login, registration, and checkout UI
+- Keyboard-accessible menus, drawers, dialogs, focus restoration, reduced-motion support, and localized form errors
+- Playwright coverage for storefront discovery, purchasing, accessibility, and responsive layouts
 - Demo-oriented frontend configuration
 - Next.js storefront code
 - Docker-based frontend preview
@@ -35,7 +40,7 @@ The public repository must not be used as the source of truth for a live store. 
 - Pricing, membership, coupon, recommendation, and fraud rules
 - Production certificates, backups, monitoring credentials, and deployment secrets
 
-The production backend is maintained in the private Pro repository. Before publishing a fork, run the checklist in [`docs/PUBLIC_RELEASE_CHECKLIST.md`](docs/PUBLIC_RELEASE_CHECKLIST.md).
+The production backend is maintained in the private Pro repository. Keep production credentials, operational data, and deployment configuration out of community forks.
 
 ## Quick start: community UI preview
 
@@ -79,7 +84,6 @@ The production API, deployment topology, certificates, monitoring, backups, and 
 frontend/                         Storefront UI
 docker-compose.community.yml      Frontend preview stack
 .env.community.example            Non-secret demo configuration
-docs/                             Public release and contribution notes
 ```
 
 ## Security boundary

@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Card, Col, Row, Spin, Empty, Typography } from 'antd';
+import { ApiOutlined, AppstoreOutlined, AudioOutlined, DesktopOutlined, HddOutlined, ThunderboltOutlined, WifiOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
 import apiClient from '@/lib/api';
 import type { Category } from '@/types';
 
-const { Title, Paragraph } = Typography;
 interface CategoriesResponse { data: { categories: Category[] } }
+
+const icons = [ApiOutlined, ThunderboltOutlined, DesktopOutlined, HddOutlined, WifiOutlined, AudioOutlined, AppstoreOutlined];
 
 export default function CategoriesPage() {
   const t = useTranslations();
@@ -18,25 +19,41 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     apiClient.get<CategoriesResponse>('/categories')
-      .then((res) => setCategories(res.data.data?.categories || []))
+      .then((response) => setCategories(response.data.data?.categories || []))
       .catch(() => setCategories([]))
       .finally(() => setLoading(false));
   }, []);
 
   return (
-    <main className="store-container" id="main-content">
-      <Title level={2} className="!mb-6">{t('categories.title')}</Title>
-      {loading ? <div className="flex items-center justify-center min-h-[300px]"><Spin size="large" /></div>
-        : categories.length === 0 ? <Empty description={t('categories.empty')} />
-          : <Row gutter={[16, 16]}>{categories.map((category) => (
-            <Col key={category.id} xs={12} sm={8} md={6} lg={4} className="flex">
-              <Link href={`/${locale}/products?category_id=${category.id}`} className="block h-full w-full">
-                <Card hoverable className="h-full w-full text-center" styles={{ body: { minHeight: 88, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' } }}>
-                  <Paragraph strong className="!mb-0 w-full whitespace-normal break-words !leading-5">{category.name}</Paragraph>
-                </Card>
+    <main className="store-container">
+      <header className="max-w-2xl pb-8 sm:pb-10">
+        <p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">PLEXORIA</p>
+        <h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('categories.title')}</h1>
+        <p className="mt-3 text-sm leading-6 text-[var(--sf-muted)] sm:text-base">{t('categories.description')}</p>
+      </header>
+
+      {loading ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => <div key={index} className="h-40 animate-pulse rounded-[18px] bg-white" />)}
+        </div>
+      ) : categories.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+          {categories.map((category, index) => {
+            const Icon = icons[index % icons.length];
+            return (
+              <Link key={category.id} href={`/${locale}/products?category_id=${category.id}`} className="group flex min-h-40 flex-col justify-between rounded-[18px] bg-white p-5 shadow-[0_2px_18px_rgba(21,48,66,0.05)] transition hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(21,48,66,0.1)]">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--sf-soft-blue)] text-xl text-[var(--sf-accent)]"><Icon /></span>
+                <div className="mt-6">
+                  <h2 className="break-words text-sm font-black leading-5 text-[var(--sf-ink)] group-hover:text-[var(--sf-accent)] sm:text-base">{category.name}</h2>
+                  {typeof category.product_count === 'number' && <p className="mt-1 text-xs text-[var(--sf-muted)]">{t('categories.productCount', { count: category.product_count })}</p>}
+                </div>
               </Link>
-            </Col>
-          ))}</Row>}
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white px-5 py-14 text-center text-sm text-[var(--sf-muted)]">{t('categories.empty')}</div>
+      )}
     </main>
   );
 }

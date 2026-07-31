@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Typography, Upload, Button, Alert, Descriptions, message, Spin, Tag } from 'antd';
-import { BankOutlined, UploadOutlined, ClockCircleOutlined, CheckCircleOutlined, CopyOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Upload, message } from 'antd';
+import { BankOutlined, UploadOutlined, ClockCircleOutlined, CheckCircleFilled } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import apiClient from '@/lib/api';
 import { useLocale, useTranslations } from 'next-intl';
-
-const { Title, Text, Paragraph } = Typography;
+import { formatCLP, formatDateTime } from '@/lib/utils';
 
 interface TransferPaymentProps {
   orderId: number;
@@ -59,70 +58,42 @@ export default function TransferPayment({ orderId, orderNumber, totalAmount, con
     onRemove: () => setFileList([]),
   };
 
-  const formatDeadline = (deadline: string) => {
-    const date = new Date(deadline);
-    return date.toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-  };
-
-  function formatCLP(amount: number): string {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Bank Account Information */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <Title level={4} className="!mb-4"><BankOutlined className="mr-2" />{t('transfer.bankInfo')}</Title>
-        <Alert title={t('transfer.bankInfoAlert')} description={t('transfer.bankInfoDesc')} type="info" showIcon className="mb-4" />
-        {!transferConfigured && (
-          <Alert title={t('transfer.configMissing')} type="warning" showIcon className="mb-4" />
-        )}
-        <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label={t('transfer.bankName')}>{bankName || t('transfer.notConfigured')}</Descriptions.Item>
-          <Descriptions.Item label={t('transfer.accountName')}>{accountName || t('transfer.notConfigured')}</Descriptions.Item>
-          <Descriptions.Item label={t('transfer.accountNumber')}>
-            <div className="flex items-center gap-2"><Text>{accountNumber || t('transfer.notConfigured')}</Text></div>
-          </Descriptions.Item>
-          <Descriptions.Item label={t('transfer.amount')}>
-            <Text strong className="text-red-500 text-lg">{formatCLP(totalAmount)}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label={t('transfer.orderRef')}>
-            <Tag color="blue">{orderNumber}</Tag>
-          </Descriptions.Item>
-        </Descriptions>
-      </div>
+    <div className="space-y-10">
+      <section>
+        <h2 className="flex items-center gap-2 text-xl font-black text-[var(--sf-ink)]"><BankOutlined className="text-[var(--sf-accent)]" />{t('transfer.bankInfo')}</h2>
+        <p className="mt-3 text-sm leading-6 text-[var(--sf-muted)]">{t('transfer.bankInfoDesc')}</p>
+        {!transferConfigured && <p role="alert" className="mt-4 rounded-lg bg-[#fff5d9] px-4 py-3 text-sm font-semibold text-[#835d00]">{t('transfer.configMissing')}</p>}
+        <dl className="mt-5 overflow-hidden rounded-[16px] border border-[var(--sf-line)] bg-white">
+          {[
+            [t('transfer.bankName'), bankName || t('transfer.notConfigured')],
+            [t('transfer.accountName'), accountName || t('transfer.notConfigured')],
+            [t('transfer.accountNumber'), accountNumber || t('transfer.notConfigured')],
+            [t('transfer.amount'), formatCLP(totalAmount, locale)],
+            [t('transfer.orderRef'), orderNumber],
+          ].map(([label, value], index) => <div key={label} className={`grid gap-1 px-4 py-3 sm:grid-cols-[170px_1fr] sm:gap-5 ${index > 0 ? 'border-t border-[var(--sf-line)]' : ''}`}><dt className="text-xs font-bold text-[var(--sf-muted)]">{label}</dt><dd className={`break-all text-sm font-black ${index >= 3 ? 'text-[var(--sf-brand)]' : 'text-[var(--sf-ink)]'}`}>{value}</dd></div>)}
+        </dl>
+      </section>
 
-      {/* Upload Transfer Proof */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <Title level={4} className="!mb-4"><UploadOutlined className="mr-2" />{t('transfer.uploadProof')}</Title>
+      <section className="border-t border-[var(--sf-line)] pt-8">
+        <h2 className="flex items-center gap-2 text-xl font-black text-[var(--sf-ink)]"><UploadOutlined className="text-[var(--sf-accent)]" />{t('transfer.uploadProof')}</h2>
         {uploaded ? (
-          <Alert title={t('transfer.uploaded')} description={t('transfer.uploadedDesc')} type="success" showIcon icon={<CheckCircleOutlined />} />
+          <div role="status" className="mt-5 flex gap-3 rounded-[16px] bg-[#e4f3e9] p-4 text-[#24723f]"><CheckCircleFilled className="mt-0.5 text-xl" /><div><p className="font-black">{t('transfer.uploaded')}</p><p className="mt-1 text-sm leading-6">{t('transfer.uploadedDesc')}</p></div></div>
         ) : (
           <>
-            <Paragraph type="secondary" className="!mb-4">{t('transfer.uploadHint')}</Paragraph>
-            <Upload.Dragger {...uploadProps} disabled={uploading}>
-              <p className="ant-upload-drag-icon"><UploadOutlined className="text-3xl text-blue-400" /></p>
+            <p className="mb-4 mt-3 text-sm leading-6 text-[var(--sf-muted)]">{t('transfer.uploadHint')}</p>
+            <Upload.Dragger {...uploadProps} disabled={uploading} className="!rounded-[16px] !border-[var(--sf-line)] !bg-[var(--sf-soft)]">
+              <p className="ant-upload-drag-icon"><UploadOutlined className="text-3xl text-[var(--sf-accent)]" /></p>
               <p className="ant-upload-text">{t('transfer.dropText')}</p>
               <p className="ant-upload-hint">{t('transfer.hint')}</p>
             </Upload.Dragger>
-            <Button type="primary" onClick={handleUpload} disabled={!transferConfigured || fileList.length === 0} loading={uploading} icon={uploading ? <Spin size="small" /> : <UploadOutlined />} size="large" block className="mt-4">
-              {uploading ? t('common.submitting') : t('transfer.submitProof')}
-            </Button>
+            <button type="button" onClick={handleUpload} disabled={!transferConfigured || fileList.length === 0 || uploading} className="sf-button-primary mt-4 w-full"><UploadOutlined />{uploading ? t('common.submitting') : t('transfer.submitProof')}</button>
           </>
         )}
-      </div>
+      </section>
 
-      {/* Confirmation Deadline */}
       {confirmationDeadline && (
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <Title level={4} className="!mb-4"><ClockCircleOutlined className="mr-2" />{t('transfer.deadline')}</Title>
-          <Alert title={t('transfer.deadlineAlert')} description={
-            <div>
-              <Paragraph className="!mb-1">{t('transfer.deadlineDesc')}</Paragraph>
-              <Text strong className="text-lg">{formatDeadline(confirmationDeadline)}</Text>
-            </div>
-          } type="warning" showIcon icon={<ClockCircleOutlined />} />
-        </div>
+        <section className="border-t border-[var(--sf-line)] pt-8"><h2 className="flex items-center gap-2 text-xl font-black text-[var(--sf-ink)]"><ClockCircleOutlined className="text-[var(--sf-accent)]" />{t('transfer.deadline')}</h2><div className="mt-4 rounded-[16px] bg-[#fff5d9] p-4 text-[#835d00]"><p className="text-sm">{t('transfer.deadlineDesc')}</p><p className="mt-2 font-black">{formatDateTime(confirmationDeadline, locale)}</p></div></section>
       )}
     </div>
   );

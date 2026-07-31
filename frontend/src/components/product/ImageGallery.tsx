@@ -53,7 +53,7 @@ export default function ImageGallery({ images, media = [], skuImageUrl, productN
   const isYouTube = current.mimeType === 'video/youtube';
 
   return <div className="flex min-w-0 flex-col gap-3">
-    <div className="relative aspect-square w-full overflow-hidden rounded-xl border bg-gray-50 shadow-sm dark:bg-gray-800">
+    <div className="relative aspect-square w-full overflow-hidden rounded-[22px] bg-[#f1f4f2] sm:rounded-[28px]">
       {current.kind === 'image' && <ImageFallback src={current.url} alt={current.alt} fill className="object-contain p-2" sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 500px" priority={selectedIndex === 0} />}
       {current.kind === 'video' && !isYouTube && <video key={current.url} src={current.url} poster={current.thumbnail} controls preload="metadata" className="h-full w-full object-contain" aria-label={current.alt} />}
       {current.kind === 'video' && isYouTube && <a href={current.url} target="_blank" rel="noopener noreferrer" className="relative block h-full w-full" aria-label={`YouTube: ${current.alt}`}>
@@ -63,7 +63,7 @@ export default function ImageGallery({ images, media = [], skuImageUrl, productN
     </div>
 
     {items.length > 1 && <div className="flex max-w-full gap-2 overflow-x-auto pb-1" role="listbox" aria-label={t('gallery.title')}>
-      {items.map((item, index) => <button key={`${item.kind}-${item.id}`} type="button" role="option" aria-selected={index === selectedIndex} aria-label={t('gallery.viewImage', { num: index + 1 })} className={`relative h-14 w-14 flex-none overflow-hidden rounded-lg border-2 sm:h-16 sm:w-16 ${index === selectedIndex ? 'border-accent ring-1 ring-accent/30' : 'border-transparent hover:border-gray-300'}`} onClick={() => setSelectedIndex(index)}>
+      {items.map((item, index) => <button key={`${item.kind}-${item.id}`} type="button" role="option" aria-selected={index === selectedIndex} aria-label={t('gallery.viewImage', { num: index + 1 })} className={`relative h-14 w-14 flex-none overflow-hidden rounded-xl border-2 bg-[#f1f4f2] sm:h-16 sm:w-16 ${index === selectedIndex ? 'border-[var(--sf-accent)] ring-2 ring-[var(--sf-accent)]/15' : 'border-transparent hover:border-[var(--sf-line)]'}`} onClick={() => setSelectedIndex(index)}>
         {item.thumbnail ? <ImageFallback src={item.thumbnail} alt="" fill className="object-cover" sizes="64px" loading="lazy" /> : <VideoCameraOutlined className="text-xl text-gray-400" />}
         {item.kind === 'video' && <PlayCircleOutlined className="absolute bottom-1 right-1 text-white drop-shadow" />}
       </button>)}

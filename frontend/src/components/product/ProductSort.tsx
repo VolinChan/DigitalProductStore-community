@@ -33,8 +33,8 @@ export default function ProductSort({ value, onChange }: ProductSortProps) {
   const t = useTranslations();
 
   return (
-    <div className="flex items-center gap-2">
-      <SortAscendingOutlined className="text-gray-500" />
+    <div className="flex min-h-11 items-center gap-2 rounded-full bg-[var(--sf-soft)] pl-3">
+      <SortAscendingOutlined className="text-[var(--sf-muted)]" />
       <Select
         value={value}
         onChange={onChange}
@@ -44,7 +44,8 @@ export default function ProductSort({ value, onChange }: ProductSortProps) {
           { value: 'price_desc', label: t('products.sortByPriceHigh') },
           { value: 'name_asc', label: t('products.sortByName') },
         ]}
-        className="min-w-[140px]"
+        variant="borderless"
+        className="min-w-[142px]"
         aria-label={t('products.sort')}
       />
     </div>

@@ -1,93 +1,39 @@
 'use client';
 
-import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-
-const footerLinks = {
-  shop: {
-    title: 'layout.shopGuide',
-    links: [
-      { label: 'layout.allProductsLink', href: '/products' },
-      { label: 'layout.categoryLink', href: '/categories' },
-      { label: 'layout.newArrivals', href: '/products?sort=newest' },
-    ],
-  },
-  service: {
-    title: 'layout.customerService',
-    links: [
-      { label: 'layout.orderTracking', href: '/orders/track' },
-      { label: 'layout.shippingInfo', href: '/help/shipping' },
-      { label: 'layout.returnPolicy', href: '/help/returns' },
-    ],
-  },
-  about: {
-    title: 'layout.aboutUs',
-    links: [
-      { label: 'layout.aboutPlexoria', href: '/about' },
-      { label: 'layout.contactUs', href: '/contact' },
-      { label: 'layout.privacyPolicy', href: '/privacy' },
-    ],
-  },
-};
 
 export default function Footer() {
   const t = useTranslations();
   const locale = useLocale();
-  const currentYear = new Date().getFullYear();
+  const year = new Date().getFullYear();
+  const links = [
+    { label: t('layout.allProductsLink'), href: '/products' },
+    { label: t('layout.shippingInfo'), href: '/help/shipping' },
+    { label: t('layout.returnPolicy'), href: '/help/returns' },
+    { label: t('layout.contactUs'), href: '/contact' },
+    { label: t('layout.privacyPolicy'), href: '/privacy' },
+  ];
 
   return (
-    <footer className="mt-auto border-t border-border/70 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-6 md:gap-8">
-          {/* Brand */}
-          <div className="col-span-2 md:col-span-3 md:pr-10">
-            <Link href={`/${locale}`} className="inline-flex items-center gap-2 text-xl font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </span>
-              PLEXORIA
-            </Link>
-            <p className="mt-4 max-w-md text-sm leading-6 text-muted">
-              {t('home.description')}
-            </p>
-            <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-muted">
-              {t('home.subtitle')}
-            </p>
-            <a href="tel:+56995096835" className="mt-4 inline-flex items-center rounded-full border border-accent/20 bg-accent/5 px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent/10">
-              +56 9 9509 6835
-            </a>
-          </div>
-
-          {/* Links */}
-          {Object.values(footerLinks).map((section) => (
-            <div key={section.links[0].href} className="md:col-span-1">
-              <h3 className="mb-4 text-sm font-semibold text-foreground">{t(section.title)}</h3>
-              <ul className="space-y-1">
-                {section.links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={`/${locale}${link.href}`}
-                      className="inline-flex min-h-[36px] items-center text-sm text-muted transition-colors hover:text-foreground"
-                    >
-                      {t(link.label)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <footer className="mt-auto border-t border-[var(--sf-line)] bg-[var(--sf-brand)] text-white">
+      <div className="sf-shell py-10 sm:py-12 lg:py-14">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+          <Link href={`/${locale}`} className="inline-flex w-fit items-center gap-2.5" aria-label={t('layout.logo')}>
+            <Image src="/plexoria-logo-footer.png" alt="Plexoria Footer Logo" width={240} height={80} className="h-7 w-auto sm:h-8" />
+          </Link>
+          <nav className="flex max-w-2xl flex-wrap gap-x-5 gap-y-3 sm:justify-end" aria-label={t('layout.shopGuide')}>
+            {links.map((link) => (
+              <Link key={link.href} href={`/${locale}${link.href}`} className="text-sm font-medium text-white/70 transition hover:text-white">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div className="border-t border-border/70">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <p className="text-center text-xs text-muted">
-            {t('layout.copyright', { year: currentYear })}
-          </p>
+        <div className="mt-9 flex flex-col gap-3 border-t border-white/12 pt-5 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
+          <p>{t('layout.copyright', { year })}</p>
+          <Link href={`/${locale}/privacy`} className="w-fit transition hover:text-white">{t('layout.privacyPolicy')}</Link>
         </div>
       </div>
     </footer>

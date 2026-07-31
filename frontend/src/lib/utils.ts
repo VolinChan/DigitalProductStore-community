@@ -5,23 +5,37 @@
 /**
  * Format a price value to display with currency symbol.
  */
-export function formatPrice(price: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatPrice(price: number, currency = 'USD', locale = 'en-US'): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+  }).format(price);
+}
+
+export function formatCLP(price: number, locale = 'es-CL'): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'CLP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(price);
 }
 
 /**
  * Format a date string to a localized display format.
  */
-export function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
+export function formatDate(dateStr: string, locale = 'es-CL'): string {
+  return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(dateStr));
+}
+
+export function formatDateTime(dateStr: string, locale = 'es-CL'): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
   }).format(new Date(dateStr));
 }
 

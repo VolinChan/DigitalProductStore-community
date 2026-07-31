@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Card, Descriptions, Empty, Form, Input, message, Table, Tag, Timeline } from 'antd';
-import { CarOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, DollarOutlined, SearchOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { Form, Input } from 'antd';
+import { CheckOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
+import OrderStatusBadge from '@/components/storefront/OrderStatusBadge';
 import apiClient from '@/lib/api';
-import type { Order, OrderItem, OrderStatus } from '@/types';
+import { formatCLP, formatDateTime } from '@/lib/utils';
+import type { Order, OrderStatus } from '@/types';
 
-const timeline: OrderStatus[] = ['pending_payment', 'paid', 'pending_shipment', 'shipped', 'completed'];
-const statusColor: Record<OrderStatus, string> = { pending_payment: 'orange', pending_transfer: 'gold', paid: 'blue', pending_shipment: 'cyan', shipped: 'geekblue', completed: 'green', cancelled: 'default', payment_failed: 'red' };
-const iconFor = (status: OrderStatus) => status === 'shipped' ? <CarOutlined /> : status === 'paid' ? <DollarOutlined /> : status === 'cancelled' || status === 'payment_failed' ? <CloseCircleOutlined /> : status === 'pending_payment' || status === 'pending_transfer' ? <ClockCircleOutlined /> : <CheckCircleOutlined />;
+const progress: OrderStatus[] = ['pending_payment', 'paid', 'pending_shipment', 'shipped', 'completed'];
 
 export default function OrderTrackPage() {
   const t = useTranslations('orderTracking');
@@ -19,47 +19,46 @@ export default function OrderTrackPage() {
   const [searching, setSearching] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
   const [searched, setSearched] = useState(false);
-  const status = (value: OrderStatus) => t(`status.${value}`);
-  const money = (value: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(value);
-  const date = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  const [error, setError] = useState('');
+  const statusLabel = (status: OrderStatus) => t(`status.${status}`);
 
   const search = async (values: { order_number: string; email: string }) => {
-    setSearching(true); setOrder(null);
-    try {
-      const response = await apiClient.post<{ data: Order }>('/orders/track', values);
-      setOrder(response.data.data);
-    } catch (error: unknown) {
-      const statusCode = (error as { response?: { status?: number } }).response?.status;
-      message.error(statusCode === 404 ? t('notFound') : t('searchFailed'));
-    } finally { setSearched(true); setSearching(false); }
+    setSearching(true); setOrder(null); setError('');
+    try { const response = await apiClient.post<{ data: Order }>('/orders/track', values); setOrder(response.data.data); }
+    catch (requestError: unknown) { setError((requestError as { response?: { status?: number } }).response?.status === 404 ? t('notFound') : t('searchFailed')); }
+    finally { setSearched(true); setSearching(false); }
   };
 
-  const columns = [
-    { title: t('product'), dataIndex: 'sku_name', key: 'sku_name', render: (name: string, item: OrderItem) => <div><div className="font-medium">{name}</div>{item.attributes && <div className="text-sm text-gray-500">{item.attributes}</div>}</div> },
-    { title: t('unitPrice'), dataIndex: 'unit_price', key: 'unit_price', render: money },
-    { title: t('quantity'), dataIndex: 'quantity', key: 'quantity' },
-    { title: t('subtotal'), dataIndex: 'subtotal', key: 'subtotal', render: (value: number) => <span className="font-medium">{money(value)}</span> },
-  ];
-  const displayTimeline: OrderStatus[] = order
-    ? (order.status === 'cancelled' || order.status === 'payment_failed' ? ['pending_payment', order.status] : timeline)
-    : timeline;
+  const normalized = order?.status === 'pending_transfer' ? 'pending_payment' : order?.status;
+  const currentIndex = normalized ? progress.indexOf(normalized) : -1;
+  const stopped = order?.status === 'cancelled' || order?.status === 'payment_failed';
 
-  return <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-    <Card className="mb-6"><div className="text-center mb-6"><h1 className="text-2xl font-bold">{t('title')}</h1><p className="text-gray-500 mt-2">{t('description')}</p></div>
-      <Form form={form} layout="vertical" onFinish={search} autoComplete="off" className="max-w-md mx-auto" size="large">
-        <Form.Item name="order_number" label={t('orderNumber')} rules={[{ required: true, message: t('orderNumberRequired') }]}><Input prefix={<SearchOutlined />} placeholder={t('orderNumberPlaceholder')} /></Form.Item>
-        <Form.Item name="email" label={t('email')} rules={[{ required: true, message: t('emailRequired') }, { type: 'email', message: t('emailInvalid') }]}><Input placeholder={t('emailPlaceholder')} /></Form.Item>
-        <Button type="primary" htmlType="submit" block loading={searching} icon={<SearchOutlined />} className="!h-11">{t('submit')}</Button>
-      </Form>
-    </Card>
-    {searched && !order && <Card><Empty description={t('notFound')} /></Card>}
-    {order && <div className="space-y-6">
-      <Card title={t('statusTitle')}><div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6"><span>{t('orderNumber')}: <b className="font-mono">{order.order_number}</b></span><Tag color={statusColor[order.status]} className="!text-base !px-4 !py-1">{status(order.status)}</Tag></div>
-        <Timeline items={displayTimeline.map((item) => ({ color: timeline.indexOf(item) <= timeline.indexOf(order.status) ? 'green' : 'gray', dot: iconFor(item), children: <div><div className="font-medium">{item === 'pending_payment' ? t('created') : status(item)}</div>{item === 'pending_payment' && <div className="text-sm text-gray-500">{date(order.created_at)}</div>}{item === order.status && item !== 'pending_payment' && <div className="text-sm text-gray-500">{date(order.updated_at)}</div>}</div> }))} />
-      </Card>
-      <Card title={t('infoTitle')}><Descriptions column={{ xs: 1, sm: 2 }} size="small"><Descriptions.Item label={t('date')}>{date(order.created_at)}</Descriptions.Item><Descriptions.Item label={t('paymentMethod')}>{order.payment_method === 'online' ? t('onlinePayment') : t('bankTransfer')}</Descriptions.Item><Descriptions.Item label={t('amount')}><b>{money(order.total_amount)}</b></Descriptions.Item>{order.shipping_carrier && <Descriptions.Item label={t('carrier')}>{order.shipping_carrier}</Descriptions.Item>}{order.tracking_number && <Descriptions.Item label={t('trackingNumber')}><span className="font-mono">{order.tracking_number}</span></Descriptions.Item>}</Descriptions></Card>
-      {order.items?.length > 0 && <Card title={t('itemsTitle')}><div className="hidden sm:block"><Table columns={columns} dataSource={order.items} rowKey="id" pagination={false} /></div><div className="sm:hidden space-y-3">{order.items.map((item) => <div key={item.id} className="border rounded-lg p-3"><div className="font-medium">{item.sku_name}</div><div className="flex justify-between mt-2"><span>{money(item.unit_price)} × {item.quantity}</span><b>{money(item.subtotal)}</b></div></div>)}</div></Card>}
-      <div className="text-center"><Link href={`/${locale}`}><Button type="link">{t('backHome')}</Button></Link></div>
-    </div>}
-  </main>;
+  return (
+    <main className="store-container">
+      <section className="mx-auto max-w-4xl">
+        <header className="max-w-2xl"><p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">PLEXORIA</p><h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('title')}</h1><p className="mt-3 text-sm leading-7 text-[var(--sf-muted)] sm:text-base">{t('description')}</p></header>
+        <Form form={form} layout="vertical" onFinish={search} autoComplete="on" size="large" className="sf-auth-form mt-8 grid gap-x-4 rounded-[20px] bg-white p-5 shadow-[0_8px_32px_rgba(23,63,103,0.07)] sm:grid-cols-2 sm:p-7">
+          <Form.Item name="order_number" label={t('orderNumber')} rules={[{ required: true, message: t('orderNumberRequired') }]}><Input autoComplete="off" prefix={<SearchOutlined />} placeholder={t('orderNumberPlaceholder')} /></Form.Item>
+          <Form.Item name="email" label={t('email')} rules={[{ required: true, message: t('emailRequired') }, { type: 'email', message: t('emailInvalid') }]}><Input autoComplete="email" inputMode="email" placeholder={t('emailPlaceholder')} /></Form.Item>
+          <button type="submit" disabled={searching} className="sf-button-primary sm:col-span-2"><SearchOutlined />{searching ? t('submit') : t('submit')}</button>
+        </Form>
+
+        {searched && !order && <div role="alert" className="mt-8 rounded-[16px] bg-[#fdebea] px-5 py-4 text-sm font-semibold text-[#a33a32]">{error || t('notFound')}</div>}
+
+        {order && <div className="mt-10 space-y-10">
+          <section className="border-y border-[var(--sf-line)] py-7"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-[var(--sf-muted)]">{t('orderNumber')}</p><p className="mt-1 break-all font-mono text-sm font-black text-[var(--sf-ink)]">{order.order_number}</p></div><OrderStatusBadge status={order.status} label={statusLabel(order.status)} /></div>
+            <ol className="mt-8 grid gap-0 sm:grid-cols-5">{stopped ? <><Progress label={t('created')} done /><Progress label={statusLabel(order.status)} stopped last /></> : progress.map((item, index) => <Progress key={item} label={item === 'pending_payment' ? t('created') : statusLabel(item)} done={index <= currentIndex} last={index === progress.length - 1} horizontal />)}</ol>
+          </section>
+
+          <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('infoTitle')}</h2><dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"><Info label={t('date')} value={formatDateTime(order.created_at, locale)} /><Info label={t('paymentMethod')} value={order.payment_method === 'online' ? t('onlinePayment') : t('bankTransfer')} /><Info label={t('amount')} value={formatCLP(order.total_amount, locale)} />{order.shipping_carrier && <Info label={t('carrier')} value={order.shipping_carrier} />}{order.tracking_number && <Info label={t('trackingNumber')} value={order.tracking_number} mono />}</dl></section>
+
+          {order.items?.length > 0 && <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('itemsTitle')}</h2><div className="mt-4 divide-y divide-[var(--sf-line)] border-y border-[var(--sf-line)]">{order.items.map(item => <div key={item.id} className="grid gap-3 py-5 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-sm font-black text-[var(--sf-ink)]">{item.sku_name}</p>{item.attributes && <p className="mt-1 text-xs text-[var(--sf-muted)]">{item.attributes}</p>}</div><div className="flex justify-between gap-5 sm:block sm:text-right"><p className="text-xs text-[var(--sf-muted)]">{formatCLP(item.unit_price, locale)} × {item.quantity}</p><p className="mt-1 font-black text-[var(--sf-brand)]">{formatCLP(item.subtotal, locale)}</p></div></div>)}</div></section>}
+          <Link href={`/${locale}`} className="sf-button-secondary">{t('backHome')}</Link>
+        </div>}
+      </section>
+    </main>
+  );
 }
+
+function Info({ label, value, mono }: { label: string; value: string; mono?: boolean }) { return <div><dt className="text-xs font-bold text-[var(--sf-muted)]">{label}</dt><dd className={`mt-1 break-all text-sm font-black text-[var(--sf-ink)] ${mono ? 'font-mono' : ''}`}>{value}</dd></div>; }
+function Progress({ label, done, stopped, last, horizontal }: { label: string; done?: boolean; stopped?: boolean; last?: boolean; horizontal?: boolean }) { return <li className={`grid gap-2 ${horizontal ? 'grid-cols-[28px_1fr] sm:grid-cols-1' : 'grid-cols-[28px_1fr]'}`}><div className={`flex ${horizontal ? 'flex-col items-center sm:flex-row' : 'flex-col items-center'}`}><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs ${stopped ? 'bg-[#fdebea] text-[#a33a32]' : done ? 'bg-[#e4f3e9] text-[#24723f]' : 'bg-[#edf0ee] text-[#879196]'}`}>{stopped ? <CloseOutlined /> : done ? <CheckOutlined /> : null}</span>{!last && <span className={`${horizontal ? 'h-8 w-px sm:h-px sm:w-full' : 'h-8 w-px'} ${done ? 'bg-[#9ccbad]' : 'bg-[var(--sf-line)]'}`} />}</div><span className={`pb-4 pt-1 text-xs font-bold sm:pr-2 ${stopped ? 'text-[#a33a32]' : done ? 'text-[var(--sf-ink)]' : 'text-[var(--sf-muted)]'}`}>{label}</span></li>; }

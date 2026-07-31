@@ -176,7 +176,8 @@ test('creates and publishes a catalog product, then selects its SKU and adds it 
   const previewPage = await popupPromise;
   await previewPage.waitForURL(/preview_token=preview-token/);
   await expect(previewPage.getByRole('heading', { name: 'Cable USB-C trenzado' })).toBeVisible();
-  await expect(previewPage.getByRole('button', { name: 'Vista previa' }).last()).toBeDisabled();
+  await expect(previewPage.getByRole('button', { name: /Agregar al carrito/ }).first()).toBeDisabled();
+  await expect(previewPage.getByRole('button', { name: /Comprar ahora/ }).first()).toBeDisabled();
   await previewPage.close();
 
   await page.getByRole('button', { name: '检查并发布' }).click();

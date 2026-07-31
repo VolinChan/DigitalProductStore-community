@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+const testImage = (label: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><title>${label}</title><rect width="16" height="16" fill="%230f766e"/></svg>`)}`;
+
 test('storefront prefers the modern catalog read model and keeps legacy fallbacks available', async ({ page }) => {
   await page.route('http://localhost:8080/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -18,13 +21,13 @@ test('storefront prefers the modern catalog read model and keeps legacy fallback
         updated_at: '',
         images: [{ id: 1, product_id: 12, image_url: 'https://legacy.invalid/product.jpg', sort_order: 0, is_primary: true }],
         media: [{ id: 2, media_asset_id: 3, role: 'gallery', sort_order: 0, is_primary: true, media_asset: {
-          id: 3, kind: 'image', storage_key: '', url: 'https://cdn.example/product-modern.jpg', mime_type: 'image/jpeg', size_bytes: 100, created_at: '', updated_at: '',
+          id: 3, kind: 'image', storage_key: '', url: testImage('product-modern'), mime_type: 'image/svg+xml', size_bytes: 100, created_at: '', updated_at: '',
         } }],
         skus: [{
           id: 31, product_id: 12, sku_code: 'HUB-DEFAULT', price: 19990, inventory: 3, attributes: [], is_active: true,
           image_url: 'https://legacy.invalid/sku.jpg',
           media: [{ id: 4, sku_id: 31, media_asset_id: 5, sort_order: 0, media_asset: {
-            id: 5, kind: 'image', storage_key: '', url: 'https://cdn.example/sku-modern.jpg', mime_type: 'image/jpeg', size_bytes: 100, created_at: '', updated_at: '',
+            id: 5, kind: 'image', storage_key: '', url: testImage('sku-modern'), mime_type: 'image/svg+xml', size_bytes: 100, created_at: '', updated_at: '',
           } }],
         }],
       } } });
@@ -53,7 +56,7 @@ test('selects a color and length combination and updates SKU price stock and med
     id, product_id: 20, sku_code: `CABLE-${id}`, price, inventory, is_active: true,
     attributes: [{ id: Number(id) * 10, sku_id: id, name: 'Color', value: color }, { id: Number(id) * 10 + 1, sku_id: id, name: 'Largo del cable', value: length }],
     media: [{ id: Number(id) * 100, sku_id: id, media_asset_id: id, sort_order: 0, media_asset: {
-      id, kind: 'image', storage_key: '', url: `https://cdn.example/cable-${id}.jpg`, mime_type: 'image/jpeg', size_bytes: 100, created_at: '', updated_at: '',
+      id, kind: 'image', storage_key: '', url: testImage(`cable-${id}`), mime_type: 'image/svg+xml', size_bytes: 100, created_at: '', updated_at: '',
     } }],
   }));
 
@@ -64,7 +67,7 @@ test('selects a color and length combination and updates SKU price stock and med
         id: 20, name: 'Cable USB-C', description: '', description_html: '<p>Cable reforzado</p>', short_description: '',
         specifications: '{}', status: 'published', is_active: true, created_at: '', updated_at: '', images: [],
         media: [{ id: 1, media_asset_id: 1, role: 'gallery', sort_order: 0, is_primary: true, media_asset: {
-          id: 1, kind: 'image', storage_key: '', url: 'https://cdn.example/cable-main.jpg', mime_type: 'image/jpeg', size_bytes: 100, created_at: '', updated_at: '',
+          id: 1, kind: 'image', storage_key: '', url: testImage('cable-main'), mime_type: 'image/svg+xml', size_bytes: 100, created_at: '', updated_at: '',
         } }],
         skus,
       } } });

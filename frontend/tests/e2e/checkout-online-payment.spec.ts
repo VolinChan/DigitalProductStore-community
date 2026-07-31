@@ -128,7 +128,7 @@ test('keeps the manual transfer checkout and does not create a Stripe session', 
   await expect(page.getByText('Banco de Prueba', { exact: true })).toBeVisible();
   await expect(page.getByText('PLEXORIA Test', { exact: true })).toBeVisible();
   await expect(page.getByText('123456789', { exact: true })).toBeVisible();
-  await expect(page.getByText('ORD-78', { exact: true })).toBeVisible();
+  await expect(page.getByRole('definition').filter({ hasText: 'ORD-78' })).toBeVisible();
   await expect(page.getByText(/12,990/, { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'View order' })).toHaveAttribute('href', '/en/orders/78');
   expect(sessionRequests).toBe(0);

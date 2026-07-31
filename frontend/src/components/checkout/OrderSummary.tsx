@@ -1,12 +1,10 @@
 'use client';
 
-import React from 'react';
-import { Typography, Divider, Tag, Image } from 'antd';
-import { ShoppingOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import ImageFallback from '@/components/ImageFallback';
+import { getSKUImage } from '@/lib/catalog';
+import { formatCLP } from '@/lib/utils';
 import type { CartItem } from '@/types';
-import { useTranslations } from 'next-intl';
-
-const { Title, Text } = Typography;
+import { useLocale, useTranslations } from 'next-intl';
 
 interface OrderSummaryProps {
   items: CartItem[];
@@ -14,113 +12,37 @@ interface OrderSummaryProps {
   shippingFee?: number;
 }
 
-/**
- * Order summary component for the checkout page.
- */
-export default function OrderSummary({
-  items,
-  totalPrice,
-  shippingFee = 0,
-}: OrderSummaryProps) {
+export default function OrderSummary({ items, totalPrice, shippingFee = 0 }: OrderSummaryProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const grandTotal = totalPrice + shippingFee;
 
   return (
-    <div className="bg-white rounded-lg p-6 border border-gray-200">
-      <Title level={4} className="!mb-4">
-        <ShoppingOutlined className="mr-2" />
-        {t('checkout.orderSummary')}
-      </Title>
-
-      {/* Items List */}
-      <div className="space-y-3 max-h-80 overflow-y-auto">
+    <div>
+      <div className="max-h-80 space-y-4 overflow-y-auto pr-1">
         {items.map((item) => {
-          const displayName =
-            item.sku?.product?.name ||
-            item.sku_name ||
-            item.sku?.sku_code ||
-            item.sku_code ||
-            `SKU #${item.sku_id}`;
-          const displayImage = item.image_url || item.sku?.image_url;
-          const displayAttrs = item.attributes || item.sku?.attributes;
-
+          const name = item.sku?.product?.name || item.sku_name || item.sku?.sku_code || item.sku_code || `SKU #${item.sku_id}`;
+          const image = item.image_url || getSKUImage(item.sku) || '/placeholder-product.svg';
+          const attributes = item.attributes || item.sku?.attributes || [];
           return (
-          <div key={item.sku_id} className="flex gap-3 items-center">
-            {/* Item Image */}
-            <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-              {displayImage ? (
-                <Image
-                  src={displayImage}
-                  alt={displayName}
-                  width={48}
-                  height={48}
-                  className="object-cover"
-                  fallback="/placeholder-product.svg"
-                  preview={false}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  <ShoppingCartOutlined />
-                </div>
-              )}
+            <div key={`${item.sku_id}-${item.id}`} className="flex gap-3">
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#f1f4f2]">
+                <ImageFallback src={image} alt={name} fill className="object-contain p-1.5" sizes="56px" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-bold leading-5 text-[var(--sf-ink)]">{name}</p>
+                {attributes.length > 0 && <p className="mt-1 line-clamp-1 text-xs text-[var(--sf-muted)]">{attributes.map((attribute) => `${attribute.name}: ${attribute.value}`).join(' · ')}</p>}
+              </div>
+              <div className="shrink-0 text-right"><p className="text-xs text-[var(--sf-muted)]">x{item.quantity}</p><p className="mt-1 text-sm font-black text-[var(--sf-brand)]">{formatCLP(item.subtotal, locale)}</p></div>
             </div>
-
-            {/* Item Details */}
-            <div className="flex-1 min-w-0">
-              <Text className="text-sm block truncate">{displayName}</Text>
-              {displayAttrs && displayAttrs.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-0.5">
-                  {displayAttrs.map((attr) => (
-                    <Tag key={attr.id} className="text-xs !m-0 !px-1">
-                      {attr.name}: {attr.value}
-                    </Tag>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Quantity and Price */}
-            <div className="text-right flex-shrink-0">
-              <Text type="secondary" className="text-xs block">x{item.quantity}</Text>
-              <Text strong className="text-sm">{formatCLP(item.subtotal)}</Text>
-            </div>
-          </div>
           );
         })}
       </div>
-
-      <Divider className="!my-4" />
-
-      {/* Price Breakdown */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <Text type="secondary">{t('cart.itemCount')}</Text>
-          <Text>{formatCLP(totalPrice)}</Text>
-        </div>
-        <div className="flex justify-between text-sm">
-          <Text type="secondary">{t('cart.shippingFee')}</Text>
-          <Text>{shippingFee > 0 ? formatCLP(shippingFee) : t('common.free')}</Text>
-        </div>
-      </div>
-
-      <Divider className="!my-3" />
-
-      {/* Grand Total */}
-      <div className="flex justify-between items-baseline">
-        <Text strong className="text-base">{t('cart.total')}</Text>
-        <div>
-          <span className="text-xl font-bold text-error">{formatCLP(grandTotal)}</span>
-        </div>
-      </div>
+      <dl className="mt-5 space-y-3 border-t border-[var(--sf-line)] pt-5 text-sm">
+        <div className="flex justify-between gap-4"><dt className="text-[var(--sf-muted)]">{t('cart.totalPrice')}</dt><dd className="font-semibold text-[var(--sf-ink)]">{formatCLP(totalPrice, locale)}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-[var(--sf-muted)]">{t('cart.shippingFee')}</dt><dd className="font-semibold text-[var(--sf-ink)]">{shippingFee > 0 ? formatCLP(shippingFee, locale) : t('common.free')}</dd></div>
+        <div className="flex items-baseline justify-between gap-4 border-t border-[var(--sf-line)] pt-4"><dt className="font-black text-[var(--sf-ink)]">{t('cart.total')}</dt><dd className="text-xl font-black text-[var(--sf-brand)]">{formatCLP(grandTotal, locale)}</dd></div>
+      </dl>
     </div>
   );
-}
-
-function formatCLP(amount: number): string {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }

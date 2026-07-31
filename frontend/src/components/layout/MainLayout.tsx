@@ -13,17 +13,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const t = useTranslations();
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="storefront flex min-h-screen flex-col bg-[var(--sf-bg)] text-[var(--sf-ink)]">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-background focus:text-primary"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-[var(--sf-brand)] focus:shadow-lg"
       >
         {t('layout.skipNav')}
       </a>
       <Header />
-      <main id="main-content" className="flex-1" tabIndex={-1}>
+      <div id="main-content" className="flex-1" tabIndex={-1}>
         {children}
-      </main>
+      </div>
       <Footer />
     </div>
   );

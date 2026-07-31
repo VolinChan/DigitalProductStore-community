@@ -1,57 +1,17 @@
 'use client';
 
-import React from 'react';
-import { Typography, Radio, Space } from 'antd';
-import { CreditCardOutlined, BankOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import type { PaymentMethod } from '@/types';
+import type { ReactNode } from 'react';
+import { BankOutlined, CreditCardOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
+import type { PaymentMethod } from '@/types';
 
-const { Title, Text } = Typography;
-
-interface PaymentMethodSelectorProps {
-  value: PaymentMethod;
-  onChange: (method: PaymentMethod) => void;
-}
+interface PaymentMethodSelectorProps { value: PaymentMethod; onChange: (method: PaymentMethod) => void }
 
 export default function PaymentMethodSelector({ value, onChange }: PaymentMethodSelectorProps) {
   const t = useTranslations();
-
-  return (
-    <div className="bg-white rounded-lg p-6 border border-gray-200">
-      <Title level={4} className="!mb-4">
-        <SafetyCertificateOutlined className="mr-2" />
-        {t('checkout.paymentMethod')}
-      </Title>
-
-      <Radio.Group value={value} onChange={(e) => onChange(e.target.value)} className="w-full">
-        <Space orientation="vertical" className="w-full" size="middle">
-          {/* Online Payment Option */}
-          <Radio value="online" className="w-full">
-            <div className={`p-4 rounded-lg border transition-colors cursor-pointer ${value === 'online' ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 hover:border-blue-200 dark:hover:border-blue-800'}`}>
-              <div className="flex items-center gap-3">
-                <CreditCardOutlined className="text-2xl text-blue-500" />
-                <div>
-                  <Text strong className="block">{t('payment.online')}</Text>
-                  <Text type="secondary" className="text-xs">{t('payment.onlineDesc')}</Text>
-                </div>
-              </div>
-            </div>
-          </Radio>
-
-          {/* Transfer Payment Option */}
-          <Radio value="transfer" className="w-full">
-            <div className={`p-4 rounded-lg border transition-colors cursor-pointer ${value === 'transfer' ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 hover:border-blue-200 dark:hover:border-blue-800'}`}>
-              <div className="flex items-center gap-3">
-                <BankOutlined className="text-2xl text-green-500" />
-                <div>
-                  <Text strong className="block">{t('payment.transfer')}</Text>
-                  <Text type="secondary" className="text-xs">{t('payment.transferDesc')}</Text>
-                </div>
-              </div>
-            </div>
-          </Radio>
-        </Space>
-      </Radio.Group>
-    </div>
-  );
+  const options: Array<{ value: PaymentMethod; icon: ReactNode; title: string; description: string }> = [
+    { value: 'online', icon: <CreditCardOutlined />, title: t('payment.online'), description: t('payment.onlineDesc') },
+    { value: 'transfer', icon: <BankOutlined />, title: t('payment.transfer'), description: t('payment.transferDesc') },
+  ];
+  return <fieldset><legend className="sr-only">{t('checkout.paymentMethod')}</legend><div className="grid gap-3 sm:grid-cols-2">{options.map((option) => <label key={option.value} className={`relative flex min-h-28 cursor-pointer items-start gap-3 rounded-[18px] border p-4 text-left transition focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--sf-accent)] focus-within:ring-offset-2 ${value === option.value ? 'border-[var(--sf-accent)] bg-[var(--sf-soft-blue)] ring-1 ring-[var(--sf-accent)]/20' : 'border-[var(--sf-line)] bg-white hover:border-[var(--sf-accent)]/50'}`}><input type="radio" name="payment_method" value={option.value} checked={value === option.value} onChange={() => onChange(option.value)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" /><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl ${option.value === 'online' ? 'bg-white text-[var(--sf-accent)]' : 'bg-[#e8f4ef] text-[var(--sf-success)]'}`}>{option.icon}</span><span><span className="block text-sm font-black text-[var(--sf-ink)]">{option.title}</span><span className="mt-1 block text-xs leading-5 text-[var(--sf-muted)]">{option.description}</span></span></label>)}</div></fieldset>;
 }

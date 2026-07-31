@@ -5,16 +5,16 @@ export default defineConfig({
   fullyParallel: false,
   reporter: 'line',
   use: {
-    baseURL: 'http://127.0.0.1:3100',
+    baseURL: 'http://127.0.0.1:3110',
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--disable-web-security'] } } },
   ],
   webServer: {
-    command: 'node ./node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port 3100',
-    url: 'http://127.0.0.1:3100/admin/categories',
-    reuseExistingServer: true,
+    command: 'npm run build && HOSTNAME=127.0.0.1 PORT=3110 node .next/standalone/server.js',
+    url: 'http://127.0.0.1:3110/admin/categories',
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       ...process.env,

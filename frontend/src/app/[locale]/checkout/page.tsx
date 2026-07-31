@@ -1,179 +1,169 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Button, Form, Spin, Steps, message, Typography } from 'antd';
-import { ShoppingCartOutlined, CheckCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useCartStore } from '@/store/useCartStore';
-import { useAuthStore } from '@/store/useAuthStore';
-import EmptyState from '@/components/EmptyState';
-import apiClient from '@/lib/api';
-import type { PaymentMethod } from '@/types';
+import { Form, Spin, message } from 'antd';
+import { ArrowLeftOutlined, CheckCircleOutlined, CreditCardOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import ShippingForm from '@/components/checkout/ShippingForm';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
 import OrderSummary from '@/components/checkout/OrderSummary';
-import { useLocale, useTranslations } from 'next-intl';
+import { useCartStore } from '@/store/useCartStore';
+import { isBuyNowIntentValid, useCheckoutIntentStore } from '@/store/useCheckoutIntentStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import apiClient from '@/lib/api';
+import { getSKUImage } from '@/lib/catalog';
+import type { CartItem, PaymentMethod, Product } from '@/types';
 
-const { Title } = Typography;
+interface ProductDetailResponse { data: Product }
 
-/**
- * Modern checkout page.
- * Requirements: 2.2-2.3, 7.1-7.8, 8.1-8.5, 37.1-37.8
- */
 export default function CheckoutPage() {
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode') === 'buy_now' ? 'buy_now' : 'cart';
   const [form] = Form.useForm();
-  const { items, totalPrice, totalItems, clearCart } = useCartStore();
+  const { items: cartItems, totalPrice: cartTotal, clearCart } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
+  const { buyNow, hydrated, clearBuyNow } = useCheckoutIntentStore();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online');
   const [submitting, setSubmitting] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
+  const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
+  const [buyNowLoading, setBuyNowLoading] = useState(mode === 'buy_now');
+  const [buyNowInvalid, setBuyNowInvalid] = useState(false);
+  const [buyNowSourceProductId, setBuyNowSourceProductId] = useState<number | undefined>(undefined);
+  const trackedMode = useRef<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      form.setFieldsValue({
-        full_name: user.full_name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-      });
+    if (isAuthenticated && user) form.setFieldsValue({ full_name: user.full_name || '', email: user.email || '', phone: user.phone || '' });
+  }, [form, isAuthenticated, user]);
+
+  useEffect(() => {
+    if (mode !== 'buy_now' || !hydrated) return;
+    if (buyNow?.productId) setBuyNowSourceProductId(buyNow.productId);
+    if (!isBuyNowIntentValid(buyNow)) {
+      clearBuyNow();
+      setBuyNowInvalid(true);
+      setBuyNowLoading(false);
+      return;
     }
-  }, [isAuthenticated, user, form]);
+
+    let active = true;
+    apiClient.get<ProductDetailResponse>(`/products/${buyNow.productId}`)
+      .then((response) => {
+        const product = response.data.data;
+        const sku = product.skus?.find((candidate) => candidate.id === buyNow.skuId && candidate.is_active);
+        if (!sku || sku.inventory < buyNow.quantity) throw new Error('unavailable');
+        if (active) setBuyNowItem({
+          id: -sku.id,
+          sku_id: sku.id,
+          sku,
+          sku_name: product.name,
+          sku_code: sku.sku_code,
+          image_url: getSKUImage(sku),
+          attributes: sku.attributes,
+          quantity: buyNow.quantity,
+          unit_price: Number(sku.price),
+          subtotal: Number(sku.price) * buyNow.quantity,
+          available: true,
+          max_quantity: sku.inventory,
+        });
+      })
+      .catch(() => { if (active) { clearBuyNow(); setBuyNowInvalid(true); } })
+      .finally(() => { if (active) setBuyNowLoading(false); });
+    return () => { active = false; };
+  }, [buyNow, clearBuyNow, hydrated, mode]);
+
+  const checkoutItems = useMemo(() => mode === 'buy_now' ? (buyNowItem ? [buyNowItem] : []) : cartItems, [buyNowItem, cartItems, mode]);
+  const totalPrice = useMemo(() => mode === 'buy_now' ? (buyNowItem?.subtotal || 0) : cartTotal, [buyNowItem, cartTotal, mode]);
+  const sourceProductId = buyNow?.productId ?? buyNowSourceProductId;
+
+  useEffect(() => {
+    if (checkoutItems.length === 0 || trackedMode.current === mode) return;
+    trackedMode.current = mode;
+    apiClient.post('/analytics/track', {
+      event_type: 'checkout_start',
+      metadata: { mode, item_count: checkoutItems.length },
+    }).catch(() => undefined);
+  }, [checkoutItems.length, mode]);
 
   const handleSubmitOrder = async () => {
     try {
       const shippingInfo = await form.validateFields();
+      if (checkoutItems.length === 0) return;
       setSubmitting(true);
-
-      const orderPayload = {
+      const response = await apiClient.post<{ data: { id: number; order_number: string; total_amount: number } }>('/orders', {
         guest_name: shippingInfo.full_name,
         guest_email: shippingInfo.email,
         guest_phone: shippingInfo.phone,
         shipping_address: shippingInfo.address,
         payment_method: paymentMethod,
-        items: items.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })),
-      };
-
-      const response = await apiClient.post<{
-        data: { id: number; order_number: string; total_amount: number };
-      }>('/orders', orderPayload);
-
+        items: checkoutItems.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })),
+      });
       const order = response.data.data;
-      await clearCart();
 
-      if (paymentMethod === 'online') {
-        router.push(
-          `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&method=online`
-        );
+      if (mode === 'cart') {
+        clearCart().catch(() => message.warning(t('checkout.cartClearPending')));
       } else {
-        router.push(
-          `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&amount=${order.total_amount}&method=transfer`
-        );
+        clearBuyNow();
       }
+
+      const destination = paymentMethod === 'online'
+        ? `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&method=online`
+        : `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&amount=${order.total_amount}&method=transfer`;
+      router.push(destination);
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'errorFields' in error) return;
-      const err = error as { response?: { data?: { error?: { message?: string } } } };
-      message.error(err?.response?.data?.error?.message || t('checkout.createFailed'));
+      const apiError = error as { response?: { data?: { error?: { message?: string } } } };
+      message.error(apiError?.response?.data?.error?.message || t('checkout.createFailed'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!mounted) {
-    return (
-      <main className="store-container flex items-center justify-center min-h-[400px]">
-        <Spin size="large" />
-      </main>
-    );
+  if (mode === 'buy_now' && (!hydrated || buyNowLoading)) return <CheckoutLoading />;
+
+  if (buyNowInvalid) {
+    const href = sourceProductId ? `/${locale}/products/${sourceProductId}` : `/${locale}/products`;
+    return <main className="store-container"><div className="rounded-[22px] bg-white px-5 py-16 text-center"><h1 className="text-2xl font-black text-[var(--sf-ink)]">{t('checkout.buyNowExpired')}</h1><p className="mt-2 text-sm text-[var(--sf-muted)]">{t('checkout.buyNowExpiredDesc')}</p><Link href={href} className="sf-button-primary mt-6">{t('checkout.backToProduct')}</Link></div></main>;
   }
 
-  if (items.length === 0) {
-    return (
-      <main className="store-container" id="main-content">
-        <div className="animate-fade-in-up">
-          <TitleWrapper title={t('checkout.title')} />
-          <EmptyState
-            title={t('checkout.emptyCart')}
-            actionLabel={t('checkout.goBrowse')}
-            actionHref={`/${locale}/products`}
-          />
-        </div>
-      </main>
-    );
+  if (checkoutItems.length === 0) {
+    return <main className="store-container"><div className="rounded-[22px] bg-white px-5 py-16 text-center"><ShoppingCartOutlined className="text-4xl text-[var(--sf-accent)]" /><h1 className="mt-4 text-2xl font-black text-[var(--sf-ink)]">{t('checkout.emptyCart')}</h1><Link href={`/${locale}/products`} className="sf-button-primary mt-6">{t('checkout.goBrowse')}</Link></div></main>;
   }
+
+  const backHref = mode === 'buy_now' && sourceProductId ? `/${locale}/products/${sourceProductId}` : `/${locale}/cart`;
+  const backLabel = mode === 'buy_now' ? t('checkout.backToProduct') : t('checkout.backToCart');
 
   return (
-    <main className="store-container" id="main-content">
-      <div className="animate-fade-in-up space-y-6 sm:space-y-8">
-        {/* Header */}
-        <div>
-          <Link href={`/${locale}/cart`} className="inline-flex items-center gap-1 text-sm text-muted hover:text-accent mb-4 transition-colors">
-            <ArrowLeftOutlined /> {t('checkout.backToCart')}
-          </Link>
-          <h1 className="text-2xl font-bold tracking-tight">{t('checkout.title')}</h1>
+    <main className="store-container">
+      <header className="border-b border-[var(--sf-line)] pb-6">
+        <Link href={backHref} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[var(--sf-muted)] hover:text-[var(--sf-accent)]"><ArrowLeftOutlined />{backLabel}</Link>
+        <h1 className="mt-3 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('checkout.title')}</h1>
+        <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs font-bold text-[var(--sf-muted)] sm:max-w-xl">
+          <CheckoutStep icon={<ShoppingCartOutlined />} label={t('checkout.stepCart')} active />
+          <CheckoutStep icon={<CheckCircleOutlined />} label={t('checkout.stepInfo')} active />
+          <CheckoutStep icon={<CreditCardOutlined />} label={t('checkout.stepPayment')} />
         </div>
+      </header>
 
-        {/* Steps */}
-        <div className="bg-card rounded-xl border shadow-card p-4 sm:p-6">
-          <Steps
-            current={1}
-            items={[
-              { title: t('checkout.stepCart'), icon: <ShoppingCartOutlined /> },
-              { title: t('checkout.stepInfo'), icon: <CheckCircleOutlined /> },
-              { title: t('checkout.stepPayment') },
-            ]}
-            className="max-w-lg mx-auto"
-          />
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-9">
+          <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.shippingInfo')}</h2><div className="mt-5"><ShippingForm form={form} initialValues={isAuthenticated && user ? { full_name: user.full_name, email: user.email, phone: user.phone || '' } : undefined} /></div></section>
+          <section className="border-t border-[var(--sf-line)] pt-8"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.paymentMethod')}</h2><div className="mt-5"><PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} /></div></section>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Forms */}
-          <div className="lg:col-span-2 space-y-6">
-            <section className="bg-card rounded-xl border shadow-card p-5 sm:p-6">
-              <h2 className="text-lg font-semibold mb-4">{t('checkout.shippingInfo')}</h2>
-              <ShippingForm
-                form={form}
-                initialValues={
-                  isAuthenticated && user
-                    ? { full_name: user.full_name, email: user.email, phone: user.phone || '' }
-                    : undefined
-                }
-              />
-            </section>
-
-            <section className="bg-card rounded-xl border shadow-card p-5 sm:p-6">
-              <h2 className="text-lg font-semibold mb-4">{t('checkout.paymentMethod')}</h2>
-              <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
-            </section>
-          </div>
-
-          {/* Summary Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24 space-y-4">
-              <div className="bg-card rounded-xl border shadow-card p-5">
-                <h2 className="text-lg font-semibold mb-4">{t('checkout.orderSummary')}</h2>
-                <OrderSummary items={items} totalPrice={totalPrice} shippingFee={0} />
-              </div>
-
-              <button className="store-btn-primary w-full !py-3 !text-base" onClick={handleSubmitOrder} disabled={submitting}>
-                {submitting ? t('checkout.submitting') : paymentMethod === 'online' ? t('checkout.submitAndPay') : t('checkout.submitOrder')}
-              </button>
-
-              <p className="text-xs text-muted text-center">
-                {paymentMethod === 'online' ? t('checkout.submitOnline') : t('checkout.submitTransfer')}
-              </p>
-            </div>
-          </div>
-        </div>
+        <aside className="lg:sticky lg:top-28 lg:h-fit"><div className="rounded-[22px] bg-white p-5 sm:p-6"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.orderSummary')}</h2><div className="mt-5"><OrderSummary items={checkoutItems} totalPrice={totalPrice} shippingFee={0} /></div><button type="button" onClick={handleSubmitOrder} disabled={submitting} className="sf-button-primary mt-6 w-full">{submitting ? t('checkout.submitting') : paymentMethod === 'online' ? t('checkout.submitAndPay') : t('checkout.submitOrder')}</button><p className="mt-3 text-center text-xs leading-5 text-[var(--sf-muted)]">{paymentMethod === 'online' ? t('checkout.submitOnline') : t('checkout.submitTransfer')}</p></div></aside>
       </div>
     </main>
   );
 }
 
-function TitleWrapper({ title }: { title: string }) {
-  return <Title level={1} className="!mb-0 !text-2xl">{title}</Title>;
+function CheckoutStep({ icon, label, active = false }: { icon: ReactNode; label: string; active?: boolean }) {
+  return <div className={`flex min-h-11 items-center justify-center gap-1.5 rounded-xl ${active ? 'bg-[var(--sf-soft-blue)] text-[var(--sf-accent)]' : 'bg-[var(--sf-soft)] text-[var(--sf-muted)]'}`}>{icon}<span>{label}</span></div>;
+}
+
+function CheckoutLoading() {
+  return <main className="store-container flex min-h-[400px] items-center justify-center"><Spin size="large" /></main>;
 }

@@ -121,10 +121,10 @@ export default function SKUSelector({
 
         return (
           <div key={group.name}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-black text-[var(--sf-ink)]">
               {group.name}
               {selectedAttributes[group.name] && (
-                <span className="ml-2 text-gray-500 font-normal">
+                <span className="ml-2 font-normal text-[var(--sf-muted)]">
                   : {selectedAttributes[group.name]}
                 </span>
               )}
@@ -145,14 +145,14 @@ export default function SKUSelector({
                     aria-disabled={isDisabled}
                     disabled={isDisabled}
                     className={`
-                      px-4 py-2 text-sm rounded-md border transition-all min-w-[44px] min-h-[44px]
+                      min-h-[44px] min-w-[44px] rounded-xl border px-4 py-2 text-sm font-semibold transition-all
                       ${isSelected
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium ring-1 ring-blue-500'
+                        ? 'border-[var(--sf-accent)] bg-[var(--sf-soft-blue)] text-[var(--sf-accent)] ring-1 ring-[var(--sf-accent)]'
                         : isDisabled
-                          ? 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                          ? 'cursor-not-allowed border-[var(--sf-line)] bg-[var(--sf-soft)] text-[var(--sf-muted)] opacity-45 line-through'
                           : !inStock
-                            ? 'border-gray-300 bg-white text-gray-400 cursor-pointer hover:border-gray-400'
-                            : 'border-gray-300 bg-white text-gray-700 cursor-pointer hover:border-blue-400 hover:text-blue-600'
+                            ? 'cursor-pointer border-[var(--sf-line)] bg-white text-[var(--sf-muted)] hover:border-[var(--sf-muted)]'
+                            : 'cursor-pointer border-[var(--sf-line)] bg-white text-[var(--sf-ink)] hover:border-[var(--sf-accent)] hover:text-[var(--sf-accent)]'
                       }
                     `}
                     onClick={() => {
@@ -168,7 +168,7 @@ export default function SKUSelector({
                   >
                     {value}
                     {!inStock && isAvailable && (
-                      <span className="ml-1 text-xs text-gray-400">({t('common.outOfStock')})</span>
+                      <span className="ml-1 text-xs text-[var(--sf-muted)]">({t('common.outOfStock')})</span>
                     )}
                   </button>
                 );

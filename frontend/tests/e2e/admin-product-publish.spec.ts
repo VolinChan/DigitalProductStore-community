@@ -159,9 +159,10 @@ test('opens the real product detail in an admin-only mobile preview with purchas
   const previewPage = await popupPromise;
   await previewPage.waitForURL(/\/es-CL\/products\/12\?preview_token=/);
   await previewPage.setViewportSize({ width: 390, height: 844 });
-  await expect(previewPage.getByText('Vista previa de administrador')).toBeVisible();
+  await expect(previewPage.getByText('Vista previa.', { exact: true })).toBeVisible();
   await expect(previewPage.getByRole('heading', { name: 'Hub USB-C' })).toBeVisible();
-  await expect(previewPage.getByRole('button', { name: 'Vista previa' }).last()).toBeDisabled();
+  await expect(previewPage.getByRole('button', { name: 'Agregar al carrito' }).last()).toBeDisabled();
+  await expect(previewPage.getByRole('button', { name: /Comprar ahora/ }).last()).toBeDisabled();
   expect(previewDataRequested).toBe(true);
   expect(publicDataRequested).toBe(false);
 });

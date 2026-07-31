@@ -1,19 +1,3 @@
-import React from 'react';
-import Skeleton from 'antd/es/skeleton';
-import SkeletonImage from 'antd/es/skeleton/Image';
-
 export default function Loading() {
-  return (
-    <div className="container mx-auto p-4 md:p-8 space-y-8 animate-pulse">
-      <Skeleton active paragraph={{ rows: 2 }} />
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-            <SkeletonImage active className="!w-full !h-48 mb-4 rounded-md" />
-            <Skeleton active title={false} paragraph={{ rows: 3 }} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return <main className="store-container animate-pulse"><div className="h-4 w-24 rounded bg-[#e6ebe8]" /><div className="mt-4 h-10 w-full max-w-xl rounded bg-[#e6ebe8]" /><div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <div key={index}><div className="aspect-square rounded-[18px] bg-[#e6ebe8]" /><div className="mt-3 h-4 w-4/5 rounded bg-[#e6ebe8]" /><div className="mt-2 h-5 w-1/2 rounded bg-[#e6ebe8]" /></div>)}</div></main>;
 }

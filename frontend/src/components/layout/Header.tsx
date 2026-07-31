@@ -1,233 +1,163 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import { Badge, Input, Dropdown } from 'antd';
+import { usePathname, useRouter } from 'next/navigation';
+import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  ShoppingCartOutlined,
-  UserOutlined,
-  SearchOutlined,
   MenuOutlined,
-  CloseOutlined,
+  SearchOutlined,
+  ShoppingOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
-import Navigation from './Navigation';
-import MobileMenu from './MobileMenu';
+import { useTranslations } from 'next-intl';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
-import ThemeToggle from '@/components/ThemeToggle';
-import { useTranslations } from 'next-intl';
+import MobileMenu from './MobileMenu';
 
 export default function Header() {
   const t = useTranslations();
-  const router = useRouter();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
-
-  // Extract locale from path (e.g., "/es-CL/cart" -> "es-CL")
-  const getLocale = (): string => {
-    if (!pathname) return 'es-CL';
-    const parts = pathname.split('/').filter(p => p);
-    return parts.length > 0 ? (parts[0] as string) : 'es-CL';
-  };
-
   const { isAuthenticated, user, logout, loadUser } = useAuthStore();
-  const cartItemCount = useCartStore((s) => s.totalItems);
+  const cartItemCount = useCartStore((state) => state.totalItems);
+  const locale = getLocale(pathname);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (mounted && isAuthenticated && !user) {
-      loadUser().catch(() => { /* noop */ });
+      loadUser().catch(() => undefined);
     }
-  }, [mounted, isAuthenticated, user, loadUser]);
+  }, [isAuthenticated, loadUser, mounted, user]);
+
+  const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+    router.push(`/${locale}/products/search?q=${encodeURIComponent(query)}`);
+  };
 
   const handleLogout = () => {
     logout();
-    const locale = getLocale();
     router.push(`/${locale}/login`);
   };
 
-  const handleSearch = () => {
-    const q = searchQuery.trim();
-    if (q) {
-      const locale = getLocale();
-      router.push(`/${locale}/products/search?q=${encodeURIComponent(q)}`);
-      setSearchQuery('');
-      setSearchVisible(false);
-    }
-  };
-
   const showAuthed = mounted && isAuthenticated;
-  const locale = getLocale();
-
   const userMenuItems: MenuProps['items'] = showAuthed
     ? [
-        { key: 'profile', label: <Link href={`/${locale}/profile`} className="text-accent hover:text-accent/80">{t('layout.profile')}</Link> },
-        { key: 'orders', label: <Link href={`/${locale}/orders`} className="text-accent hover:text-accent/80">{t('layout.myOrders')}</Link> },
-        ...(user?.role === 'super_admin' ? [
-          { key: 'admin', label: <Link href="/admin" className="text-accent hover:text-accent/80">{t('layout.admin')}</Link> },
-        ] : []),
-        { type: 'divider' },
-        { key: 'logout', label: <span onClick={handleLogout} className="text-accent hover:text-accent/80 cursor-pointer">{t('layout.logout')}</span> },
+        { key: 'profile', label: <Link href={`/${locale}/profile`}>{t('layout.profile')}</Link> },
+        { key: 'orders', label: <Link href={`/${locale}/orders`}>{t('layout.myOrders')}</Link> },
+        ...(user?.role === 'super_admin'
+          ? [{ key: 'admin', label: <Link href="/admin">{t('layout.admin')}</Link> }]
+          : []),
+        { type: 'divider' as const },
+        { key: 'logout', label: <button type="button" onClick={handleLogout}>{t('layout.logout')}</button> },
       ]
     : [
-        { key: 'login', label: <Link href={`/${locale}/login`} className="text-accent hover:text-accent/80">{t('layout.login')}</Link> },
-        { key: 'register', label: <Link href={`/${locale}/register`} className="text-accent hover:text-accent/80">{t('layout.register')}</Link> },
+        { key: 'login', label: <Link href={`/${locale}/login`}>{t('layout.login')}</Link> },
+        { key: 'register', label: <Link href={`/${locale}/register`}>{t('layout.register')}</Link> },
       ];
 
   return (
     <>
-      {/* Top announcement bar */}
-      <div className="bg-accent text-white text-center text-xs sm:text-sm py-1.5 px-4 font-medium tracking-wide">
+      <div className="bg-[var(--sf-brand)] px-4 py-2 text-center text-[11px] font-semibold text-white sm:text-xs">
         {t('layout.announcement')}
       </div>
 
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
-            {/* Left: Hamburger + Logo */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                type="button"
-                className="md:hidden w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                onClick={() => setMobileMenuOpen(true)}
-                aria-label={t('layout.menu')}
-              >
-                <MenuOutlined className="text-xl" />
-              </button>
+      <header className="sticky top-0 z-50 border-b border-[var(--sf-line)] bg-[color:var(--sf-bg)]/95 backdrop-blur-xl">
+        <div className="sf-shell">
+          <div className="flex h-[68px] items-center gap-3 lg:h-[76px]">
+            <Link href={`/${locale}`} className="flex shrink-0 items-center gap-2.5" aria-label={t('layout.logo')}>
+              <Image src="/plexoria-logo.png" alt="Plexoria Logo" width={240} height={80} className="h-7 w-auto sm:h-8" priority />
+            </Link>
 
-              <Link href={`/${locale}`} className="flex items-center gap-2 text-lg sm:text-xl font-bold text-foreground hover:opacity-80 transition-opacity">
-                <svg className="w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span>PLEXORIA</span>
-              </Link>
-            </div>
-
-            {/* Center: Desktop Navigation */}
-            <nav className="hidden md:flex items-center flex-1 justify-center" aria-label={t('layout.home')}>
-              <Navigation />
+            <nav className="ml-5 hidden items-center gap-5 xl:flex" aria-label={t('layout.home')}>
+              <HeaderLink href={`/${locale}/products`} active={pathname?.startsWith(`/${locale}/products`) ?? false}>
+                {t('layout.allProducts')}
+              </HeaderLink>
+              <HeaderLink href={`/${locale}/categories`} active={pathname?.startsWith(`/${locale}/categories`) ?? false}>
+                {t('layout.categories')}
+              </HeaderLink>
+              <HeaderLink href={`/${locale}#offers`} active={false}>{t('home.viewOffers')}</HeaderLink>
             </nav>
 
-            {/* Right: Search + Cart + User + Lang Switcher */}
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {/* Language switcher */}
-              <LanguageSwitcher />
+            <form onSubmit={submitSearch} className="ml-auto hidden min-w-0 flex-1 lg:block lg:max-w-[330px] xl:max-w-[380px]">
+              <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} />
+            </form>
 
-              {/* Search */}
-              <div className={`${searchVisible ? 'flex' : 'hidden'} lg:flex items-center`}>
-                {searchVisible ? (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      placeholder={t('layout.searchPlaceholder')}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onPressEnter={handleSearch}
-                      className="w-40 sm:w-56"
-                      size="middle"
-                      prefix={<SearchOutlined className="text-muted" />}
-                      suffix={
-                        <button
-                          type="button"
-                          className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10"
-                          onClick={() => { setSearchVisible(false); setSearchQuery(''); }}
-                          aria-label={t('layout.closeSearch')}
-                        >
-                          <CloseOutlined className="text-muted" />
-                        </button>
-                      }
-                    />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="lg:hidden w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                    onClick={() => setSearchVisible(true)}
-                    aria-label={t('layout.searchAria')}
-                  >
-                    <SearchOutlined className="text-lg" />
-                  </button>
-                )}
-                {/* Desktop search always visible */}
-                <div className="hidden lg:block">
-                  <Input
-                    placeholder={t('layout.searchPlaceholder')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onPressEnter={handleSearch}
-                    className="w-44 xl:w-56"
-                    size="middle"
-                    prefix={<SearchOutlined className="text-muted" />}
-                  />
-                </div>
-              </div>
-
-              {/* Cart */}
+            <div className="ml-auto flex items-center gap-1 lg:ml-2">
+              <div className="hidden lg:block"><LanguageSwitcher /></div>
+              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
+                <button type="button" className="sf-icon-button hidden sm:flex" aria-label={t('layout.userMenu')}>
+                  <UserOutlined className="text-[19px]" />
+                </button>
+              </Dropdown>
               <Link
                 id="cart-icon-header"
                 href={`/${locale}/cart`}
-                className="relative w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                aria-label={`${t('layout.cart')} (${mounted ? cartItemCount : 0})`}
+                className="sf-icon-button relative"
+                aria-label={t('layout.cartItems', { count: mounted ? cartItemCount : 0 })}
               >
-                <Badge count={mounted ? cartItemCount : 0} size="small" offset={[-2, 2]}>
-                  <ShoppingCartOutlined className="text-xl" />
-                </Badge>
+                <ShoppingOutlined className="text-[21px]" />
+                {mounted && cartItemCount > 0 && (
+                  <span className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--sf-warm)] px-1 text-[10px] font-bold text-white">
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
+                  </span>
+                )}
               </Link>
-
-              {/* Theme toggle */}
-              <ThemeToggle />
-
-              {/* User menu */}
-              <Dropdown
-                menu={{ items: userMenuItems }}
-                placement="bottomRight"
-                trigger={['click']}
-              >
-                <button
-                  type="button"
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                  aria-label={t('layout.userMenu')}
-                >
-                  <UserOutlined className="text-lg" />
-                </button>
-              </Dropdown>
+              <button type="button" className="sf-icon-button lg:hidden" onClick={() => setMobileMenuOpen(true)} aria-label={t('layout.menu')}>
+                <MenuOutlined className="text-xl" />
+              </button>
             </div>
           </div>
+
+          <form onSubmit={submitSearch} className="pb-3 lg:hidden">
+            <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} />
+          </form>
         </div>
       </header>
 
-      {/* Mobile search bar */}
-      {searchVisible && (
-        <div className="fixed top-[60px] left-0 right-0 z-40 bg-card border-b px-4 py-2 shadow-md lg:hidden">
-          <Input
-            placeholder={t('layout.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onPressEnter={handleSearch}
-            autoFocus
-            size="large"
-            prefix={<SearchOutlined className="text-muted" />}
-            suffix={
-              <button
-                type="button"
-                className="p-1"
-                onClick={() => { setSearchVisible(false); setSearchQuery(''); }}
-              >
-                <CloseOutlined />
-              </button>
-            }
-          />
-        </div>
-      )}
-
-      {/* Mobile Menu Drawer */}
       <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </>
   );
+}
+
+function SearchField({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  return (
+    <label className="flex h-11 items-center gap-2.5 rounded-full bg-[var(--sf-soft)] px-4 ring-[var(--sf-accent)]/15 transition focus-within:bg-white focus-within:ring-4">
+      <SearchOutlined className="shrink-0 text-[17px] text-[var(--sf-muted)]" />
+      <span className="sr-only">{placeholder}</span>
+      <input
+        type="search"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="min-w-0 flex-1 bg-transparent text-sm text-[var(--sf-ink)] outline-none placeholder:text-[var(--sf-muted)]"
+      />
+    </label>
+  );
+}
+
+function HeaderLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`flex min-h-11 items-center text-sm font-semibold transition-colors ${
+        active ? 'text-[var(--sf-accent)]' : 'text-[var(--sf-subtle)] hover:text-[var(--sf-accent)]'
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function getLocale(pathname: string | null): string {
+  return pathname?.split('/').filter(Boolean)[0] || 'es-CL';
 }

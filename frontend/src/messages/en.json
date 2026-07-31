@@ -31,14 +31,14 @@
   "layout": {
     "skipNav": "Skip to main content",
     "logo": "PLEXORIA",
-    "searchPlaceholder": "Search products...",
+    "searchPlaceholder": "Search by product, model or connector...",
     "searchAria": "Search",
     "closeSearch": "Close search",
     "menu": "Menu",
     "userMenu": "User menu",
     "cart": "Cart",
     "cartItems": "{count} items in cart",
-    "announcement": "New users get a discount on their first order · Authenticity guaranteed on all digital products",
+    "announcement": "Secure checkout · We help you choose compatible accessories",
     "home": "Home",
     "allProducts": "All products",
     "categories": "Categories",
@@ -60,7 +60,8 @@
     "returnPolicy": "Return policy",
     "aboutPlexoria": "About PLEXORIA",
     "contactUs": "Contact us",
-    "privacyPolicy": "Privacy policy"
+    "privacyPolicy": "Privacy policy",
+    "language": "Language"
     ,"toggleTheme": "Toggle theme"
   },
   "home": {
@@ -80,11 +81,45 @@
     "trustEasyReturns": "Easy returns",
     "trustEasyReturnsDesc": "If you're not satisfied, return it hassle-free",
     "trustSupport": "Support available",
-    "trustSupportDesc": "We're here to help when you need us"
+    "trustSupportDesc": "We're here to help when you need us",
+    "valueBadge": "Useful technology without overpaying",
+    "heroTitle": "Connect everything.",
+    "heroTitleSecond": "Complicate nothing.",
+    "heroDescription": "Reliable accessories for your computer, phone and workspace. Clear prices and help choosing compatible products.",
+    "shopByCategory": "Shop by category",
+    "trustSecure": "Secure checkout",
+    "trustSecureDesc": "Your information and payment are protected",
+    "trustClear": "Clear compatibility",
+    "trustClearDesc": "Check connectors and specifications before buying",
+    "trustSupportShort": "Helpful support",
+    "fallbackVisual": "Accessories that connect",
+    "buyConfidently": "Buy confidently",
+    "compatibilityClear": "Clear compatibility ✓",
+    "findFast": "Find it quickly",
+    "whatLookingFor": "What are you looking for?",
+    "categoryCables": "Cables and adapters",
+    "categoryChargers": "Chargers",
+    "categoryPeripherals": "Keyboards and mice",
+    "categoryStorage": "Storage",
+    "categoryNetwork": "Networking",
+    "categoryAudio": "Audio",
+    "goodValue": "Prices that make sense",
+    "weeklyTitle": "Smart buys for this week",
+    "weeklyDescription": "Useful products selected for their balance of price and quality.",
+    "helpEyebrow": "We're here to help",
+    "helpTitle": "Not sure which cable, charger or adapter you need?",
+    "helpDescription": "Tell us what device you have and what you want to connect. We'll help you find a compatible option without unnecessary jargon.",
+    "askForHelp": "Ask for guidance",
+    "helpQuestion": "Hi! What device do you have?",
+    "helpAnswer": "We'll help you check the port, power and compatibility before buying.",
+    "announcements": "Store announcements",
+    "promotions": "Promotions"
   },
   "cart": {
     "title": "Shopping cart",
     "emptyTitle": "Your cart is empty",
+    "addedTitle": "Added to cart",
+    "viewCart": "View cart",
     "emptyDesc": "Explore our products and add what you like!",
     "shopNow": "Shop now",
     "items": "{count} item(s)",
@@ -120,6 +155,7 @@
   "checkout": {
     "title": "Checkout",
     "backToCart": "Back to cart",
+    "backToProduct": "Back to product",
     "stepCart": "Cart",
     "stepInfo": "Information",
     "stepPayment": "Payment",
@@ -132,6 +168,9 @@
     "submitOnline": "After submitting you will be redirected to the payment page",
     "submitTransfer": "After submitting bank transfer details will be shown",
     "createFailed": "Failed to create order, please try again",
+    "cartClearPending": "Your order was created. We'll update your cart shortly.",
+    "buyNowExpired": "This direct purchase is no longer available",
+    "buyNowExpiredDesc": "Return to the product to confirm availability and quantity.",
     "paymentSessionFailed": "Failed to create payment session. Please check your order to pay.",
     "orderNumber": "Order number",
     "paymentStatus": "Payment status",
@@ -307,6 +346,13 @@
   "products": {
     "title": "All products",
     "filter": "Filters",
+    "applyFilters": "Apply filters",
+    "clearFilters": "Clear filters",
+    "clearSearch": "Clear search",
+    "activeFilters": "Active filters",
+    "minPrice": "Minimum price",
+    "maxPrice": "Maximum price",
+    "priceRangeInvalid": "The minimum price cannot be greater than the maximum.",
     "sort": "Sort",
     "sortByNewest": "Newest first",
     "sortByPriceLow": "Price: low to high",
@@ -349,6 +395,9 @@
     "noPrice": "Price unavailable",
     "inStockWithQty": "Available ({count} in stock)",
     "addToCart": "Add to cart",
+    "buyNow": "Buy now",
+    "previewMode": "Preview",
+    "previewNotice": "Purchases are disabled in preview mode.",
     "addedToCart": "Product added to cart",
     "addFailed": "We couldn't add this product to your cart",
     "continueShopping": "Continue shopping",
@@ -359,18 +408,18 @@
     "shipping": {
       "title": "Shipping information",
       "processingTime": "Processing time",
-      "processingDesc": "Orders are processed within 1-2 business days after payment confirmation.",
+      "processingDesc": "Processing begins once payment is confirmed. We will share the order status and any relevant updates.",
       "deliveryTime": "Delivery time",
-      "deliveryDesc": "Standard delivery takes 3-5 business days in Metropolitan Region. Rest of country: 5-8 business days.",
+      "deliveryDesc": "Availability and timing depend on the destination and carrier. Contact PLEXORIA before buying if you have a deadline.",
       "cost": "Shipping cost",
       "costDesc": "Shipping cost is calculated at checkout based on destination region."
     },
     "returns": {
       "title": "Return policy",
       "period": "Return period",
-      "periodDesc": "You have 7 business days from receipt to request a return.",
+      "periodDesc": "The applicable period will be provided according to the product, reason for the request, and current regulations.",
       "conditions": "Conditions",
-      "conditionsDesc": "Product must be in original packaging and unused.",
+      "conditionsDesc": "Keep the product, its accessories, and proof of purchase. We will review each request before providing next steps.",
       "process": "Process",
       "processDesc": "Contact our customer service team to initiate a return."
     }
@@ -385,7 +434,9 @@
   },
   "categories": {
     "title": "Product categories",
-    "empty": "No categories are available"
+    "empty": "No categories are available",
+    "description": "Find cables, chargers, networking gear and accessories for what you need to connect.",
+    "productCount": "{count} products"
   },
   "error": {
     "title": "Something went wrong",
@@ -419,8 +470,14 @@
     "passwordChangeFailed": "We couldn't change your password. Please try again.",
     "accountType": "Account type"
   },
-  "privacy": {
-    "policyDesc": "We respect your privacy. Your personal information will be handled in accordance with applicable laws."
+  "contact": {
+    "desc": "If you have a question, contact us using the details below.",
+    "email": "Customer care email",
+    "whatsApp": "Message us on WhatsApp",
+    "whatsAppLabel": "WhatsApp",
+    "phone": "Contact phone",
+    "hours": "Support hours",
+    "hoursText": "Monday to Friday, 09:00 - 18:00"
   },
   "privacy": {
     "policyDesc": "We respect your privacy. Your personal information will be handled in accordance with applicable laws."

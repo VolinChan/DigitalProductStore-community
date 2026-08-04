@@ -86,7 +86,7 @@ test('draft saving does not require category brand or model', async ({ page }) =
     }
     if (path === '/api/v1/admin/products/12' && request.method() === 'PUT') {
       const payload = request.postDataJSON();
-      saved = payload.status === 'draft' && payload.category_id === undefined && payload.brand === '' && payload.model === '';
+      saved = payload.status === undefined && payload.category_id === undefined && payload.brand === '' && payload.model === '';
       await route.fulfill({ json: { data: { message: 'saved' } } });
       return;
     }

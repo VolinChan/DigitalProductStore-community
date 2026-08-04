@@ -17,8 +17,24 @@ const NUMERIC_FIELDS = new Set([
   'total_amount',
   'total_price',
   'shipping_fee',
+	'shipping_base_amount',
+	'shipping_subsidy_amount',
+	'shipping_remote_surcharge',
+	'shipping_payable_amount',
+	'raw_base_amount',
+	'rounded_base_amount',
+	'rounding_unit',
+	'subsidy_amount',
+	'remote_surcharge',
+	'payable_shipping',
   'discount_amount',
   'received_amount',
+	'declared_amount',
+	'allocated_amount',
+	'verified_total',
+	'allocated_total',
+	'pending_allocation',
+	'overpaid_amount',
   'refund_amount',
   'revenue',
   'avg_order_value',
@@ -58,6 +74,7 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+	withCredentials: true,
 });
 
 // Request interceptor: attach auth token if available

@@ -43,10 +43,7 @@ test('SKU selection updates price, stock, image and purchase state', async ({ pa
   await page.goto('/en/products/22');
   const addButton = page.getByRole('button', { name: 'Add to cart' }).first();
   const buyButton = page.getByRole('button', { name: 'Buy now' }).first();
-  await expect(addButton).toBeDisabled();
-  await expect(buyButton).toBeDisabled();
-
-  await page.getByRole('radio', { name: 'Blue' }).click();
+  await expect(page.getByRole('radio', { name: 'Blue' })).toBeChecked();
   await expect(page.getByText('CLP 15,990').first()).toBeVisible();
   await expect(page.getByText('Available (3 in stock)')).toBeVisible();
   await expect(page.locator('img[alt="Configurable USB-C Hub"]').first()).toHaveAttribute('src', blueImage);
@@ -59,6 +56,36 @@ test('SKU selection updates price, stock, image and purchase state', async ({ pa
   await expect(page.locator('img[alt="Configurable USB-C Hub"]').first()).toHaveAttribute('src', redImage);
   await expect(addButton).toBeDisabled();
   await expect(buyButton).toBeDisabled();
+});
+
+test('product image shows an original-size zoom preview on hover', async ({ page }) => {
+  await page.goto('/en/products/22');
+  const zoomButton = page.getByRole('button', { name: 'Zoom image to original size' });
+  const zoomPreview = page.getByTestId('product-image-zoom');
+
+  await expect(zoomButton).toBeVisible();
+  await expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+  await expect(zoomPreview).toHaveCSS('background-size', 'auto');
+
+  await zoomButton.hover({ position: { x: 60, y: 90 } });
+  await expect(zoomButton).toHaveAttribute('aria-pressed', 'true');
+  await expect(zoomPreview).toHaveClass(/opacity-100/);
+
+  await page.mouse.move(380, 830);
+  await expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('gallery edge arrows switch images in both directions', async ({ page }) => {
+  await page.goto('/en/products/22');
+  const thumbnails = page.getByRole('option');
+
+  await expect(thumbnails.nth(0)).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'View next image' }).click();
+  await expect(thumbnails.nth(1)).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'View previous image' }).click();
+  await expect(thumbnails.nth(0)).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'View previous image' }).click();
+  await expect(thumbnails.nth(1)).toHaveAttribute('aria-selected', 'true');
 });
 
 test('adding to cart stays on the product, updates the header and restores focus', async ({ page }) => {

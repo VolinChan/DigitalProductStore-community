@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Empty,
@@ -18,6 +18,7 @@ import {
 } from 'antd';
 import type { UploadProps } from 'antd';
 import {
+  CheckCircleFilled,
   DeleteOutlined,
   DragOutlined,
   LinkOutlined,
@@ -43,7 +44,8 @@ type UploadTask = {
   name: string;
   file: File;
   percent: number;
-  status: 'uploading' | 'error';
+  status: 'queued' | 'uploading' | 'succeeded' | 'failed';
+  video: boolean;
 };
 
 type LibraryResponse = {
@@ -52,6 +54,8 @@ type LibraryResponse = {
 };
 
 const MAX_VIDEOS = 3;
+const MAX_MEDIA_PER_PRODUCT = Number(process.env.NEXT_PUBLIC_MEDIA_MAX_PER_PRODUCT) || 100;
+const UPLOAD_CONCURRENCY = Math.max(1, Number(process.env.NEXT_PUBLIC_MEDIA_UPLOAD_CONCURRENCY) || 3);
 
 function youtubePoster(asset?: MediaAsset) {
   if (!asset || asset.mime_type !== 'video/youtube') return undefined;
@@ -70,6 +74,8 @@ export default function ProductImageManager({ productId, media, onChanged }: Pro
   const itemsRef = useRef(items);
   const mutationQueue = useRef(Promise.resolve());
   const [tasks, setTasks] = useState<UploadTask[]>([]);
+  const tasksRef = useRef<UploadTask[]>([]);
+  const activeUploads = useRef(0);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [library, setLibrary] = useState<MediaAsset[]>([]);
   const [libraryKind, setLibraryKind] = useState<'image' | 'video'>('image');
@@ -88,7 +94,7 @@ export default function ProductImageManager({ productId, media, onChanged }: Pro
     itemsRef.current = next;
   }, [media]);
 
-  const persist = (transform: (current: ProductMedia[]) => ProductMedia[]) => {
+  const persist = useCallback((transform: (current: ProductMedia[]) => ProductMedia[]) => {
     const operation = mutationQueue.current.then(async () => {
       const previous = itemsRef.current;
       const next = normalized(transform(previous));
@@ -116,9 +122,9 @@ export default function ProductImageManager({ productId, media, onChanged }: Pro
     });
     mutationQueue.current = operation.catch(() => undefined);
     return operation;
-  };
+  }, [onChanged, productId]);
 
-  const attachAssets = async (assets: MediaAsset[]) => {
+  const attachAssets = useCallback(async (assets: MediaAsset[]) => {
     const existing = new Set(itemsRef.current.map((item) => item.media_asset_id));
     const additions = assets.filter((asset) => !existing.has(asset.id));
     if (!additions.length) return;
@@ -133,19 +139,20 @@ export default function ProductImageManager({ productId, media, onChanged }: Pro
         is_primary: !hasPrimary && index === 0 && asset.kind === 'image',
       }))];
     });
-  };
+  }, [persist]);
 
-  const updateTask = (uid: string, patch: Partial<UploadTask>) => {
-    setTasks((current) => current.map((task) => task.uid === uid ? { ...task, ...patch } : task));
-  };
+  const replaceTasks = useCallback((transform: (current: UploadTask[]) => UploadTask[]) => {
+    const next = transform(tasksRef.current);
+    tasksRef.current = next;
+    setTasks(next);
+  }, []);
 
-  const uploadFile = async (file: File, uid: string, video: boolean) => {
-    setTasks((current) => {
-      const task: UploadTask = { uid, name: file.name, file, percent: 0, status: 'uploading' };
-      return current.some((item) => item.uid === uid)
-        ? current.map((item) => item.uid === uid ? task : item)
-        : [...current, task];
-    });
+  const updateTask = useCallback((uid: string, patch: Partial<UploadTask>) => {
+    replaceTasks((current) => current.map((task) => task.uid === uid ? { ...task, ...patch } : task));
+  }, [replaceTasks]);
+
+  const uploadFile = useCallback(async (file: File, uid: string, video: boolean) => {
+    updateTask(uid, { percent: 0, status: 'uploading' });
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -154,47 +161,52 @@ export default function ProductImageManager({ productId, media, onChanged }: Pro
         onUploadProgress: (event) => updateTask(uid, { percent: event.total ? Math.round(event.loaded * 100 / event.total) : 0 }),
       });
       await attachAssets([response.data.data]);
-      setTasks((current) => current.filter((task) => task.uid !== uid));
+      updateTask(uid, { percent: 100, status: 'succeeded' });
       message.success(`${file.name} 上传成功`);
     } catch {
-      updateTask(uid, { status: 'error' });
+      updateTask(uid, { status: 'failed' });
       message.error(`${file.name} 上传失败`);
-      throw new Error('upload failed');
     }
+  }, [attachAssets, updateTask]);
+
+  useEffect(() => {
+    const available = UPLOAD_CONCURRENCY - activeUploads.current;
+    if (available <= 0) return;
+    const queued = tasksRef.current.filter((task) => task.status === 'queued').slice(0, available);
+    queued.forEach((task) => {
+      activeUploads.current++;
+      updateTask(task.uid, { status: 'uploading' });
+      void uploadFile(task.file, task.uid, task.video).finally(() => {
+        activeUploads.current--;
+        replaceTasks((current) => [...current]);
+      });
+    });
+  }, [replaceTasks, tasks, updateTask, uploadFile]);
+
+  const enqueueFile = (file: File & { uid?: string }, video: boolean) => {
+    const reserved = tasksRef.current.filter((task) => task.status === 'queued' || task.status === 'uploading').length;
+    if (itemsRef.current.length + reserved >= MAX_MEDIA_PER_PRODUCT) {
+      message.error(`每个商品最多关联 ${MAX_MEDIA_PER_PRODUCT} 个媒体文件，已拒绝 ${file.name}`);
+      return;
+    }
+    const uid = file.uid ?? `${file.name}-${file.size}-${file.lastModified}`;
+    replaceTasks((current) => current.some((task) => task.uid === uid)
+      ? current
+      : [...current, { uid, name: file.name, file, percent: 0, status: 'queued', video }]);
   };
 
   const imageUploadProps: UploadProps = {
     accept: 'image/jpeg,image/png,image/webp',
     showUploadList: false,
     multiple: true,
-    customRequest: async ({ file, onError, onProgress, onSuccess }) => {
-      const upload = file as File & { uid?: string };
-      const uid = upload.uid ?? `${upload.name}-${upload.size}-${upload.lastModified}`;
-      try {
-        await uploadFile(upload, uid, false);
-        onProgress?.({ percent: 100 });
-        onSuccess?.({});
-      } catch (error) {
-        onError?.(error as Error);
-      }
-    },
+    beforeUpload: (file) => { enqueueFile(file as File & { uid?: string }, false); return Upload.LIST_IGNORE; },
   };
 
   const videoUploadProps: UploadProps = {
     accept: 'video/mp4,video/webm',
     showUploadList: false,
     multiple: true,
-    customRequest: async ({ file, onError, onProgress, onSuccess }) => {
-      const upload = file as File & { uid?: string };
-      const uid = upload.uid ?? `${upload.name}-${upload.size}-${upload.lastModified}`;
-      try {
-        await uploadFile(upload, uid, true);
-        onProgress?.({ percent: 100 });
-        onSuccess?.({});
-      } catch (error) {
-        onError?.(error as Error);
-      }
-    },
+    beforeUpload: (file) => { enqueueFile(file as File & { uid?: string }, true); return Upload.LIST_IGNORE; },
   };
 
   const loadLibrary = async (kind = libraryKind, page = libraryPage) => {
@@ -295,10 +307,15 @@ export default function ProductImageManager({ productId, media, onChanged }: Pro
       </div>
 
       {tasks.length > 0 && <div className="mb-4 space-y-2 border-y py-3">
-        {tasks.map((task) => <div key={task.uid} className="grid grid-cols-[minmax(0,1fr)_120px_32px] items-center gap-3 text-sm">
+        {tasks.map((task) => <div key={task.uid} className="grid grid-cols-[minmax(0,1fr)_120px_72px] items-center gap-3 text-sm">
           <span className="truncate">{task.name}</span>
-          <Progress percent={task.percent} status={task.status === 'error' ? 'exception' : 'active'} size="small" />
-          {task.status === 'error' && <Tooltip title="重试"><Button aria-label={`重试上传 ${task.name}`} size="small" type="text" icon={<ReloadOutlined />} onClick={() => void uploadFile(task.file, task.uid, task.file.type.startsWith('video/'))} /></Tooltip>}
+          <Progress percent={task.percent} status={task.status === 'failed' ? 'exception' : task.status === 'succeeded' ? 'success' : 'active'} size="small" />
+          <span className="flex items-center justify-end gap-1 text-xs text-gray-500">
+            {task.status === 'queued' && '排队中'}
+            {task.status === 'uploading' && '上传中'}
+            {task.status === 'succeeded' && <><CheckCircleFilled className="text-green-600" />成功</>}
+            {task.status === 'failed' && <Tooltip title="仅重试此文件"><Button aria-label={`重试上传 ${task.name}`} size="small" type="text" icon={<ReloadOutlined />} onClick={() => updateTask(task.uid, { percent: 0, status: 'queued' })} /></Tooltip>}
+          </span>
         </div>)}
       </div>}
 

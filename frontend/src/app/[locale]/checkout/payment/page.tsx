@@ -12,6 +12,8 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import TransferPayment from '@/components/checkout/TransferPayment';
 import apiClient from '@/lib/api';
+import type { TransferPaymentAccount } from '@/types';
+import OrderTrackingLink from '@/components/order/OrderTrackingLink';
 
 function PaymentPageContent() {
   const t = useTranslations();
@@ -28,6 +30,7 @@ function PaymentPageContent() {
   );
   const [paymentError, setPaymentError] = useState<string>();
   const [confirmationDeadline, setConfirmationDeadline] = useState<string>();
+  const [transferAccounts, setTransferAccounts] = useState<TransferPaymentAccount[]>();
   const attemptedOrderId = useRef<string | null>(null);
 
   const handleOnlinePayment = useCallback(async () => {
@@ -58,6 +61,18 @@ function PaymentPageContent() {
     }
   }, [callbackStatus, handleOnlinePayment, method, orderId, paymentStatus]);
 
+  useEffect(() => {
+    if (method !== 'transfer' || !orderId) return;
+    const stored = sessionStorage.getItem(`transfer-accounts:${orderId}`);
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored) as TransferPaymentAccount[];
+      if (Array.isArray(parsed) && parsed.length > 0) setTransferAccounts(parsed);
+    } catch {
+      sessionStorage.removeItem(`transfer-accounts:${orderId}`);
+    }
+  }, [method, orderId]);
+
   const orderHref = orderId ? `/${locale}/orders/${orderId}` : `/${locale}/orders`;
 
   if (method === 'online' && paymentStatus === 'pending') {
@@ -81,6 +96,7 @@ function PaymentPageContent() {
     return <PaymentState icon={<CloseCircleFilled />} tone="error" title={t('payment.failedTitle')} text={orderNumber ? `${orderNumber}. ${paymentError || t('payment.failedSub')}` : paymentError || t('payment.failedSub')}>
       <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
         <button type="button" onClick={handleOnlinePayment} disabled={loading} className="sf-button-primary">{t('payment.retry')}</button>
+        <OrderTrackingLink orderNumber={orderNumber || undefined} className="sf-button-secondary" />
         <Link href={orderHref} className="sf-button-secondary">{t('orders.viewOrder')}</Link>
       </div>
     </PaymentState>;
@@ -94,7 +110,7 @@ function PaymentPageContent() {
           <h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('payment.transferTitle')}</h1>
           <p className="mt-3 text-sm text-[var(--sf-muted)]">{t('checkout.orderNumber')}: <span className="font-mono font-bold text-[var(--sf-ink)]">{orderNumber}</span></p>
           <div className="mt-8">
-            <TransferPayment orderId={Number(orderId)} orderNumber={orderNumber} totalAmount={Number(amount) || 0} confirmationDeadline={confirmationDeadline} onUploadSuccess={() => { const deadline = new Date(); deadline.setDate(deadline.getDate() + 7); setConfirmationDeadline(deadline.toISOString()); }} />
+            <TransferPayment orderId={Number(orderId)} orderNumber={orderNumber} totalAmount={Number(amount) || 0} accounts={transferAccounts} confirmationDeadline={confirmationDeadline} onUploadSuccess={() => { const deadline = new Date(); deadline.setDate(deadline.getDate() + 7); setConfirmationDeadline(deadline.toISOString()); }} />
           </div>
           <Link href={orderHref} className="sf-button-secondary mt-8">{t('orders.viewOrder')}</Link>
         </div>

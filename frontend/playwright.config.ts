@@ -18,6 +18,8 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
+      SEO_E2E_CLIENT_CATALOG: 'true',
+      NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED: 'true',
       NEXT_PUBLIC_TRANSFER_BANK_NAME: 'Banco de Prueba',
       NEXT_PUBLIC_TRANSFER_ACCOUNT_NAME: 'PLEXORIA Test',
       NEXT_PUBLIC_TRANSFER_ACCOUNT_NUMBER: '123456789',

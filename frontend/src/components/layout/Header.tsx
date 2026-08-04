@@ -3,39 +3,53 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   MenuOutlined,
   SearchOutlined,
+  CloseCircleFilled,
   ShoppingOutlined,
   UserOutlined,
+	BellOutlined,
 } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
 import MobileMenu from './MobileMenu';
+import apiClient from '@/lib/api';
 
 export default function Header() {
   const t = useTranslations();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
   const { isAuthenticated, user, logout, loadUser } = useAuthStore();
   const cartItemCount = useCartStore((state) => state.totalItems);
+	const [unreadNotifications, setUnreadNotifications] = useState(0);
   const locale = getLocale(pathname);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (pathname?.startsWith(`/${locale}/products/search`)) setSearchQuery(searchParams.get('q') || '');
+  }, [locale, pathname, searchParams]);
 
   useEffect(() => {
     if (mounted && isAuthenticated && !user) {
       loadUser().catch(() => undefined);
     }
   }, [isAuthenticated, loadUser, mounted, user]);
+
+	useEffect(() => {
+	  if (!mounted || !isAuthenticated) { setUnreadNotifications(0); return; }
+	  void apiClient.get('/notifications/unread-count').then((response) => setUnreadNotifications(response.data.data?.count || 0)).catch(() => undefined);
+	}, [isAuthenticated, mounted, pathname]);
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -88,8 +102,8 @@ export default function Header() {
               <HeaderLink href={`/${locale}#offers`} active={false}>{t('home.viewOffers')}</HeaderLink>
             </nav>
 
-            <form onSubmit={submitSearch} className="ml-auto hidden min-w-0 flex-1 lg:block lg:max-w-[330px] xl:max-w-[380px]">
-              <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} />
+            <form role="search" onSubmit={submitSearch} className="ml-auto hidden min-w-0 flex-1 lg:block lg:max-w-[390px] xl:max-w-[440px]">
+              <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('layout.closeSearch')} />
             </form>
 
             <div className="ml-auto flex items-center gap-1 lg:ml-2">
@@ -99,6 +113,7 @@ export default function Header() {
                   <UserOutlined className="text-[19px]" />
                 </button>
               </Dropdown>
+			  {showAuthed && <Link href={`/${locale}/notifications`} className="sf-icon-button relative" aria-label={t('layout.notifications')}><BellOutlined className="text-[20px]" />{unreadNotifications > 0 && <span className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--sf-warm)] px-1 text-[10px] font-bold text-white">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}</Link>}
               <Link
                 id="cart-icon-header"
                 href={`/${locale}/cart`}
@@ -118,8 +133,8 @@ export default function Header() {
             </div>
           </div>
 
-          <form onSubmit={submitSearch} className="pb-3 lg:hidden">
-            <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} />
+          <form role="search" onSubmit={submitSearch} className="pb-3 lg:hidden">
+            <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('layout.closeSearch')} />
           </form>
         </div>
       </header>
@@ -129,19 +144,21 @@ export default function Header() {
   );
 }
 
-function SearchField({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+function SearchField({ value, onChange, placeholder, searchLabel, clearLabel }: { value: string; onChange: (value: string) => void; placeholder: string; searchLabel: string; clearLabel: string }) {
   return (
-    <label className="flex h-11 items-center gap-2.5 rounded-full bg-[var(--sf-soft)] px-4 ring-[var(--sf-accent)]/15 transition focus-within:bg-white focus-within:ring-4">
-      <SearchOutlined className="shrink-0 text-[17px] text-[var(--sf-muted)]" />
-      <span className="sr-only">{placeholder}</span>
+    <div className="flex h-12 items-center gap-1 rounded-xl border border-[var(--sf-line)] bg-white p-1 pl-3 transition focus-within:border-[var(--sf-accent)] focus-within:ring-4 focus-within:ring-[var(--sf-accent)]/12">
+      <SearchOutlined className="mr-1 shrink-0 text-[17px] text-[var(--sf-muted)]" aria-hidden />
       <input
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="min-w-0 flex-1 bg-transparent text-sm text-[var(--sf-ink)] outline-none placeholder:text-[var(--sf-muted)]"
+        aria-label={searchLabel}
+        className="sf-header-search-input min-w-0 flex-1 appearance-none border-0 bg-transparent px-1 text-sm text-[var(--sf-ink)] outline-none placeholder:text-[var(--sf-muted)]"
       />
-    </label>
+      {value && <button type="button" onClick={() => onChange('')} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-transparent text-[var(--sf-muted)] transition hover:bg-[var(--sf-soft)] hover:text-[var(--sf-ink)]" aria-label={clearLabel}><CloseCircleFilled /></button>}
+      <button type="submit" disabled={!value.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-[var(--sf-brand)] text-white transition hover:bg-[var(--sf-brand-hover)] disabled:cursor-not-allowed disabled:opacity-40" aria-label={searchLabel}><SearchOutlined className="text-[17px]" /></button>
+    </div>
   );
 }
 

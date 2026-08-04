@@ -8,6 +8,7 @@ export const BUY_NOW_TTL_MS = 30 * 60 * 1000;
 export interface BuyNowIntent {
   mode: 'buy_now';
   productId: number;
+  productSlug?: string;
   skuId: number;
   quantity: number;
   createdAt: number;

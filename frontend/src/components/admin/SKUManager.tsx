@@ -18,6 +18,7 @@ type SKUFormValues = {
   image_url?: string;
   is_active: boolean;
   attributes: AttributeRow[];
+  media_asset_ids?: number[];
 };
 
 interface SKUManagerProps {
@@ -27,9 +28,10 @@ interface SKUManagerProps {
   images: ProductImage[];
   media?: ProductMedia[];
   onChanged: () => Promise<void> | void;
+  promotedSkuId?: number;
 }
 
-export default function SKUManager({ productId, skus, dimensionManaged = false, images, media = [], onChanged }: SKUManagerProps) {
+export default function SKUManager({ productId, skus, dimensionManaged = false, images, media = [], onChanged, promotedSkuId }: SKUManagerProps) {
   const [form] = Form.useForm<SKUFormValues>();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SKU | null>(null);
@@ -50,7 +52,7 @@ export default function SKUManager({ productId, skus, dimensionManaged = false, 
 
   const openCreate = () => {
     setEditing(null);
-    form.setFieldsValue({ sku_code: '', gtin: '', price: 0, inventory: 0, image_url: '', is_active: true, attributes: [{ name: '', value: '' }] });
+    form.setFieldsValue({ sku_code: '', gtin: '', price: 0, inventory: 0, image_url: '', is_active: true, attributes: [], media_asset_ids: [] });
     setOpen(true);
   };
 
@@ -63,7 +65,8 @@ export default function SKUManager({ productId, skus, dimensionManaged = false, 
       inventory: sku.inventory,
       image_url: sku.image_url || '',
       is_active: sku.is_active,
-      attributes: sku.attributes?.length ? sku.attributes.map(({ name, value }) => ({ name, value })) : [{ name: '', value: '' }],
+      attributes: sku.attributes?.length ? sku.attributes.map(({ name, value }) => ({ name, value })) : [],
+      media_asset_ids: [...(sku.media ?? [])].sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order).map((item) => item.media_asset_id),
     });
     setOpen(true);
   };
@@ -76,13 +79,16 @@ export default function SKUManager({ productId, skus, dimensionManaged = false, 
         sku_code: values.sku_code.trim(),
         gtin: values.gtin?.trim() || '',
         image_url: values.image_url || '',
-        attributes: values.attributes.map((attribute) => ({ name: attribute.name.trim(), value: attribute.value.trim() })),
+        attributes: (values.attributes ?? []).filter((attribute) => attribute.name.trim() && attribute.value.trim()).map((attribute) => ({ name: attribute.name.trim(), value: attribute.value.trim() })),
       };
+		const { media_asset_ids: mediaAssetIDs = [], ...skuPayload } = payload;
       setSaving(true);
       if (editing) {
-        await apiClient.put(`/admin/skus/${editing.id}`, payload);
+        await apiClient.put(`/admin/skus/${editing.id}`, skuPayload);
+		await apiClient.put(`/admin/skus/${editing.id}/media`, { media: mediaAssetIDs.map((mediaAssetID, index) => ({ media_asset_id: mediaAssetID, sort_order: index, is_primary: index === 0 })) });
       } else {
-        await apiClient.post(`/admin/products/${productId}/skus`, payload);
+		const response = await apiClient.post<{ data: SKU }>(`/admin/products/${productId}/skus`, skuPayload);
+		if (mediaAssetIDs.length) await apiClient.put(`/admin/skus/${response.data.data.id}/media`, { media: mediaAssetIDs.map((mediaAssetID, index) => ({ media_asset_id: mediaAssetID, sort_order: index, is_primary: index === 0 })) });
       }
       setOpen(false);
       if (editing) setRowErrors((current) => { const next = { ...current }; delete next[editing.id]; return next; });
@@ -97,6 +103,14 @@ export default function SKUManager({ productId, skus, dimensionManaged = false, 
     }
   };
 
+  const setPromoted = async (skuId: number | null) => {
+	try {
+		await apiClient.put(`/admin/products/${productId}/promoted-sku`, { sku_id: skuId });
+		await onChanged();
+		message.success(skuId ? '主推 SKU 已更新' : '已清除主推 SKU');
+	} catch { message.error('主推 SKU 必须已启用且有库存'); }
+  };
+
   const remove = async (skuId: number) => {
     try {
       await apiClient.delete(`/admin/skus/${skuId}`);
@@ -109,7 +123,7 @@ export default function SKUManager({ productId, skus, dimensionManaged = false, 
 
   const columns: ColumnsType<SKU> = [
     { title: '组合', dataIndex: 'attributes', key: 'combination', width: 230, fixed: 'left', render: (attributes: SKU['attributes']) => attributes?.length ? attributes.map((attribute) => <Tag key={`${attribute.name}:${attribute.value}`}>{attribute.value}</Tag>) : <Tag>默认</Tag> },
-    { title: 'SKU 编码', dataIndex: 'sku_code', key: 'sku_code', width: 180 },
+    { title: 'SKU 编码', dataIndex: 'sku_code', key: 'sku_code', width: 180, render: (value: string, sku) => <Space>{value}{sku.id === promotedSkuId && <Tag color="gold">主推</Tag>}</Space> },
     { title: 'GTIN', dataIndex: 'gtin', key: 'gtin', width: 145, render: (value?: string) => value || '-' },
     { title: '价格（CLP）', dataIndex: 'price', key: 'price', width: 150, render: (value: number) => new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(value) },
     { title: '库存', dataIndex: 'inventory', key: 'inventory', width: 80 },
@@ -118,6 +132,7 @@ export default function SKUManager({ productId, skus, dimensionManaged = false, 
     {
       title: '操作', key: 'actions', width: 96, fixed: 'right', render: (_, sku) => <Space size={2}>
         <Button type="text" size="small" aria-label="编辑销售变体" icon={<EditOutlined />} onClick={() => openEdit(sku)} />
+		<Button type="text" size="small" disabled={!sku.is_active || sku.inventory <= 0} onClick={() => void setPromoted(sku.id === promotedSkuId ? null : sku.id)}>{sku.id === promotedSkuId ? '取消主推' : '主推'}</Button>
         {!dimensionManaged && <Popconfirm title="删除此销售变体？" onConfirm={() => void remove(sku.id)}><Button type="text" size="small" danger aria-label="删除销售变体" icon={<DeleteOutlined />} /></Popconfirm>}
       </Space>,
     },
@@ -227,15 +242,18 @@ export default function SKUManager({ productId, skus, dimensionManaged = false, 
             <Form.Item name="inventory" label="库存" rules={[{ required: true, message: '请输入库存' }]}><InputNumber min={0} precision={0} className="w-full" /></Form.Item>
           </div>
 
-          <div className="mb-2 flex items-center justify-between"><span className="font-medium">销售属性</span></div>
-          <Form.List name="attributes">{(fields, { add, remove: removeAttribute }) => <>
+		{dimensionManaged && <><div className="mb-2 flex items-center justify-between"><span className="font-medium">销售属性</span></div>
+          <Form.List name="attributes">{(fields) => <>
             {fields.map(({ key, ...field }) => <div key={key} className="mb-2 grid grid-cols-[1fr_1fr_auto] gap-2">
               <Form.Item {...field} name={[field.name, 'name']} className="mb-0" rules={[{ required: true, whitespace: true, message: '请输入属性名' }]}><Input disabled={dimensionManaged} placeholder="属性名，如 color" /></Form.Item>
               <Form.Item {...field} name={[field.name, 'value']} className="mb-0" rules={[{ required: true, whitespace: true, message: '请输入属性值' }]}><Input disabled={dimensionManaged} placeholder="属性值，如 black" /></Form.Item>
-              {!dimensionManaged && <Button aria-label="删除销售属性" icon={<DeleteOutlined />} disabled={fields.length === 1} onClick={() => removeAttribute(field.name)} />}
+			  <span />
             </div>)}
-            {!dimensionManaged && <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ name: '', value: '' })}>添加属性</Button>}
-          </>}</Form.List>
+		  </>}</Form.List></>}
+
+		<Form.Item name="media_asset_ids" label="SKU 图集（顺序中的第一张为主图）">
+		  <Select mode="multiple" optionFilterProp="label" placeholder="未设置时回退到商品图库" options={(media ?? []).filter((item) => item.media_asset?.kind === 'image').map((item, index) => ({ value: item.media_asset_id, label: item.media_asset?.alt_text || `商品图片 ${index + 1}` }))} />
+		</Form.Item>
 
           <Form.Item name="image_url" label="变体图片" className="mt-5">
             <Radio.Group className="w-full">

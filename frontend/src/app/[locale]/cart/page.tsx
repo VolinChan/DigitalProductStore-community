@@ -6,9 +6,8 @@ import { message, Popconfirm, Spin } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, WarningOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
 import ImageFallback from '@/components/ImageFallback';
-import { getSKUImage } from '@/lib/catalog';
 import { formatCLP } from '@/lib/utils';
-import { useAuthStore } from '@/store/useAuthStore';
+import { getCartLineDisplay } from '@/lib/cart-line';
 import { useCartStore } from '@/store/useCartStore';
 import type { CartItem } from '@/types';
 
@@ -16,20 +15,19 @@ export default function CartPage() {
   const t = useTranslations();
   const locale = useLocale();
   const cart = useCartStore();
-  const { isAuthenticated } = useAuthStore();
   const [initialLoading, setInitialLoading] = useState(true);
   const [updating, setUpdating] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     (async () => {
-      if (isAuthenticated) await cart.fetchCart();
+      await cart.fetchCart(locale);
       setInitialLoading(false);
     })();
     // Zustand actions are stable and should not re-fetch when the state changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart.fetchCart, isAuthenticated]);
+  }, [cart.fetchCart, locale]);
 
-  const warnings = useMemo(() => new Map(cart.items.filter((item) => item.sku && item.quantity > item.sku.inventory).map((item) => [item.sku_id, t('cart.stockLimit', { count: item.sku!.inventory })])), [cart.items, t]);
+  const warnings = useMemo(() => new Map(cart.items.filter((item) => !item.available).map((item) => [item.sku_id, item.issues?.[0]?.code || 'catalog_missing'])), [cart.items]);
   const money = (amount: number) => formatCLP(amount, locale);
 
   const changeQuantity = useCallback(async (skuId: number, quantity: number) => {
@@ -64,7 +62,7 @@ export default function CartPage() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="space-y-4">
-          {cart.items.map((item) => <CartRow key={item.sku_id} item={item} warning={warnings.get(item.sku_id)} updating={updating.has(item.sku_id)} onChange={changeQuantity} onRemove={remove} money={money} />)}
+          {cart.items.map((item) => <CartLineItemView key={item.sku_id} item={item} warning={warnings.get(item.sku_id)} updating={updating.has(item.sku_id)} onChange={changeQuantity} onRemove={remove} onAcknowledge={() => cart.acknowledgePrice(item.id)} money={money} />)}
         </section>
         <aside className="lg:sticky lg:top-28 lg:h-fit">
           <div className="rounded-[22px] bg-white p-5 sm:p-6">
@@ -84,25 +82,31 @@ export default function CartPage() {
   );
 }
 
-function CartRow({ item, warning, updating, onChange, onRemove, money }: { item: CartItem; warning?: string; updating: boolean; onChange: (id: number, quantity: number) => void; onRemove: (id: number) => void; money: (value: number) => string }) {
+function CartLineItemView({ item, warning, updating, onChange, onRemove, onAcknowledge, money }: { item: CartItem; warning?: string; updating: boolean; onChange: (id: number, quantity: number) => void; onRemove: (id: number) => void; onAcknowledge: () => Promise<void>; money: (value: number) => string }) {
   const t = useTranslations();
-  const name = item.sku?.product?.name || item.sku_name || item.sku_code || `SKU #${item.sku_id}`;
-  const image = item.image_url || getSKUImage(item.sku) || '/placeholder-product.svg';
+  const display = getCartLineDisplay(item, t('cart.unavailableItem'));
+  const { name, image, attributes } = display;
   const max = item.max_quantity ?? item.sku?.inventory ?? 99;
   const soldOut = item.available === false || max <= 0;
-  const attributes = item.attributes || item.sku?.attributes || [];
 
   return (
     <article className="flex gap-3 rounded-[20px] bg-white p-3 sm:gap-5 sm:p-5">
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#f1f4f2] sm:h-24 sm:w-24"><ImageFallback src={image} alt={name} fill className="object-contain p-2" sizes="96px" /></div>
       <div className="min-w-0 flex-1">
         <div className="flex justify-between gap-3"><div className="min-w-0"><h2 className="line-clamp-2 text-sm font-black leading-5 text-[var(--sf-ink)] sm:text-base">{name}</h2>{attributes.length > 0 && <p className="mt-1 line-clamp-1 text-xs text-[var(--sf-muted)]">{attributes.map((attribute) => `${attribute.name}: ${attribute.value}`).join(' · ')}</p>}</div><Popconfirm title={t('cart.confirmRemove')} onConfirm={() => onRemove(item.sku_id)} okText={t('common.confirm')} cancelText={t('common.cancel')}><button type="button" className="sf-icon-button !h-10 !w-10 shrink-0 text-[var(--sf-muted)] hover:text-[var(--sf-warm)]" aria-label={t('cart.remove')}><DeleteOutlined /></button></Popconfirm></div>
-        {soldOut && <p className="mt-2 text-xs font-bold text-[var(--sf-warm)]">{t('common.soldOut')}</p>}
-        {warning && <p className="mt-2 text-xs font-semibold text-[var(--sf-warm)]">{warning}</p>}
+        {display.skuCode && <p className="mt-2 font-mono text-xs text-[var(--sf-muted)]">{display.skuCode}</p>}
+        {soldOut && <p role="alert" className="mt-2 text-xs font-bold text-[var(--sf-warm)]">{t('common.soldOut')}</p>}
+        {warning && <LineIssueNotice code={warning} />}
+        {item.price_changed && <div className="mt-2 rounded-xl bg-[#fff7e6] p-3 text-xs"><p>{t('cart.priceChanged', { previous: money(item.previous_unit_price || item.unit_price), current: money(item.unit_price) })}</p><button type="button" onClick={() => void onAcknowledge()} className="mt-2 font-black text-[var(--sf-accent)]">{t('cart.acceptPrice')}</button></div>}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><QuantityControl item={item} max={max} soldOut={soldOut} updating={updating} onChange={onChange} /><div className="text-right"><p className="text-xs text-[var(--sf-muted)]">{money(item.unit_price)} {t('common.per')}</p><p className="mt-1 text-base font-black text-[var(--sf-brand)]">{money(item.subtotal)}</p></div></div>
       </div>
     </article>
   );
+}
+
+function LineIssueNotice({ code }: { code: string }) {
+  const t = useTranslations();
+  return <p role="alert" aria-live="polite" className="mt-2 text-xs font-semibold text-[var(--sf-warm)]">{t(`cart.issues.${code}`)}</p>;
 }
 
 function QuantityControl({ item, max, soldOut, updating, onChange }: { item: CartItem; max: number; soldOut: boolean; updating: boolean; onChange: (id: number, quantity: number) => void }) {

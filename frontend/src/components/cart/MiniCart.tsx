@@ -6,25 +6,22 @@ import { Drawer } from 'antd';
 import { CheckCircleFilled, ShoppingOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
 import ImageFallback from '@/components/ImageFallback';
-import { getSKUImage } from '@/lib/catalog';
+import { getCartLineDisplay } from '@/lib/cart-line';
 import { formatCLP } from '@/lib/utils';
 import { trapFocusWithin } from '@/lib/focus';
-import type { Product, SKU } from '@/types';
+import type { CartItem } from '@/types';
 
 interface MiniCartProps {
   open: boolean;
   onClose: () => void;
-  product: Product;
-  sku: SKU;
-  quantity: number;
+  item: CartItem;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
 }
 
-export default function MiniCart({ open, onClose, product, sku, quantity, returnFocusRef }: MiniCartProps) {
+export default function MiniCart({ open, onClose, item, returnFocusRef }: MiniCartProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const image = getSKUImage(sku) || product.images?.find((item) => item.is_primary)?.image_url || '/placeholder-product.svg';
-  const subtotal = Number(sku.price) * quantity;
+  const { image, name, attributes, skuCode, lineTotal } = getCartLineDisplay(item, t('cart.unavailableItem'));
 
   return (
     <Drawer
@@ -43,14 +40,15 @@ export default function MiniCart({ open, onClose, product, sku, quantity, return
       <div className="flex h-full flex-col bg-[var(--sf-bg)] p-5">
         <div className="flex gap-4 rounded-[18px] bg-white p-4">
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#f1f4f2]">
-            <ImageFallback src={image} alt={product.name} fill className="object-contain p-2" sizes="96px" />
+            <ImageFallback src={image} alt={name} fill className="object-contain p-2" sizes="96px" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="line-clamp-2 text-sm font-black leading-5 text-[var(--sf-ink)]">{product.name}</h3>
-            {sku.attributes?.length > 0 && <p className="mt-1 text-xs leading-5 text-[var(--sf-muted)]">{sku.attributes.map((attribute) => `${attribute.name}: ${attribute.value}`).join(' · ')}</p>}
+            <h3 className="line-clamp-2 text-sm font-black leading-5 text-[var(--sf-ink)]">{name}</h3>
+            {attributes.length > 0 && <p className="mt-1 text-xs leading-5 text-[var(--sf-muted)]">{attributes.map((attribute) => `${attribute.name}: ${attribute.value}`).join(' · ')}</p>}
+            {skuCode && <p className="mt-1 font-mono text-xs text-[var(--sf-muted)]">{skuCode}</p>}
             <div className="mt-2 flex items-baseline justify-between gap-2">
-              <span className="text-xs text-[var(--sf-muted)]">{t('cart.itemQuantity', { count: quantity })}</span>
-              <span className="font-black text-[var(--sf-brand)]">{formatCLP(subtotal, locale)}</span>
+              <span className="text-xs text-[var(--sf-muted)]">{formatCLP(item.unit_price, locale)} × {item.quantity}</span>
+              <span className="font-black text-[var(--sf-brand)]">{formatCLP(lineTotal, locale)}</span>
             </div>
           </div>
         </div>

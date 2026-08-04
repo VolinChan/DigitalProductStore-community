@@ -53,61 +53,18 @@ export default function SKUSelector({
     }));
   }, [skus]);
 
-  // Determine which attribute values are available given current selections
-  const getAvailableValues = useCallback(
-    (attributeName: string): Set<string> => {
-      const available = new Set<string>();
-
-      skus.forEach((sku) => {
-        if (!sku.is_active) return;
-
-        // Check if this SKU matches all OTHER selected attributes
-        const matchesOtherSelections = Object.entries(selectedAttributes).every(
-          ([name, value]) => {
-            if (name === attributeName) return true; // Skip the current attribute
-            return (sku.attributes ?? []).some(
-              (attr) => attr.name === name && attr.value === value
-            );
-          }
-        );
-
-        if (matchesOtherSelections) {
-          // This SKU is compatible, so its value for this attribute is available
-          const attr = (sku.attributes ?? []).find((a) => a.name === attributeName);
-          if (attr) {
-            available.add(attr.value);
-          }
-        }
-      });
-
-      return available;
-    },
-    [skus, selectedAttributes]
-  );
-
-  // Check if a specific value has stock (considering current selections)
+  // A sparse historical matrix may not contain every cross-product. Attribute
+  // choices remain reachable; the parent switches to the closest complete SKU.
   const hasStock = useCallback(
     (attributeName: string, value: string): boolean => {
       return skus.some((sku) => {
-        if (!sku.is_active) return false;
-        if (sku.inventory <= 0) return false;
-
-        // Check this attribute matches
-        const hasThisAttr = (sku.attributes ?? []).some(
+        if (!sku.is_active || sku.inventory <= 0) return false;
+        return (sku.attributes ?? []).some(
           (attr) => attr.name === attributeName && attr.value === value
         );
-        if (!hasThisAttr) return false;
-
-        // Check all other selected attributes match
-        return Object.entries(selectedAttributes).every(([name, val]) => {
-          if (name === attributeName) return true;
-          return (sku.attributes ?? []).some(
-            (attr) => attr.name === name && attr.value === val
-          );
-        });
       });
     },
-    [skus, selectedAttributes]
+    [skus]
   );
 
   if (attributeGroups.length === 0) {
@@ -117,8 +74,6 @@ export default function SKUSelector({
   return (
     <div className="space-y-4">
       {attributeGroups.map((group) => {
-        const availableValues = getAvailableValues(group.name);
-
         return (
           <div key={group.name}>
             <label className="mb-2 block text-sm font-black text-[var(--sf-ink)]">
@@ -132,7 +87,7 @@ export default function SKUSelector({
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={group.name}>
               {group.values.map((value) => {
                 const isSelected = selectedAttributes[group.name] === value;
-                const isAvailable = availableValues.has(value);
+                const isAvailable = skus.some((sku) => sku.is_active && (sku.attributes || []).some((attribute) => attribute.name === group.name && attribute.value === value));
                 const inStock = hasStock(group.name, value);
                 const isDisabled = !isAvailable;
 
@@ -157,12 +112,8 @@ export default function SKUSelector({
                     `}
                     onClick={() => {
                       if (!isDisabled) {
-                        // Toggle: if already selected, deselect
-                        if (isSelected) {
-                          onAttributeChange(group.name, '');
-                        } else {
-                          onAttributeChange(group.name, value);
-                        }
+                        // Radio choices remain selected when clicked again.
+                        onAttributeChange(group.name, value);
                       }
                     }}
                   >

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockCartContractRoute, seedNecessaryCookieConsent } from './helpers/shipping';
 
 const product = {
   id: 22, name: 'Compact USB-C Hub with a long everyday product name', description: 'Reliable connections for home and office.', specifications: '{}',
@@ -18,6 +19,7 @@ const order = {
 
 for (const width of viewports) {
   test(`storefront pages and overlays do not overflow at ${width}px`, async ({ page, context }, testInfo) => {
+    await seedNecessaryCookieConsent(page);
     await page.addInitScript(() => {
       localStorage.setItem('cart-storage', JSON.stringify({ state: {
         items: [{ id: 1, sku_id: 220, sku_code: 'HUB-220', sku_name: 'Compact USB-C Hub with a long everyday product name', quantity: 1, unit_price: 15990, subtotal: 15990 }],
@@ -29,6 +31,7 @@ for (const width of viewports) {
 
     await context.route('http://localhost:8080/api/v1/**', async (route) => {
       const path = new URL(route.request().url()).pathname;
+	  if (await mockCartContractRoute(route, [{ id: 1, cart_item_id: 1, product_id: 22, product_name: product.name, sku_id: 220, sku_code: 'HUB-220', quantity: 1, unit_price: 15990, line_total: 15990, subtotal: 15990, stock_available: 99, available: true, issues: [] }])) return;
       if (path === '/api/v1/products/22') return route.fulfill({ json: { data: product } });
       if (path === '/api/v1/products') return route.fulfill({ json: { data: { products: [product], total: 1 } } });
       if (path === '/api/v1/categories') return route.fulfill({ json: { data: { categories: [{ id: 7, name: 'Cables and connectivity', slug: 'cables', is_active: true }] } } });

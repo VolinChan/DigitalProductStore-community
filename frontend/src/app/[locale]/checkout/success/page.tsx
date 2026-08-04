@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircleFilled, ClockCircleOutlined, LoadingOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
+import OrderTrackingLink from '@/components/order/OrderTrackingLink';
 
 function CheckoutSuccessContent() {
   const t = useTranslations();
@@ -38,7 +39,7 @@ function CheckoutSuccessContent() {
           {nextStep === 'transfer' && <><p className="mt-3 text-sm leading-7 text-[var(--sf-subtle)]">{t('checkout.nextStepsTransferIntro')}</p><ol className="mt-4 space-y-3 text-sm text-[var(--sf-subtle)]">{['step1', 'step2', 'step3', 'step4'].map((key, index) => <li key={key} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--sf-soft-blue)] text-xs font-black text-[var(--sf-accent)]">{index + 1}</span><span className="pt-0.5">{t(`checkout.${key}`)}</span></li>)}</ol></>}
         </div>
 
-        <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:justify-center"><Link href={orderHref} className="sf-button-primary">{orderId ? t('orders.viewOrder') : t('orders.title')}</Link><Link href={`/${locale}/products`} className="sf-button-secondary">{t('products.continueShopping')}</Link></div>
+        <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:justify-center"><Link href={orderHref} className="sf-button-primary">{orderId ? t('orders.viewOrder') : t('orders.title')}</Link><OrderTrackingLink orderNumber={orderNumber || undefined} className="sf-button-secondary" /><Link href={`/${locale}/products`} className="sf-button-secondary">{t('products.continueShopping')}</Link></div>
       </section>
     </main>
   );

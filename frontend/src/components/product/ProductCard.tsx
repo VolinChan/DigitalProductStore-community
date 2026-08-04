@@ -22,7 +22,7 @@ export default function ProductCard({ product, highlightQuery }: ProductCardProp
   const summary = getProductSummary(product);
 
   return (
-    <Link href={`/${locale}/products/${product.id}`} className="group block min-w-0">
+    <Link href={`/${locale}/products/${encodeURIComponent(product.slug || String(product.id))}`} className="group block min-w-0">
       <div className="relative aspect-square overflow-hidden rounded-[18px] bg-[#f1f4f2] sm:rounded-[22px]">
         {outOfStock && (
           <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#273746] px-2.5 py-1 text-[10px] font-bold text-white sm:left-3 sm:top-3 sm:text-xs">

@@ -11,6 +11,7 @@ import apiClient from '@/lib/api';
 import { formatCLP, formatDateTime } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { Order, OrderStatus } from '@/types';
+import OrderTrackingLink from '@/components/order/OrderTrackingLink';
 
 const statusKeys: Record<OrderStatus, string> = {
   pending_payment: 'orders.statusPendingPayment', pending_transfer: 'orders.statusPendingTransfer', paid: 'orders.statusPaid',
@@ -72,7 +73,7 @@ export default function OrderDetailPage() {
       <Link href={`/${locale}/orders`} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[var(--sf-accent)]"><ArrowLeftOutlined />{t('orders.backToOrders')}</Link>
       <header className="mt-4 flex flex-col gap-5 border-b border-[var(--sf-line)] pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="font-mono text-sm font-bold text-[var(--sf-muted)]">{order.order_number}</p><h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('orders.detailTitle')}</h1><div className="mt-4"><OrderStatusBadge status={order.status} label={t(statusKeys[order.status])} /></div></div>
-        {canCancel && <button type="button" onClick={cancelOrder} disabled={cancelling} className="inline-flex min-h-11 w-fit items-center justify-center rounded-full border border-[#d66a60] px-5 text-sm font-bold text-[#a33a32] transition hover:bg-[#fdebea] disabled:opacity-50">{t('orders.cancelBtn')}</button>}
+        <div className="flex flex-wrap gap-3"><OrderTrackingLink orderNumber={order.order_number} className="sf-button-secondary" />{canCancel && <button type="button" onClick={cancelOrder} disabled={cancelling} className="inline-flex min-h-11 w-fit items-center justify-center rounded-full border border-[#d66a60] px-5 text-sm font-bold text-[#a33a32] transition hover:bg-[#fdebea] disabled:opacity-50">{t('orders.cancelBtn')}</button>}</div>
       </header>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)] lg:gap-14">

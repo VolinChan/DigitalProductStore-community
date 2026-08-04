@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.seo-interactive-content { display: none; }
+.js .seo-server-content { display: none; }
+.js .seo-interactive-content { display: block; }
+
 @layer base {
   :root {
     --background: #fafbfc;
@@ -204,7 +208,20 @@
 
   .storefront .sf-auth-form .ant-input-affix-wrapper,
   .storefront .sf-checkout-form .ant-input-affix-wrapper {
-    min-height: 46px;
+    min-height: 48px;
+    padding-inline: 14px;
+  }
+
+  .storefront .sf-auth-form > .ant-form-item .ant-input:not(.ant-input-affix-wrapper .ant-input),
+  .storefront .sf-checkout-form .ant-input:not(.ant-input-affix-wrapper .ant-input) {
+    min-height: 48px;
+    padding-inline: 14px;
+  }
+
+  .storefront .sf-auth-form .ant-input-affix-wrapper > .ant-input,
+  .storefront .sf-checkout-form .ant-input-affix-wrapper > .ant-input {
+    min-height: auto;
+    padding-inline: 0;
   }
 
   .storefront .sf-auth-form .ant-input:focus,
@@ -367,4 +384,10 @@
   outline: 2px solid theme('colors.primary.DEFAULT');
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* The search field is a composite control: its rounded wrapper owns the
+   visible focus ring, so the inner native input must not draw a second box. */
+.storefront .sf-header-search-input:focus-visible {
+  outline: none;
 }

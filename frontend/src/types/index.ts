@@ -51,7 +51,7 @@ export interface Product {
   condition?: 'new' | 'used' | 'refurbished';
   warranty_text?: string;
   slug?: string;
-  status?: 'draft' | 'published' | 'archived';
+  status?: 'draft' | 'published' | 'unpublished' | 'archived';
   version?: number;
   category_id?: number;
   category?: Category;
@@ -64,6 +64,12 @@ export interface Product {
   media?: ProductMedia[];
   structured_specifications?: ProductSpecification[];
   variant_dimensions?: ProductVariantDimension[];
+  promoted_sku_id?: number;
+  package_length_cm?: number;
+  package_width_cm?: number;
+  package_height_cm?: number;
+  package_weight_kg?: number;
+  shipping_template_id?: number;
   completion?: ProductCompletion;
 }
 
@@ -173,6 +179,7 @@ export interface Category {
   children?: Category[];
   spec_template?: CategorySpecTemplateField[];
   variant_template?: CategoryVariantTemplate[];
+  icon_key?: string | null;
 }
 
 export interface CategorySpecTemplateField {
@@ -214,6 +221,7 @@ export interface SKUMedia {
   media_asset_id: number;
   media_asset?: MediaAsset;
   sort_order: number;
+  is_primary: boolean;
 }
 
 export interface SKUAttribute {
@@ -228,14 +236,28 @@ export interface SKUAttribute {
 export interface Cart {
   id: number;
   user_id?: number;
-  session_id: string;
+  revision: number;
+  requested_locale: string;
+  resolved_locale: string;
+  currency: 'CLP';
   items: CartItem[];
+  issues: CartLineIssue[];
+  subtotal: number;
   total_price: number;
   total_items: number;
 }
 
+export type CartLineIssueCode = 'price_changed' | 'insufficient_stock' | 'out_of_stock' | 'sku_inactive' | 'product_unpublished' | 'catalog_missing';
+
+export interface CartLineIssue {
+  code: CartLineIssueCode;
+  requested_quantity?: number;
+  available_quantity?: number;
+}
+
 export interface CartItem {
   id: number;
+  cart_item_id?: number;
   cart_id?: number;
   sku_id: number;
   // Optional embedded SKU (used for guest cart items stored client-side).
@@ -246,6 +268,21 @@ export interface CartItem {
   sku_name?: string;
   image_url?: string;
   attributes?: SKUAttribute[];
+	product_id?: number;
+	product_slug?: string;
+	product_name?: string;
+	product_brand?: string;
+	product_image_url?: string;
+	variant_attributes?: SKUAttribute[];
+	requested_locale?: string;
+	resolved_locale?: string;
+	translation_fallback?: boolean;
+	stock_available?: number;
+	currency?: 'CLP';
+	previous_unit_price?: number;
+	line_total?: number;
+	price_changed?: boolean;
+	issues?: CartLineIssue[];
   available?: boolean;
   max_quantity?: number;
   quantity: number;
@@ -275,6 +312,155 @@ export interface Order {
   confirmation_deadline?: string;
   shipping_carrier?: string;
   tracking_number?: string;
+  transfer_account_snapshot?: TransferPaymentAccount[];
+  address_snapshot?: AddressSnapshot;
+  shipping_rate_snapshot?: ShippingQuote;
+  shipping_base_amount?: number;
+  shipping_subsidy_amount?: number;
+  shipping_remote_surcharge?: number;
+  shipping_payable_amount?: number;
+}
+
+export interface CheckoutValidation {
+  checkout_validation_id?: string;
+  digest: string;
+  expires_at: string;
+  cart_revision: number;
+  valid: boolean;
+  summary: Cart;
+}
+
+export interface ChileRegion { id: number; location_code: string; name: string; sort_order: number; is_active: boolean }
+export interface ChileCommune { id: number; region_id: number; location_code: string; name: string; sort_order: number; is_active: boolean }
+export interface UserAddress { id: number; user_id: number; label: string; recipient: string; phone: string; region_id: number; commune_id: number; street: string; street_number: string; complement: string; reference: string; is_default: boolean; last_used_at?: string; region?: ChileRegion; commune?: ChileCommune }
+export interface AddressSnapshot { version: number; recipient: string; phone: string; region_id: number; region_location_code: string; region_name: string; commune_id: number; commune_location_code: string; commune_name: string; street: string; street_number: string; complement: string; reference: string }
+export interface ShippingRateComponent { template_id: number; template_name: string; quantity_mode: 'per_order' | 'per_unit' | 'per_distinct_sku'; rule_id: number; rule_scope: string; product_ids: number[]; sku_ids: number[]; quantity_factor: number; unit_base_amount: number; raw_base_amount: number; remote_surcharge: number }
+export interface ShippingQuote { formula_version: string; quote_version: string; region_id: number; commune_id: number; shipping_rate_components: ShippingRateComponent[]; raw_base_amount: number; rounded_base_amount: number; rounding_unit: number; subsidy_id?: number; subsidy_amount: number; remote_surcharge: number; payable_shipping: number; remote_assessment_required: boolean }
+export interface ShippingTemplate { id: number; name: string; quantity_mode: 'per_order' | 'per_unit' | 'per_distinct_sku'; is_default: boolean; is_active: boolean }
+export interface ShippingAdjustment { id: number; order_id: number; status: 'pending_assessment' | 'awaiting_customer_payment' | 'customer_paid' | 'confirmed' | 'cancelled'; difference_amount?: number; reason?: string; payment_obligation_id?: number; assessed_at?: string; customer_declared_at?: string; confirmed_at?: string }
+
+export interface TransferPaymentAccount {
+  id?: number;
+  bank_name: string;
+  account_name: string;
+  rut: string;
+  account_type: string;
+  account_number: string;
+  email: string;
+  sort_order: number;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TransferPaymentConfig {
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  configured: boolean;
+  source?: 'admin' | 'env' | 'unconfigured';
+  accounts: TransferPaymentAccount[];
+}
+
+export interface TransferDeclarationEntry {
+  id: number;
+  declaration_id: number;
+  account_id?: number;
+  declared_amount?: number;
+  note?: string;
+  is_inferred: boolean;
+}
+
+export interface TransferProof {
+  id: number;
+  declaration_id: number;
+  entry_id?: number;
+  original_filename: string;
+  claimed_mime_type?: string;
+  detected_mime_type?: string;
+  size_bytes: number;
+  scan_status: 'pending_scan' | 'clean' | 'quarantined';
+  scan_diagnostic_code?: string;
+}
+
+export interface TransferDeclaration {
+  id: number;
+  order_id: number;
+  status: 'draft' | 'submitted' | 'under_review' | 'accepted' | 'partially_accepted' | 'rejected';
+  rejection_reason?: string;
+  shipping_adjustment_id?: number;
+  submitted_at: string;
+  entries?: TransferDeclarationEntry[];
+  proofs?: TransferProof[];
+}
+
+export interface PaymentObligation {
+  id: number;
+  order_id: number;
+  obligation_type: 'order_base' | 'shipping_adjustment';
+  subject_id: number;
+  amount: number;
+  allocated_amount: number;
+  status: 'pending' | 'partially_received' | 'satisfied' | 'inactive';
+  is_active: boolean;
+}
+
+export interface VerifiedReceiptAllocation {
+  id: number;
+  receipt_id: number;
+  obligation_id: number;
+  allocated_amount: number;
+}
+
+export interface VerifiedReceipt {
+  id: number;
+  order_id: number;
+  declaration_id?: number;
+  actual_account_id?: number;
+  amount: number;
+  verified_by: number;
+  verified_at: string;
+  note?: string;
+  allocations?: VerifiedReceiptAllocation[];
+}
+
+export interface TransferReviewDetail {
+  declaration: TransferDeclaration;
+  order: Order;
+  obligations: PaymentObligation[];
+  receipts: VerifiedReceipt[];
+}
+
+export interface NotificationOutbox {
+  id: number;
+  event_type: string;
+  recipient_email?: string;
+  status: string;
+  aggregate_id: number;
+}
+
+export interface DeliveryAttempt {
+  id: number;
+  outbox_id: number;
+  attempt_number: number;
+  provider: string;
+  provider_message_id?: string;
+  status: string;
+  diagnostic_code?: string;
+  created_at: string;
+  outbox?: NotificationOutbox;
+}
+
+export interface InAppNotification {
+  id: number;
+  event_key: string;
+  event_type: string;
+  locale: string;
+  title: string;
+  body_summary: string;
+  deep_link?: string;
+  read_at?: string;
+  created_at: string;
 }
 
 export interface OrderItem {
@@ -287,6 +473,15 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+	product_id?: number;
+	product_slug_snapshot?: string;
+	product_brand_snapshot?: string;
+	image_url_snapshot?: string;
+	resolved_locale?: string;
+	variant_summary_snapshot?: string;
+	discount_snapshot?: number;
+	tax_snapshot?: number;
+	currency?: 'CLP';
 }
 
 export type OrderStatus =

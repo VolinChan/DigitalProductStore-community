@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Anchor, Button, Form, Input, Modal, Progress, Select, Space, Spin, Tag, message } from 'antd';
+import { Anchor, Button, Form, Input, InputNumber, Modal, Progress, Select, Space, Spin, Tag, message } from 'antd';
 import { ArrowLeftOutlined, CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined, EyeOutlined, SaveOutlined, UploadOutlined, WarningOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
-import type { Category, CategorySpecTemplateField, Product, PublishIssue, PublishProductResult, PublishValidationReport } from '@/types';
+import type { Category, CategorySpecTemplateField, Product, PublishIssue, PublishProductResult, PublishValidationReport, ShippingTemplate } from '@/types';
 import ProductImageManager from '@/components/admin/ProductImageManager';
 import SKUManager from '@/components/admin/SKUManager';
 import RichDescriptionEditor from '@/components/admin/RichDescriptionEditor';
@@ -23,6 +23,11 @@ type EditorValues = {
   condition?: 'new' | 'used' | 'refurbished';
   warranty_text?: string;
   description?: string;
+  package_length_cm?: number;
+  package_width_cm?: number;
+  package_height_cm?: number;
+  package_weight_kg?: number;
+  shipping_template_id?: number;
 };
 
 const sections = [
@@ -30,6 +35,7 @@ const sections = [
   { key: 'media', label: '媒体' },
   { key: 'specifications', label: '规格参数' },
   { key: 'variants', label: '变体与库存' },
+  { key: 'shipping', label: '物流资料' },
   { key: 'description', label: '描述' },
   { key: 'publishing', label: '发布设置' },
 ] as const;
@@ -51,13 +57,16 @@ export default function ProductEditor({ productId }: { productId?: number }) {
   const [previewing, setPreviewing] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [publishReport, setPublishReport] = useState<PublishValidationReport | null>(null);
+  const [shippingTemplates, setShippingTemplates] = useState<ShippingTemplate[]>([]);
 
   const load = useCallback(async () => {
     try {
       const categoryRequest = apiClient.get<{ data: { categories: Category[] } }>('/admin/categories');
       const productRequest = productId ? apiClient.get<{ data: Product }>(`/admin/products/${productId}`) : undefined;
-      const [categoryResponse, productResponse] = await Promise.all([categoryRequest, productRequest]);
+      const templateRequest = apiClient.get<{ data: ShippingTemplate[] }>('/admin/product-shipping-templates');
+      const [categoryResponse, productResponse, templateResponse] = await Promise.all([categoryRequest, productRequest, templateRequest]);
       setCategories(categoryResponse.data.data?.categories ?? []);
+      setShippingTemplates(templateResponse.data.data ?? []);
       if (productResponse) {
         const loadedProduct = productResponse.data.data;
         setProduct(loadedProduct);
@@ -71,6 +80,11 @@ export default function ProductEditor({ productId }: { productId?: number }) {
           condition: loadedProduct.condition ?? 'new',
           warranty_text: loadedProduct.warranty_text,
           description: loadedProduct.description,
+          package_length_cm: loadedProduct.package_length_cm,
+          package_width_cm: loadedProduct.package_width_cm,
+          package_height_cm: loadedProduct.package_height_cm,
+          package_weight_kg: loadedProduct.package_weight_kg,
+          shipping_template_id: loadedProduct.shipping_template_id,
         });
       } else {
         form.setFieldsValue({ condition: 'new' });
@@ -108,6 +122,7 @@ export default function ProductEditor({ productId }: { productId?: number }) {
       media: Boolean(product?.media?.some((item) => item.is_primary)),
       specifications: Boolean(product?.structured_specifications?.length),
       variants: Boolean(product?.skus?.length),
+      shipping: Boolean(values?.shipping_template_id),
       description: Boolean(values?.description?.trim()),
       publishing: Boolean(product?.status),
     };
@@ -170,15 +185,17 @@ export default function ProductEditor({ productId }: { productId?: number }) {
       warranty_text: values.warranty_text?.trim() ?? '',
       description: values.description?.trim() ?? '',
       specifications: productId ? undefined : '{}',
-      ...(lifecycle === 'draft' ? { status: 'draft', is_active: false } : {}),
+	  ...(!productId && lifecycle === 'draft' ? { status: 'draft' } : {}),
     };
     if (productId) {
       await apiClient.put(`/admin/products/${productId}`, payload);
+      await apiClient.put(`/admin/products/${productId}/logistics`, { package_length_cm: values.package_length_cm, package_width_cm: values.package_width_cm, package_height_cm: values.package_height_cm, package_weight_kg: values.package_weight_kg, shipping_template_id: values.shipping_template_id });
       await refreshProduct();
       setDirty(false);
       return;
     }
     const response = await apiClient.post<{ data: Product }>('/admin/products', payload);
+    await apiClient.put(`/admin/products/${response.data.data.id}/logistics`, { package_length_cm: values.package_length_cm, package_width_cm: values.package_width_cm, package_height_cm: values.package_height_cm, package_weight_kg: values.package_weight_kg, shipping_template_id: values.shipping_template_id });
     setDirty(false);
     router.replace(`/admin/products/${response.data.data.id}`);
     return response.data.data;
@@ -196,6 +213,16 @@ export default function ProductEditor({ productId }: { productId?: number }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const changeLifecycle = async (action: 'unpublish' | 'archive' | 'restore', target?: 'draft' | 'unpublished') => {
+	if (!productId) return;
+	try {
+		setSaving(true);
+		await apiClient.post(`/admin/products/${productId}/${action}`, target ? { target } : {});
+		await refreshProduct();
+		message.success(action === 'unpublish' ? '商品已下架' : action === 'archive' ? '商品已归档' : '商品已恢复');
+	} catch { message.error('商品状态更新失败'); } finally { setSaving(false); }
   };
 
   const applyPublishIssues = (report: PublishValidationReport) => {
@@ -314,8 +341,12 @@ export default function ProductEditor({ productId }: { productId?: number }) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
         <div><Button type="link" className="px-0" icon={<ArrowLeftOutlined />} onClick={leave}>返回商品列表</Button><h2 className="m-0 text-xl font-semibold">{productId ? '编辑商品' : '新建商品'}</h2></div>
         <Space>
-          <Button loading={saving} onClick={() => void saveDraft()} icon={<SaveOutlined />}>{product?.status === 'archived' ? '恢复为草稿' : '保存草稿'}</Button>
+		  {product?.status === 'archived'
+			? <Button loading={saving} onClick={() => void changeLifecycle('restore', 'draft')}>恢复为草稿</Button>
+			: <Button loading={saving} onClick={() => void saveDraft()} icon={<SaveOutlined />}>{!product || product.status === 'draft' ? '保存草稿' : '保存修改'}</Button>}
           <Button disabled={!productId} loading={previewing} onClick={() => void openPreview()} icon={<EyeOutlined />}>预览</Button>
+		  {product?.status === 'published' && <Button loading={saving} onClick={() => void changeLifecycle('unpublish')}>下架</Button>}
+		  {productId && product?.status !== 'archived' && <Button danger loading={saving} onClick={() => Modal.confirm({ title: '归档商品？', content: '归档后默认不在后台列表显示，可通过“已归档”筛选后恢复。', okText: '归档', okButtonProps: { danger: true }, cancelText: '取消', onOk: () => changeLifecycle('archive') })}>归档</Button>}
           <Button type="primary" disabled={!productId || product?.status === 'archived'} loading={saving || checking} onClick={() => void checkAndPublish()} icon={<UploadOutlined />}>检查并发布</Button>
         </Space>
       </div>
@@ -365,8 +396,19 @@ export default function ProductEditor({ productId }: { productId?: number }) {
                 suggestions={selectedCategory?.variant_template ?? product.category?.variant_template ?? []}
                 onChanged={refreshProduct}
               />
-              <div className="border-t pt-5"><SKUManager productId={productId} skus={product.skus ?? []} dimensionManaged={Boolean(product.variant_dimensions?.length)} images={product.images ?? []} media={product.media ?? []} onChanged={refreshProduct} /></div>
+              <div className="border-t pt-5"><SKUManager productId={productId} skus={product.skus ?? []} dimensionManaged={Boolean(product.variant_dimensions?.length)} images={product.images ?? []} media={product.media ?? []} promotedSkuId={product.promoted_sku_id} onChanged={refreshProduct} /></div>
             </div> : <span className="text-gray-400">请先保存商品，再配置变体。</span>}
+          </section>
+
+          <section id="shipping" className="scroll-mt-24 border-b py-6">
+            <h3 className="mb-4 text-base font-semibold">物流资料</h3>
+            <div className="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Form.Item name="shipping_template_id" label="运费模板（留空使用店铺默认）"><Select allowClear options={shippingTemplates.filter((row) => row.is_active).map((row) => ({ value: row.id, label: `${row.name}${row.is_default ? '（默认）' : ''}` }))} /></Form.Item>
+              <Form.Item name="package_length_cm" label="长（cm）" rules={[{ type: 'number', min: 0.01 }]}><InputNumber min={0.01} precision={2} className="w-full" /></Form.Item>
+              <Form.Item name="package_width_cm" label="宽（cm）" rules={[{ type: 'number', min: 0.01 }]}><InputNumber min={0.01} precision={2} className="w-full" /></Form.Item>
+              <Form.Item name="package_height_cm" label="高（cm）" rules={[{ type: 'number', min: 0.01 }]}><InputNumber min={0.01} precision={2} className="w-full" /></Form.Item>
+              <Form.Item name="package_weight_kg" label="重量（kg）" rules={[{ type: 'number', min: 0.001 }]}><InputNumber min={0.001} precision={3} className="w-full" /></Form.Item>
+            </div>
           </section>
 
           <section id="description" className="scroll-mt-24 border-b py-6">
@@ -378,7 +420,7 @@ export default function ProductEditor({ productId }: { productId?: number }) {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <h3 className="m-0 text-base font-semibold">发布设置</h3>
-                <Tag color={product?.status === 'published' ? 'green' : product?.status === 'archived' ? 'orange' : 'default'}>{product?.status === 'published' ? '已发布' : product?.status === 'archived' ? '已归档' : '草稿'}</Tag>
+                <Tag color={product?.status === 'published' ? 'green' : product?.status === 'archived' ? 'orange' : product?.status === 'unpublished' ? 'blue' : 'default'}>{product?.status === 'published' ? '已发布' : product?.status === 'archived' ? '已归档' : product?.status === 'unpublished' ? '已下架' : '草稿'}</Tag>
               </div>
               <Button disabled={!productId || product?.status === 'archived'} loading={checking} onClick={() => void runPublishValidation()} icon={<CheckCircleOutlined />}>运行发布检查</Button>
             </div>

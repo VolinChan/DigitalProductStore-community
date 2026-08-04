@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { User } from '@/types';
+import AddressBookManager from '@/components/account/AddressBookManager';
 
 function ProfileContent() {
   const t = useTranslations();
@@ -62,6 +63,7 @@ function ProfileContent() {
             </Form>
           </section>
         </div>
+		<AddressBookManager />
       </div>
     </main>
   );

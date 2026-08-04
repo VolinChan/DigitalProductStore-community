@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import SupplierDisclosure from '@/components/legal/SupplierDisclosure';
+import { openConsentCenterEvent } from '@/lib/legal/consent';
 
 export default function Footer() {
   const t = useTranslations();
@@ -14,6 +16,8 @@ export default function Footer() {
     { label: t('layout.returnPolicy'), href: '/help/returns' },
     { label: t('layout.contactUs'), href: '/contact' },
     { label: t('layout.privacyPolicy'), href: '/privacy' },
+    { label: t('orders.tracking'), href: '/orders/track' },
+    { label: locale === 'es-CL' ? 'Información legal' : 'Legal information', href: '/legal' },
   ];
 
   return (
@@ -31,9 +35,10 @@ export default function Footer() {
             ))}
           </nav>
         </div>
-        <div className="mt-9 flex flex-col gap-3 border-t border-white/12 pt-5 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 border-t border-white/12 pt-6 text-white/75"><SupplierDisclosure locale={locale} compact /></div>
+        <div className="mt-6 flex flex-col gap-3 border-t border-white/12 pt-5 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
           <p>{t('layout.copyright', { year })}</p>
-          <Link href={`/${locale}/privacy`} className="w-fit transition hover:text-white">{t('layout.privacyPolicy')}</Link>
+          <div className="flex flex-wrap gap-4"><Link href={`/${locale}/privacy`} className="w-fit transition hover:text-white">{t('layout.privacyPolicy')}</Link><button type="button" className="border-0 bg-transparent p-0 text-inherit underline-offset-2 transition hover:text-white hover:underline" onClick={() => window.dispatchEvent(new Event(openConsentCenterEvent))}>{locale === 'es-CL' ? 'Preferencias de cookies' : 'Cookie preferences'}</button></div>
         </div>
       </div>
     </footer>

@@ -25,7 +25,7 @@ export function getProductSummary(product: Pick<Product, 'short_description' | '
 export function getSKUImage(sku?: SKU | null): string | undefined {
   if (!catalogStorefrontEnabled && sku?.image_url) return sku.image_url;
   const modern = [...(sku?.media ?? [])]
-    .sort((a, b) => a.sort_order - b.sort_order)
+    .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order || a.id - b.id)
     .find((item) => item.media_asset?.kind === 'image' && item.media_asset.url);
   return modern?.media_asset?.url || sku?.image_url || undefined;
 }

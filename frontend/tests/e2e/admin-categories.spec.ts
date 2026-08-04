@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const categories = [
   {
     id: 1, name: 'Accessories', slug: 'accessories', parent_id: null, sort_order: 0,
-    is_active: true, product_count: 4,
+    is_active: true, product_count: 4, icon_key: 'peripherals',
     spec_template: [
       { group: 'General', label: 'Brand', key: 'brand', input_type: 'short_text', required: true, sort_order: 0 },
       { group: 'General', label: 'Model', key: 'model', input_type: 'short_text', required: false, sort_order: 1 },
@@ -12,7 +12,7 @@ const categories = [
   },
   {
     id: 2, name: 'Cables', slug: 'cables', parent_id: 1, sort_order: 0,
-    is_active: true, product_count: 2, spec_template: [], variant_template: [],
+    is_active: true, product_count: 2, icon_key: null, spec_template: [], variant_template: [],
   },
   {
     id: 3, name: 'Chargers', slug: 'chargers', parent_id: 1, sort_order: 1,
@@ -76,6 +76,16 @@ test('previews inherited fields and saves a child template override', async ({ p
   await expect.poll(() => apiCalls.some((call) => call.path.endsWith('/admin/categories/2'))).toBe(true);
   const body = apiCalls.find((call) => call.path.endsWith('/admin/categories/2'))?.body as Record<string, unknown>;
   expect(body.spec_template).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'connector' })]));
+});
+
+test('previews and persists a controlled category icon', async ({ page }) => {
+  await page.getByRole('row', { name: /Cables/ }).getByRole('button', { name: /编辑/ }).click();
+  await page.getByRole('button', { name: 'USB y cables / USB and cables' }).click();
+  await expect(page.getByText(/预览：USB y cables/)).toBeVisible();
+  await page.getByRole('button', { name: /保\s*存/ }).dispatchEvent('click');
+
+  await expect.poll(() => apiCalls.find((call) => call.path.endsWith('/admin/categories/2'))?.body)
+    .toEqual(expect.objectContaining({ icon_key: 'usb' }));
 });
 
 test('reorders sibling categories by dragging rows', async ({ page }) => {

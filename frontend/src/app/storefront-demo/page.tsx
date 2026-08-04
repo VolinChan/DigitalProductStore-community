@@ -375,7 +375,7 @@ function DemoProductCard({ product, featured }: { product: Product; featured?: b
   const price = getProductPrice(product);
 
   return (
-    <Link href={`/es-CL/products/${product.id}`} className="group min-w-0">
+    <Link href={`/es-CL/products/${encodeURIComponent(product.slug || String(product.id))}`} className="group min-w-0">
       <div className="relative aspect-square overflow-hidden rounded-[18px] bg-[#f2f4f2] sm:rounded-[22px]">
         {featured && <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#f2694b] px-2.5 py-1 text-[10px] font-extrabold text-white sm:left-3 sm:top-3 sm:text-[11px]">Buena compra</span>}
         <button type="button" onClick={(event) => event.preventDefault()} className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#52616c] shadow-sm transition hover:text-[#f2694b] sm:right-3 sm:top-3" aria-label={`Guardar ${product.name}`}>

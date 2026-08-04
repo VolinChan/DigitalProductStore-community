@@ -137,10 +137,24 @@ test('creates and publishes a catalog product, then selects its SKU and adds it 
     await route.fulfill({ json: { data: {} } });
   });
 
+  const initialCategoriesResponse = page.waitForResponse((response) => (
+    response.request().method() === 'GET'
+      && new URL(response.url()).pathname === '/api/v1/admin/categories'
+  ));
   await page.goto('/admin/categories');
+  await initialCategoriesResponse;
   await page.getByRole('button', { name: '新建分类' }).click();
   await page.getByLabel('分类名称').fill('Cables');
+  const createCategoryResponse = page.waitForResponse((response) => (
+    response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/api/v1/admin/categories'
+  ));
+  const refreshedCategoriesResponse = page.waitForResponse((response) => (
+    response.request().method() === 'GET'
+      && new URL(response.url()).pathname === '/api/v1/admin/categories'
+  ));
   await page.getByRole('dialog', { name: '新建分类' }).getByRole('button', { name: /保\s*存/ }).click();
+  await Promise.all([createCategoryResponse, refreshedCategoriesResponse]);
   await expect(page.getByRole('row', { name: /Cables/ })).toBeVisible();
 
   await page.goto('/admin/products/new');

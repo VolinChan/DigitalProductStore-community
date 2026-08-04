@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { acceptCheckoutPolicies, fillStructuredShipping, mockShippingRoute, seedNecessaryCookieConsent } from './helpers/shipping';
 
 const product = {
   id: 22,
@@ -14,12 +15,18 @@ const product = {
 };
 
 test.beforeEach(async ({ page, context }) => {
+  await seedNecessaryCookieConsent(page);
   await page.addInitScript(() => {
     localStorage.setItem('cart-storage', JSON.stringify({ state: { items: [{ id: 1, sku_id: 31, sku_code: 'CART-ITEM', sku_name: 'Existing cart item', quantity: 1, unit_price: 4990, subtotal: 4990 }], totalPrice: 4990, totalItems: 1 }, version: 0 }));
   });
   await context.route('http://localhost:8080/api/v1/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+	if (await mockShippingRoute(route)) return;
+    if (path === '/api/v1/checkout/validate') {
+      const payload = request.postDataJSON(); const sku = product.skus[0]; const item = { id: 1, cart_item_id: 1, product_id: product.id, product_slug: 'compact-usb-c-hub', product_name: product.name, sku_id: sku.id, sku_code: sku.sku_code, quantity: payload.items?.[0]?.quantity || 1, unit_price: sku.price, line_total: sku.price, subtotal: sku.price, stock_available: sku.inventory, available: true, issues: [] };
+      await route.fulfill({ json: { data: { checkout_validation_id: '11111111-1111-4111-8111-111111111111', digest: 'e2e', expires_at: new Date(Date.now() + 600000).toISOString(), cart_revision: 0, valid: true, summary: { id: 0, revision: 0, currency: 'CLP', items: [item], issues: [], subtotal: sku.price, total_items: 1 } } } }); return;
+    }
     if (path === '/api/v1/products/22') { await route.fulfill({ json: { data: product } }); return; }
     if (path === '/api/v1/orders' && request.method() === 'POST') {
       expect(request.postDataJSON()).toMatchObject({ payment_method: 'transfer', items: [{ sku_id: 220, quantity: 1 }] });
@@ -44,16 +51,15 @@ test('buy now checks out only the selected SKU and preserves the normal cart', a
   await page.getByLabel('Full name').fill('Buy Now Buyer');
   await page.getByLabel('Email address').fill('buyer@example.com');
   await page.getByLabel('Contact phone').fill('+56912345678');
-  await page.getByLabel('Region').fill('Metropolitana');
-  await page.getByLabel('Commune').fill('Santiago');
-  await page.getByLabel('Shipping address').fill('Test Street 123');
+  await fillStructuredShipping(page, 'Test Street');
   await page.getByRole('radio', { name: /Bank transfer/ }).check();
+  await acceptCheckoutPolicies(page);
   await page.getByRole('button', { name: 'Submit order' }).click();
   await expect(page).toHaveURL(/\/en\/checkout\/payment\?order_id=90&order_number=ORD-90&amount=15990&method=transfer/);
 
   const cart = await page.evaluate(() => JSON.parse(localStorage.getItem('cart-storage') || '{}'));
-  expect(cart.state.items).toHaveLength(1);
-  expect(cart.state.items[0].sku_id).toBe(31);
+  expect(cart.state.items).toBeUndefined();
+  expect(cart.state.recovery || []).toEqual([]);
 });
 
 test('expired buy-now intent does not fall back to the normal cart', async ({ page }) => {
@@ -86,6 +92,11 @@ test('checkout re-fetches price and never submits a client price', async ({ page
   await context.route('http://localhost:8080/api/v1/**', async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+	if (await mockShippingRoute(route)) return;
+    if (path === '/api/v1/checkout/validate') {
+      const sku = { ...product.skus[0], price: 21990, inventory: 2 }; const item = { id: 1, cart_item_id: 1, product_id: product.id, product_name: product.name, sku_id: sku.id, sku_code: sku.sku_code, quantity: 1, unit_price: sku.price, line_total: sku.price, subtotal: sku.price, stock_available: sku.inventory, available: true, issues: [] };
+      await route.fulfill({ json: { data: { checkout_validation_id: '22222222-2222-4222-8222-222222222222', digest: 'e2e', expires_at: new Date(Date.now() + 600000).toISOString(), cart_revision: 0, valid: true, summary: { id: 0, revision: 0, currency: 'CLP', items: [item], issues: [], subtotal: sku.price, total_items: 1 } } } }); return;
+    }
     if (path === '/api/v1/products/22') {
       await route.fulfill({ json: { data: { ...product, skus: [{ ...product.skus[0], price: 21990, inventory: 2 }] } } });
       return;
@@ -107,10 +118,9 @@ test('checkout re-fetches price and never submits a client price', async ({ page
   await page.getByLabel('Full name').fill('Current Price Buyer');
   await page.getByLabel('Email address').fill('buyer@example.com');
   await page.getByLabel('Contact phone').fill('+56912345678');
-  await page.getByLabel('Region').fill('Metropolitana');
-  await page.getByLabel('Commune').fill('Santiago');
-  await page.getByLabel('Shipping address').fill('Test Street 123');
+  await fillStructuredShipping(page, 'Test Street');
   await page.getByRole('radio', { name: /Bank transfer/ }).check();
+  await acceptCheckoutPolicies(page);
   await page.getByRole('button', { name: 'Submit order' }).click();
   await expect(page).toHaveURL(/order_id=91/);
   expect(orderPayload).toMatchObject({ items: [{ sku_id: 220, quantity: 1 }] });

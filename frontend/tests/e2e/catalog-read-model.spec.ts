@@ -86,3 +86,29 @@ test('selects a color and length combination and updates SKU price stock and med
   await expect(page.getByText(/Disponible \(2 en stock\)/).first()).toBeVisible();
   await expect(page.getByRole('button', { name: /Agregar|add/i }).first()).toBeEnabled();
 });
+
+test('keeps sparse historical multi-dimensional SKU combinations reachable', async ({ page }) => {
+  const sparseSKUs = [
+    { id: 210, product_id: 21, sku_code: 'CABLE-HH-2M', price: 90, inventory: 1, is_active: true, attributes: [{ id: 1, sku_id: 210, name: 'Color', value: 'hh' }, { id: 2, sku_id: 210, name: 'Length', value: '2m' }] },
+    { id: 211, product_id: 21, sku_code: 'CABLE-YELLOW-1M', price: 110, inventory: 80, is_active: true, attributes: [{ id: 3, sku_id: 211, name: 'Color', value: 'Yellow' }, { id: 4, sku_id: 211, name: 'Length', value: '1m' }] },
+  ];
+  await page.route('http://localhost:8080/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v1/products/21') {
+      await route.fulfill({ json: { data: {
+        id: 21, name: 'Sparse cable', description: '', specifications: '{}', status: 'published', is_active: true, created_at: '', updated_at: '', images: [], media: [], skus: sparseSKUs,
+      } } });
+      return;
+    }
+    await route.fulfill({ json: { data: {} } });
+  });
+
+  await page.goto('/en/products/21');
+  await expect(page.getByText('SKU: CABLE-HH-2M')).toBeVisible();
+  const yellow = page.getByRole('radio', { name: 'Yellow', exact: true });
+  await expect(yellow).toBeEnabled();
+  await yellow.click();
+  await expect(page.getByRole('radio', { name: '1m', exact: true })).toBeChecked();
+  await expect(page.getByText('SKU: CABLE-YELLOW-1M')).toBeVisible();
+  await expect(page.getByText('Available (80 in stock)')).toBeVisible();
+});

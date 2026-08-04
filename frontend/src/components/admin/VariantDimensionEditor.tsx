@@ -28,6 +28,8 @@ interface Props {
 const normalize = (value: string) => value.trim().toLocaleLowerCase();
 
 export default function VariantDimensionEditor({ productId, dimensions, skus, suggestions, onChanged }: Props) {
+	const compatibilityMode = dimensions.length >= 2;
+	const maxDimensions = compatibilityMode ? dimensions.length : 1;
   const [hasVariants, setHasVariants] = useState(dimensions.length > 0);
   const [drafts, setDrafts] = useState<DraftDimension[]>([]);
   const [preview, setPreview] = useState<VariantPreview | null>(null);
@@ -46,7 +48,7 @@ export default function VariantDimensionEditor({ productId, dimensions, skus, su
   const validationError = useMemo(() => {
     if (!hasVariants) return '';
     if (!drafts.length) return '请至少添加一个变体维度';
-    if (drafts.length > 3) return '每个商品最多使用 3 个变体维度';
+    if (drafts.length > maxDimensions) return compatibilityMode ? '兼容模式不能增加新的变体维度' : '新商品最多使用 1 个变体维度';
     const names = drafts.map((item) => normalize(item.name));
     if (names.some((name) => !name)) return '维度名称不能为空';
     if (new Set(names).size !== names.length) return '维度名称不能重复';
@@ -57,7 +59,7 @@ export default function VariantDimensionEditor({ productId, dimensions, skus, su
     }
     const combinations = drafts.reduce((total, dimension) => total * dimension.values.length, 1);
     return combinations > 100 ? `当前会生成 ${combinations} 个组合，超过 100 个上限` : '';
-  }, [drafts, hasVariants]);
+  }, [compatibilityMode, drafts, hasVariants, maxDimensions]);
 
   const payloadDimensions = useMemo(() => hasVariants ? drafts.map((dimension, index) => ({
     id: dimension.id,
@@ -96,7 +98,7 @@ export default function VariantDimensionEditor({ productId, dimensions, skus, su
   }, [payloadDimensions, productId, validationError]);
 
   const addDimension = (name = '') => {
-    if (drafts.length >= 3) return;
+    if (drafts.length >= maxDimensions) return;
     setHasVariants(true);
     setDrafts((current) => [...current, { name, values: [] }]);
   };
@@ -143,11 +145,13 @@ export default function VariantDimensionEditor({ productId, dimensions, skus, su
     <div className="space-y-4">
       <div>
         <div className="mb-2 font-medium">此商品是否有不同选项？</div>
-        <Radio.Group value={hasVariants} onChange={(event) => setHasVariants(event.target.value)} optionType="button" buttonStyle="solid">
+        <Radio.Group disabled={compatibilityMode} value={hasVariants} onChange={(event) => setHasVariants(event.target.value)} optionType="button" buttonStyle="solid">
           <Radio.Button value={false}>没有，仅一个默认 SKU</Radio.Button>
           <Radio.Button value>有，例如颜色或容量</Radio.Button>
         </Radio.Group>
       </div>
+
+      {compatibilityMode && <Alert type="info" showIcon message="历史多维兼容模式" description="可维护现有维度、值和 SKU，但不能再增加一个维度，也不会在未改维度时重建组合。" />}
 
       {hasVariants && <>
         {suggestionOptions.length > 0 && <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -180,7 +184,7 @@ export default function VariantDimensionEditor({ productId, dimensions, skus, su
             </div>
           </Card>)}
         </div>
-        <Button type="dashed" icon={<PlusOutlined />} disabled={drafts.length >= 3} onClick={() => addDimension()}>添加维度（{drafts.length}/3）</Button>
+        <Button type="dashed" icon={<PlusOutlined />} disabled={drafts.length >= maxDimensions} onClick={() => addDimension()}>添加维度（{drafts.length}/{maxDimensions}）</Button>
       </>}
 
       {validationError && <Alert type="error" showIcon message={validationError} />}

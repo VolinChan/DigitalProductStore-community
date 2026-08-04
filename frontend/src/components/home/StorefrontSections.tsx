@@ -5,22 +5,17 @@ import Link from 'next/link';
 import {
   ApiOutlined,
   ArrowRightOutlined,
-  AudioOutlined,
   CheckCircleFilled,
   CustomerServiceOutlined,
-  DesktopOutlined,
-  HddOutlined,
   SafetyCertificateOutlined,
   MessageOutlined,
   SyncOutlined,
-  ThunderboltOutlined,
-  UsbOutlined,
-  WifiOutlined,
 } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
 import ImageFallback from '@/components/ImageFallback';
 import { getProductPrimaryImage } from '@/lib/catalog';
 import type { Category, Product } from '@/types';
+import { CategoryIcon, getCategoryAncestorIconKeys } from '@/components/category/CategoryIcon';
 
 export function HomeHero({ product, loading }: { product?: Product; loading: boolean }) {
   const t = useTranslations();
@@ -78,11 +73,10 @@ export function HomeHero({ product, loading }: { product?: Product; loading: boo
 export function CategoryRail({ categories }: { categories: Category[] }) {
   const t = useTranslations();
   const locale = useLocale();
-  const icons = [<UsbOutlined key="usb" />, <ThunderboltOutlined key="bolt" />, <DesktopOutlined key="desktop" />, <HddOutlined key="storage" />, <WifiOutlined key="wifi" />, <AudioOutlined key="audio" />];
   const fallback = [t('home.categoryCables'), t('home.categoryChargers'), t('home.categoryPeripherals'), t('home.categoryStorage'), t('home.categoryNetwork'), t('home.categoryAudio')];
   const items = categories.length
-    ? categories.slice(0, 6).map((category) => ({ id: category.id, label: category.name, href: `/${locale}/products?category_id=${category.id}` }))
-    : fallback.map((label, index) => ({ id: `fallback-${index}`, label, href: `/${locale}/products` }));
+    ? categories.slice(0, 6).map((category) => ({ id: category.id, label: category.name, href: `/${locale}/products?category_id=${category.id}`, iconKey: category.icon_key, ancestorKeys: getCategoryAncestorIconKeys(category, categories) }))
+    : fallback.map((label, index) => ({ id: `fallback-${index}`, label, href: `/${locale}/products`, iconKey: ['usb', 'power', 'peripherals', 'storage', 'network', 'audio'][index], ancestorKeys: [] }));
 
   return (
     <section id="categories" className="py-12 sm:py-16 lg:py-20">
@@ -91,7 +85,7 @@ export function CategoryRail({ categories }: { categories: Category[] }) {
         {items.map((item, index) => (
           <Link key={item.id} href={item.href} className="group flex min-h-[142px] min-w-[138px] snap-start flex-col justify-between rounded-[18px] bg-white p-4 shadow-[0_2px_18px_rgba(21,48,66,0.05)] transition hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(21,48,66,0.10)] sm:min-w-0">
             <span className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl ${index % 3 === 0 ? 'bg-[#e8f4fb] text-[#1677b8]' : index % 3 === 1 ? 'bg-[#fff0e9] text-[#df6043]' : 'bg-[#e8f4ef] text-[#25806b]'}`}>
-              {icons[index % icons.length]}
+              <CategoryIcon iconKey={item.iconKey} ancestorKeys={item.ancestorKeys} label={`${item.label} category icon`} />
             </span>
             <span className="mt-5 text-sm font-bold leading-snug text-[#273746] group-hover:text-[var(--sf-accent)]">{item.label}</span>
           </Link>

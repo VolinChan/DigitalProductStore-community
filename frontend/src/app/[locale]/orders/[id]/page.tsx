@@ -63,6 +63,11 @@ export default function OrderDetailPage() {
   if (failed || !order) return <main className="store-container text-center"><h1 className="text-2xl font-black text-[var(--sf-ink)]">{failed ? t('orders.loadFailed') : t('orders.notFound')}</h1><div className="mt-6 flex flex-wrap justify-center gap-3">{failed && <button type="button" onClick={fetchOrder} className="sf-button-primary"><ReloadOutlined />{t('common.retry')}</button>}<Link href={`/${locale}/orders`} className="sf-button-secondary">{t('orders.backToOrders')}</Link></div></main>;
 
   const canCancel = order.status === 'pending_payment' || order.status === 'pending_transfer';
+  const canContinueTransfer = order.payment_method === 'transfer' && order.status === 'pending_payment';
+  const transferHref = `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&amount=${order.total_amount}&method=transfer`;
+  const statusLabel = order.payment_method === 'transfer' && order.status === 'pending_payment'
+    ? t('orders.statusAwaitingTransferProof')
+    : t(statusKeys[order.status]);
   const currentProgressStatus = order.status === 'pending_transfer' ? 'pending_payment' : order.status;
   const currentIndex = progressStatuses.indexOf(currentProgressStatus);
   const stopped = order.status === 'cancelled' || order.status === 'payment_failed';
@@ -72,8 +77,8 @@ export default function OrderDetailPage() {
       {modalContextHolder}
       <Link href={`/${locale}/orders`} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[var(--sf-accent)]"><ArrowLeftOutlined />{t('orders.backToOrders')}</Link>
       <header className="mt-4 flex flex-col gap-5 border-b border-[var(--sf-line)] pb-7 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="font-mono text-sm font-bold text-[var(--sf-muted)]">{order.order_number}</p><h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('orders.detailTitle')}</h1><div className="mt-4"><OrderStatusBadge status={order.status} label={t(statusKeys[order.status])} /></div></div>
-        <div className="flex flex-wrap gap-3"><OrderTrackingLink orderNumber={order.order_number} className="sf-button-secondary" />{canCancel && <button type="button" onClick={cancelOrder} disabled={cancelling} className="inline-flex min-h-11 w-fit items-center justify-center rounded-full border border-[#d66a60] px-5 text-sm font-bold text-[#a33a32] transition hover:bg-[#fdebea] disabled:opacity-50">{t('orders.cancelBtn')}</button>}</div>
+        <div><p className="font-mono text-sm font-bold text-[var(--sf-muted)]">{order.order_number}</p><h1 className="mt-2 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl">{t('orders.detailTitle')}</h1><div className="mt-4"><OrderStatusBadge status={order.status} label={statusLabel} /></div></div>
+        <div className="flex flex-wrap gap-3">{canContinueTransfer && <Link href={transferHref} className="sf-button-primary">{t('orders.continueTransfer')}</Link>}<OrderTrackingLink orderNumber={order.order_number} className="sf-button-secondary" />{canCancel && <button type="button" onClick={cancelOrder} disabled={cancelling} className="inline-flex min-h-11 w-fit items-center justify-center rounded-full border border-[#d66a60] px-5 text-sm font-bold text-[#a33a32] transition hover:bg-[#fdebea] disabled:opacity-50">{t('orders.cancelBtn')}</button>}</div>
       </header>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)] lg:gap-14">

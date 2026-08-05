@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockCartContractRoute, seedNecessaryCookieConsent } from './helpers/shipping';
 
 const blueImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22%3E%3Crect width=%2210%22 height=%2210%22 fill=%22blue%22/%3E%3C/svg%3E';
 const redImage = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22%3E%3Crect width=%2210%22 height=%2210%22 fill=%22red%22/%3E%3C/svg%3E';
@@ -12,7 +13,9 @@ const product = {
   is_active: true,
   created_at: '2026-07-30T09:00:00Z',
   updated_at: '2026-07-30T09:00:00Z',
-  images: [{ id: 1, product_id: 22, image_url: '/placeholder-product.svg', sort_order: 0, is_primary: true }],
+  images: Array.from({ length: 10 }, (_, index) => ({
+    id: index + 1, product_id: 22, image_url: '/placeholder-product.svg', sort_order: index, is_primary: index === 0,
+  })),
   skus: [
     {
       id: 220, product_id: 22, sku_code: 'HUB-BLUE', price: 15990, inventory: 3,
@@ -27,7 +30,15 @@ const product = {
   ],
 };
 
+const cartItem = {
+  id: 1, cart_item_id: 1, product_id: product.id, product_name: product.name,
+  sku_id: product.skus[0].id, sku_code: product.skus[0].sku_code, sku: product.skus[0],
+  quantity: 1, unit_price: product.skus[0].price, line_total: product.skus[0].price,
+  subtotal: product.skus[0].price, stock_available: product.skus[0].inventory, available: true, issues: [],
+};
+
 test.beforeEach(async ({ page }) => {
+  await seedNecessaryCookieConsent(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route('http://localhost:8080/api/v1/**', async route => {
     const url = new URL(route.request().url());
@@ -35,6 +46,7 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({ json: { data: product } });
       return;
     }
+    if (await mockCartContractRoute(route, [cartItem])) return;
     await route.fulfill({ json: { data: {} } });
   });
 });
@@ -58,26 +70,40 @@ test('SKU selection updates price, stock, image and purchase state', async ({ pa
   await expect(buyButton).toBeDisabled();
 });
 
-test('product image shows an original-size zoom preview on hover', async ({ page }) => {
+test('desktop image shows an adjacent zoom preview and opens a full-screen gallery', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/en/products/22');
-  const zoomButton = page.getByRole('button', { name: 'Zoom image to original size' });
+  const stage = page.getByTestId('product-gallery-stage');
+  const zoomButton = page.getByRole('button', { name: 'Open full-screen image gallery' });
   const zoomPreview = page.getByTestId('product-image-zoom');
 
   await expect(zoomButton).toBeVisible();
-  await expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
-  await expect(zoomPreview).toHaveCSS('background-size', 'auto');
-
   await zoomButton.hover({ position: { x: 60, y: 90 } });
-  await expect(zoomButton).toHaveAttribute('aria-pressed', 'true');
-  await expect(zoomPreview).toHaveClass(/opacity-100/);
+  await expect(zoomPreview).toBeVisible();
+  await expect(zoomPreview).toHaveCSS('background-size', '200%');
+  await expect.poll(async () => {
+    const stageBounds = await stage.boundingBox();
+    const zoomBounds = await zoomPreview.boundingBox();
+    return Boolean(stageBounds && zoomBounds && zoomBounds.x >= stageBounds.x + stageBounds.width);
+  }).toBe(true);
 
-  await page.mouse.move(380, 830);
-  await expect(zoomButton).toHaveAttribute('aria-pressed', 'false');
+  await page.mouse.move(10, 850);
+  await expect(zoomPreview).toHaveCount(0);
+
+  await zoomButton.click();
+  const lightbox = page.getByTestId('product-gallery-lightbox');
+  await expect(lightbox).toBeVisible();
+  await expect(lightbox.getByText('1 of 11')).toBeVisible();
+  await lightbox.getByRole('button', { name: 'View next image' }).click();
+  await expect(lightbox.getByText('2 of 11')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(lightbox).toHaveCount(0);
 });
 
 test('gallery edge arrows switch images in both directions', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto('/en/products/22');
-  const thumbnails = page.getByRole('option');
+  const thumbnails = page.getByTestId('product-gallery-thumbnails').getByRole('option');
 
   await expect(thumbnails.nth(0)).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('button', { name: 'View next image' }).click();
@@ -85,7 +111,41 @@ test('gallery edge arrows switch images in both directions', async ({ page }) =>
   await page.getByRole('button', { name: 'View previous image' }).click();
   await expect(thumbnails.nth(0)).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('button', { name: 'View previous image' }).click();
+  await expect(thumbnails.last()).toHaveAttribute('aria-selected', 'true');
+});
+
+test('mobile gallery swipes between images without widening or hiding purchase actions', async ({ page }) => {
+  await page.goto('/en/products/22');
+  const stage = page.getByTestId('product-gallery-stage');
+  const thumbnailStrip = page.getByTestId('product-gallery-thumbnails');
+  const thumbnails = thumbnailStrip.getByRole('option');
+
+  await expect(page.getByRole('button', { name: 'View previous image' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'View next image' })).toBeHidden();
+  await expect(page.getByTestId('mobile-purchase-bar')).toBeVisible();
+  await expect(page.getByTestId('mobile-purchase-bar').getByRole('button', { name: 'Buy now' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect.poll(() => thumbnailStrip.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+
+  await stage.evaluate((element) => {
+    const start = new Touch({ identifier: 1, target: element, clientX: 330, clientY: 180 });
+    const end = new Touch({ identifier: 1, target: element, clientX: 70, clientY: 185 });
+    element.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: [start], changedTouches: [start] }));
+    element.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], changedTouches: [end] }));
+  });
   await expect(thumbnails.nth(1)).toHaveAttribute('aria-selected', 'true');
+
+  await thumbnailStrip.getByRole('option', { name: 'View 7 more images' }).click();
+  const lightbox = page.getByTestId('product-gallery-lightbox');
+  await expect(lightbox).toBeVisible();
+  await expect(lightbox.getByText('5 of 11')).toBeVisible();
+  await lightbox.evaluate((element) => {
+    const start = new Touch({ identifier: 2, target: element, clientX: 330, clientY: 300 });
+    const end = new Touch({ identifier: 2, target: element, clientX: 70, clientY: 305 });
+    element.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: [start], changedTouches: [start] }));
+    element.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], changedTouches: [end] }));
+  });
+  await expect(lightbox.getByText('6 of 11')).toBeVisible();
 });
 
 test('adding to cart stays on the product, updates the header and restores focus', async ({ page }) => {
@@ -119,6 +179,16 @@ test('insufficient remaining stock reports an error without opening the mini car
       totalItems: 3,
     }, version: 0 }));
   }, product);
+
+  let addRequests = 0;
+  await page.route('http://localhost:8080/api/v1/cart/items**', async (route) => {
+    addRequests += 1;
+    if (addRequests === 1) {
+      await route.fulfill({ json: { data: { id: 1, revision: 1, items: [{ ...cartItem, quantity: 3, line_total: cartItem.unit_price * 3, subtotal: cartItem.unit_price * 3 }], subtotal: cartItem.unit_price * 3, total_items: 3, issues: [] } } });
+      return;
+    }
+    await route.fulfill({ status: 409, json: { error: { message: 'Total quantity exceeds available stock. Available: 3' } } });
+  });
 
   await page.goto('/en/products/22');
   await page.getByRole('radio', { name: 'Blue' }).click();

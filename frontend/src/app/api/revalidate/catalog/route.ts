@@ -15,9 +15,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const payload = await request.json() as RevalidationPayload;
-  revalidateTag('catalog-products', 'max');
-  revalidateTag('catalog-seo-index', 'max');
-  if (payload.slug) revalidateTag(`product:${payload.slug}`, 'max');
-  if (payload.previous_slug) revalidateTag(`product:${payload.previous_slug}`, 'max');
+  // Catalog lifecycle changes must be strongly consistent. Serving a stale
+  // list after an archive/unpublish leaves a card linking to a 404 detail
+  // page, so expire the affected entries synchronously on the next read.
+  const expireImmediately = { expire: 0 } as const;
+  revalidateTag('catalog-products', expireImmediately);
+  revalidateTag('catalog-seo-index', expireImmediately);
+  if (payload.slug) revalidateTag(`product:${payload.slug}`, expireImmediately);
+  if (payload.previous_slug) revalidateTag(`product:${payload.previous_slug}`, expireImmediately);
   return NextResponse.json({ revalidated: true, event: payload.event || 'catalog_changed' });
 }

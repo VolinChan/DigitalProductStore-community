@@ -14,6 +14,7 @@ interface ImageFallbackProps {
   priority?: boolean;
   loading?: 'lazy' | 'eager';
   placeholder?: 'blur' | 'empty';
+  onLoad?: React.ReactEventHandler<HTMLImageElement>;
 }
 
 /**
@@ -31,6 +32,7 @@ export default function ImageFallback({
   sizes,
   priority,
   loading = 'lazy',
+  onLoad,
   ...props
 }: ImageFallbackProps) {
   const [error, setError] = useState(false);
@@ -73,6 +75,7 @@ export default function ImageFallback({
       sizes={sizes}
       priority={priority}
       loading={priority ? undefined : loading}
+      onLoad={onLoad}
       onError={() => setError(true)}
       unoptimized={src.startsWith('/uploads/') || src.toLowerCase().split('?')[0].endsWith('.svg')}
       {...props}

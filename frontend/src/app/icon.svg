@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Plexoria icon</title>
+  <desc id="desc">A white and cyan angular X on a deep navy rounded square.</desc>
+  <defs>
+    <clipPath id="left-half">
+      <path d="M0 0h256v512H0z" />
+    </clipPath>
+    <clipPath id="right-half">
+      <path d="M256 0h256v512H256z" />
+    </clipPath>
+    <path id="plexoria-x" d="M94 88h96l66 92 66-92h96L306 256l112 168h-96l-66-93-66 93H94l112-168z" />
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="#07285c" />
+  <use href="#plexoria-x" fill="#ffffff" clip-path="url(#left-half)" />
+  <use href="#plexoria-x" fill="#08a9df" clip-path="url(#right-half)" />
+</svg>

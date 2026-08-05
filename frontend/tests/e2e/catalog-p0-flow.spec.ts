@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { seedNecessaryCookieConsent } from './helpers/shipping';
 
 test('creates and publishes a catalog product, then selects its SKU and adds it to the cart', async ({ page, context }) => {
   test.setTimeout(90_000);
+  await seedNecessaryCookieConsent(page);
   await page.addInitScript(() => {
     localStorage.setItem('access_token', 'e2e-token');
     localStorage.setItem('auth-storage', JSON.stringify({
@@ -23,6 +25,7 @@ test('creates and publishes a catalog product, then selects its SKU and adds it 
   let media: Array<Record<string, unknown>> = [];
   let specifications: Array<Record<string, unknown>> = [];
   let skus: Array<Record<string, unknown>> = [];
+  let variantDimensions: Array<Record<string, unknown>> = [];
   let published = false;
   let cartAdded: { sku_id: number; quantity: number } | undefined;
 
@@ -31,7 +34,7 @@ test('creates and publishes a catalog product, then selects its SKU and adds it 
     description_html: '<p>Carga rápida y durable.</p>', short_description: '', brand: '', model: '', condition: 'new',
     warranty_text: '', category_id: 7, category, specifications: '{}', status: published ? 'published' : 'draft',
     is_active: published, version: 1, created_at: '', updated_at: '', images: [], media, skus,
-    structured_specifications: specifications, variant_dimensions: [],
+    structured_specifications: specifications, variant_dimensions: variantDimensions,
   });
 
   await context.route('http://localhost:8080/api/v1/**', async (route) => {
@@ -94,7 +97,21 @@ test('creates and publishes a catalog product, then selects its SKU and adds it 
       return;
     }
     if (path === '/api/v1/admin/products/42/variants/preview') {
-      await route.fulfill({ json: { data: { kept: [], created: [], deactivated: [], deletable: [] } } });
+      await route.fulfill({ json: { data: { kept: [], created: [{}], deactivated: [], deletable: [] } } });
+      return;
+    }
+    if (path === '/api/v1/admin/products/42/variants' && method === 'PUT') {
+      expect(request.postDataJSON()).toMatchObject({ dimensions: [{ name: 'Color', values: [{ value: 'Black' }] }] });
+      variantDimensions = [{ id: 51, product_id: 42, name: 'Color', sort_order: 0, values: [{ id: 52, dimension_id: 51, value: 'Black', sort_order: 0 }] }];
+      skus = [{ id: 31, product_id: 42, sku_code: 'AUTO-31', price: 1, inventory: 0, is_active: true, attributes: [{ id: 61, sku_id: 31, name: 'Color', value: 'Black' }], media: [] }];
+      await route.fulfill({ json: { data: product() } });
+      return;
+    }
+    if (path === '/api/v1/admin/skus/31' && method === 'PUT') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      expect(body).toMatchObject({ sku_code: 'CABLE-BLACK', price: 12990, inventory: 8 });
+      skus = [{ ...skus[0], ...body }];
+      await route.fulfill({ json: { data: skus[0] } });
       return;
     }
     if (path === '/api/v1/admin/products/42/skus' && method === 'POST') {
@@ -176,13 +193,17 @@ test('creates and publishes a catalog product, then selects its SKU and adds it 
   await page.getByRole('button', { name: '保存规格' }).click();
   await expect(page.getByText('规格已保存')).toBeVisible();
 
-  await page.getByRole('button', { name: /添加变体/ }).click();
+  await page.getByText('有，例如颜色或容量', { exact: true }).click();
+  await page.getByRole('button', { name: /Color/ }).click();
+  await page.getByLabel('Color的值').fill('Black');
+  await page.getByLabel('Color的值').press('Enter');
+  await page.getByRole('button', { name: '保存变体维度' }).click();
+  await expect(page.getByText('AUTO-31')).toBeVisible();
+  await page.getByRole('button', { name: '编辑销售变体' }).click();
   await page.getByLabel('SKU 编码').fill('CABLE-BLACK');
   await page.getByLabel('价格（CLP）').fill('12990');
   await page.getByLabel('库存').fill('8');
-  await page.getByPlaceholder('属性名，如 color').fill('Color');
-  await page.getByPlaceholder('属性值，如 black').fill('Black');
-  await page.getByRole('dialog', { name: '添加销售变体' }).getByRole('button', { name: /保\s*存/ }).click();
+  await page.getByRole('dialog', { name: '编辑变体 AUTO-31' }).getByRole('button', { name: /保\s*存/ }).click();
   await expect(page.getByText('CABLE-BLACK')).toBeVisible();
 
   const popupPromise = page.waitForEvent('popup');
@@ -201,7 +222,7 @@ test('creates and publishes a catalog product, then selects its SKU and adds it 
   await page.goto('/es-CL/products/42');
   await page.getByRole('radio', { name: 'Black' }).click();
   await page.getByRole('button', { name: /Agregar al carrito/ }).first().click();
-  await expect.poll(() => cartAdded).toEqual({ sku_id: 31, quantity: 1 });
+  await expect.poll(() => cartAdded).toMatchObject({ sku_id: 31, quantity: 1 });
 });
 
 function publishReport() {

@@ -197,10 +197,10 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
         <span className="truncate text-[var(--sf-subtle)]">{product.name}</span>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)] lg:gap-12">
-        <section><ImageGallery images={product.images || []} media={catalogStorefrontEnabled ? product.media || [] : []} skuMedia={catalogStorefrontEnabled ? selectedSku?.media ?? [] : []} skuImageUrl={getSKUImage(selectedSku)} productName={product.name} /></section>
+      <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.84fr)] lg:gap-12">
+        <section className="min-w-0"><ImageGallery images={product.images || []} media={catalogStorefrontEnabled ? product.media || [] : []} skuMedia={catalogStorefrontEnabled ? selectedSku?.media ?? [] : []} skuImageUrl={getSKUImage(selectedSku)} productName={product.name} /></section>
 
-        <section className="lg:sticky lg:top-28 lg:h-fit">
+        <section className="min-w-0 lg:sticky lg:top-28 lg:h-fit">
           {product.category && <p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">{product.category.name}</p>}
           {product.brand && <p className="mt-3 text-xs font-bold uppercase text-[var(--sf-muted)]">{product.brand}</p>}
           <h1 className="mt-2 text-2xl font-black leading-tight text-[var(--sf-ink)] sm:text-3xl lg:text-4xl">{product.name}</h1>
@@ -213,7 +213,7 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
 
           {(activeSKUs.length > 1 || activeSKUs.some((sku) => (sku.attributes || []).length > 0)) && <div className="mt-6"><SKUSelector skus={activeSKUs} selectedSku={selectedSku} selectedAttributes={selectedAttributes} onAttributeChange={changeAttribute} /></div>}
 
-          <div className="mt-6 flex items-center gap-4">
+          <div className="mt-6 flex flex-wrap items-center gap-3 sm:gap-4">
             <span className="text-sm font-black text-[var(--sf-ink)]">{t('common.quantity')}</span>
             <QuantityControl quantity={quantity} max={selectedSku?.inventory || 1} disabled={!selectedSku || !inventoryStatus.available} onChange={setQuantity} quantityLabel={t('common.quantity')} decreaseLabel={t('products.decreaseQuantity')} increaseLabel={t('products.increaseQuantity')} />
             {selectedSku && selectedSku.inventory > 0 && <span className="text-xs text-[var(--sf-muted)]">{t('products.maxQty', { count: selectedSku.inventory })}</span>}
@@ -239,11 +239,11 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
         )}
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--sf-line)] bg-white/95 px-4 py-3 backdrop-blur-xl sm:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-        <div className="mx-auto flex max-w-[640px] items-center gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-50 w-full max-w-full overflow-hidden border-t border-[var(--sf-line)] bg-white/95 px-4 py-3 backdrop-blur-xl sm:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }} data-testid="mobile-purchase-bar">
+        <div className="mx-auto flex min-w-0 max-w-[640px] items-center gap-2">
           <div className="min-w-0 flex-1"><p className="truncate text-lg font-black text-[var(--sf-brand)]">{currentPrice !== null ? formatCLP(currentPrice, locale) : t('products.noPrice')}</p></div>
-          <button type="button" onClick={handleAddToCart} disabled={purchaseDisabled || addingToCart} className="sf-button-secondary !min-h-12 !px-4" aria-label={t('products.addToCart')}><ShoppingCartOutlined /></button>
-          <button type="button" onClick={handleBuyNow} disabled={purchaseDisabled || buyingNow} className="sf-button-primary !min-h-12 !px-4"><ThunderboltOutlined />{t('products.buyNow')}</button>
+          <button type="button" onClick={handleAddToCart} disabled={purchaseDisabled || addingToCart} className="sf-button-secondary !h-12 !w-12 !min-h-12 shrink-0 !px-0" aria-label={t('products.addToCart')}><ShoppingCartOutlined /></button>
+          <button type="button" onClick={handleBuyNow} disabled={purchaseDisabled || buyingNow} className="sf-button-primary !min-h-12 shrink-0 whitespace-nowrap !px-4"><ThunderboltOutlined />{t('products.buyNow')}</button>
         </div>
       </div>
 

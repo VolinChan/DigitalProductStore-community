@@ -21,7 +21,7 @@ export default function OrderTrackPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
-  const statusLabel = (status: OrderStatus) => t(`status.${status}`);
+  const statusLabel = (status: OrderStatus) => order?.payment_method === 'transfer' && status === 'pending_payment' ? t('status.awaiting_transfer_proof') : t(`status.${status}`);
 
   useEffect(() => {
     const orderNumber = new URLSearchParams(window.location.search).get('order_number');
@@ -38,6 +38,8 @@ export default function OrderTrackPage() {
   const normalized = order?.status === 'pending_transfer' ? 'pending_payment' : order?.status;
   const currentIndex = normalized ? progress.indexOf(normalized) : -1;
   const stopped = order?.status === 'cancelled' || order?.status === 'payment_failed';
+  const canContinueTransfer = order?.payment_method === 'transfer' && order.status === 'pending_payment';
+  const transferHref = order ? `/${locale}/checkout/payment?order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}&amount=${order.total_amount}&method=transfer` : '';
 
   return (
     <main className="store-container">
@@ -61,7 +63,7 @@ export default function OrderTrackPage() {
           <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('infoTitle')}</h2><dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"><Info label={t('date')} value={formatDateTime(order.created_at, locale)} /><Info label={t('paymentMethod')} value={order.payment_method === 'online' ? t('onlinePayment') : t('bankTransfer')} /><Info label={t('amount')} value={formatCLP(order.total_amount, locale)} />{order.shipping_carrier && <Info label={t('carrier')} value={order.shipping_carrier} />}{order.tracking_number && <Info label={t('trackingNumber')} value={order.tracking_number} mono />}</dl></section>
 
           {order.items?.length > 0 && <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('itemsTitle')}</h2><div className="mt-4 divide-y divide-[var(--sf-line)] border-y border-[var(--sf-line)]">{order.items.map(item => { const attributes = formatOrderItemAttributes(item); return <div key={item.id} className="grid gap-3 py-5 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-sm font-black text-[var(--sf-ink)]">{item.sku_name}</p>{attributes && <p className="mt-1 text-xs text-[var(--sf-muted)]">{attributes}</p>}</div><div className="flex justify-between gap-5 sm:block sm:text-right"><p className="text-xs text-[var(--sf-muted)]">{formatCLP(item.unit_price, locale)} × {item.quantity}</p><p className="mt-1 font-black text-[var(--sf-brand)]">{formatCLP(item.subtotal, locale)}</p></div></div>; })}</div></section>}
-          <Link href={`/${locale}`} className="sf-button-secondary">{t('backHome')}</Link>
+          <div className="flex flex-wrap gap-3">{canContinueTransfer && <Link href={transferHref} onClick={() => { const email = form.getFieldValue('email'); if (email) sessionStorage.setItem(`transfer-email:${order.id}`, email); if (order.transfer_account_snapshot?.length) sessionStorage.setItem(`transfer-accounts:${order.id}`, JSON.stringify(order.transfer_account_snapshot)); }} className="sf-button-primary">{t('continueTransfer')}</Link>}<Link href={`/${locale}`} className="sf-button-secondary">{t('backHome')}</Link></div>
         </div>}
       </section>
     </main>

@@ -12,6 +12,13 @@ export const metadata: Metadata = {
   metadataBase: getSiteConfig().siteUrl,
   title: 'Plexoria',
   description: 'Tecnología y accesorios seleccionados en Chile.',
+  icons: {
+    icon: [
+      { url: '/plexoria-icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
   robots: getSiteConfig().indexingEnabled ? { index: true, follow: true } : NOINDEX_ROBOTS,
 };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, type SyntheticEvent } from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import ImageFallback from '@/components/ImageFallback';
@@ -20,10 +21,17 @@ export default function ProductCard({ product, highlightQuery }: ProductCardProp
   const startingPrice = getStartingPrice(product);
   const outOfStock = checkOutOfStock(product);
   const summary = getProductSummary(product);
+  const [sampledSurface, setSampledSurface] = useState<{ src: string; color: string } | null>(null);
+  const imageSurface = sampledSurface?.src === primaryImage ? sampledSurface.color : '#f7f7f7';
+
+  const matchImageSurface = (event: SyntheticEvent<HTMLImageElement>) => {
+    const color = sampleEdgeColor(event.currentTarget);
+    if (color) setSampledSurface({ src: primaryImage, color });
+  };
 
   return (
     <Link href={`/${locale}/products/${encodeURIComponent(product.slug || String(product.id))}`} className="group block min-w-0">
-      <div className="relative aspect-square overflow-hidden rounded-[18px] bg-[#f1f4f2] sm:rounded-[22px]">
+      <div className="relative aspect-square overflow-hidden rounded-[18px] border border-solid border-[var(--sf-line)] transition-colors duration-200 sm:rounded-[22px]" style={{ backgroundColor: imageSurface }}>
         {outOfStock && (
           <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#273746] px-2.5 py-1 text-[10px] font-bold text-white sm:left-3 sm:top-3 sm:text-xs">
             {t('common.soldOut')}
@@ -33,9 +41,10 @@ export default function ProductCard({ product, highlightQuery }: ProductCardProp
           src={primaryImage}
           alt={product.name}
           fill
-          className={`object-contain p-4 transition duration-500 group-hover:scale-[1.05] sm:p-6 ${outOfStock ? 'opacity-55' : ''}`}
+          className={`object-contain p-1 transition duration-500 group-hover:scale-[1.025] sm:p-2 ${outOfStock ? 'opacity-55' : ''}`}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           loading="lazy"
+          onLoad={matchImageSurface}
         />
       </div>
 
@@ -67,6 +76,28 @@ export default function ProductCard({ product, highlightQuery }: ProductCardProp
       </div>
     </Link>
   );
+}
+
+function sampleEdgeColor(image: HTMLImageElement): string | null {
+  try {
+    const size = 12;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context || image.naturalWidth === 0 || image.naturalHeight === 0) return null;
+    context.drawImage(image, 0, 0, size, size);
+    const points = [[0, 0], [size - 1, 0], [0, size - 1], [size - 1, size - 1], [size / 2, 0], [size / 2, size - 1], [0, size / 2], [size - 1, size / 2]];
+    const samples = points
+      .map(([x, y]) => [...context.getImageData(x, y, 1, 1).data] as [number, number, number, number])
+      .filter((sample) => sample[3] > 32);
+    if (!samples.length) return '#f7f7f7';
+    const median = (channel: 0 | 1 | 2) => samples.map((sample) => sample[channel]).sort((a, b) => a - b)[Math.floor(samples.length / 2)];
+    return `rgb(${median(0)} ${median(1)} ${median(2)})`;
+  } catch {
+    // Cross-origin images without CORS cannot be sampled safely.
+    return null;
+  }
 }
 
 function getStartingPrice(product: Product): number | null {

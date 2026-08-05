@@ -308,7 +308,8 @@
     "status": "Estado",
     "amount": "Monto",
     "statusPendingPayment": "Pendiente de pago",
-    "statusPendingTransfer": "Pendiente de transferencia",
+    "statusAwaitingTransferProof": "Falta comprobante de transferencia",
+    "statusPendingTransfer": "Comprobante en revisión",
     "statusPaid": "Pagado",
     "statusPendingShipment": "Pendiente de despacho",
     "statusShipped": "Enviado",
@@ -318,6 +319,7 @@
     "tracking": "Seguimiento de pedido",
     "viewOrder": "Ver pedido",
     "payNow": "Pagar ahora",
+    "continueTransfer": "Continuar transferencia",
     "noOrders": "No tienes pedidos aún",
     "browseProducts": "Explorar productos",
     "backToOrders": "Volver a pedidos",
@@ -546,6 +548,10 @@
     "image": "Imagen {num}",
     "viewImage": "Ver imagen {num}",
     "zoomImage": "Ampliar imagen a tamaño original",
+    "openGallery": "Abrir galería de imágenes",
+    "closeGallery": "Cerrar galería",
+    "moreImages": "Ver {count} imágenes más",
+    "counter": "{current} de {total}",
     "previousImage": "Ver imagen anterior",
     "nextImage": "Ver imagen siguiente"
   },
@@ -565,8 +571,8 @@
     "productCount": "{count} productos"
   },
   "orderTracking": {
-    "title": "Seguimiento de pedido", "description": "Ingresa tu número de pedido y el correo usado en la compra.", "orderNumber": "Número de pedido", "orderNumberRequired": "Ingresa el número de pedido", "orderNumberPlaceholder": "Ingresa tu número de pedido", "email": "Correo de compra", "emailRequired": "Ingresa el correo de compra", "emailInvalid": "Ingresa un correo válido", "emailPlaceholder": "Ingresa el correo usado en la compra", "submit": "Consultar pedido", "notFound": "No encontramos un pedido que coincida con esos datos.", "searchFailed": "No se pudo consultar el pedido. Inténtalo de nuevo.", "statusTitle": "Estado del pedido", "created": "Pedido creado", "infoTitle": "Información del pedido", "date": "Fecha de compra", "paymentMethod": "Medio de pago", "onlinePayment": "Pago en línea", "bankTransfer": "Transferencia bancaria", "amount": "Total del pedido", "carrier": "Empresa de despacho", "trackingNumber": "Número de seguimiento", "itemsTitle": "Productos", "product": "Producto", "unitPrice": "Precio unitario", "quantity": "Cantidad", "subtotal": "Subtotal", "backHome": "Volver al inicio",
-    "status": { "pending_payment": "Pendiente de pago", "pending_transfer": "Transferencia pendiente", "paid": "Pagado", "pending_shipment": "Pendiente de despacho", "shipped": "Despachado", "completed": "Completado", "cancelled": "Cancelado", "payment_failed": "Pago rechazado" }
+    "title": "Seguimiento de pedido", "description": "Ingresa tu número de pedido y el correo usado en la compra.", "orderNumber": "Número de pedido", "orderNumberRequired": "Ingresa el número de pedido", "orderNumberPlaceholder": "Ingresa tu número de pedido", "email": "Correo de compra", "emailRequired": "Ingresa el correo de compra", "emailInvalid": "Ingresa un correo válido", "emailPlaceholder": "Ingresa el correo usado en la compra", "submit": "Consultar pedido", "notFound": "No encontramos un pedido que coincida con esos datos.", "searchFailed": "No se pudo consultar el pedido. Inténtalo de nuevo.", "statusTitle": "Estado del pedido", "created": "Pedido creado", "infoTitle": "Información del pedido", "date": "Fecha de compra", "paymentMethod": "Medio de pago", "onlinePayment": "Pago en línea", "bankTransfer": "Transferencia bancaria", "amount": "Total del pedido", "carrier": "Empresa de despacho", "trackingNumber": "Número de seguimiento", "itemsTitle": "Productos", "product": "Producto", "unitPrice": "Precio unitario", "quantity": "Cantidad", "subtotal": "Subtotal", "backHome": "Volver al inicio", "continueTransfer": "Continuar transferencia",
+    "status": { "pending_payment": "Pendiente de pago", "awaiting_transfer_proof": "Falta comprobante de transferencia", "pending_transfer": "Comprobante en revisión", "paid": "Pagado", "pending_shipment": "Pendiente de despacho", "shipped": "Despachado", "completed": "Completado", "cancelled": "Cancelado", "payment_failed": "Pago rechazado" }
   },
   "error": {
     "title": "Algo salió mal",

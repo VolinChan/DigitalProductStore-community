@@ -66,7 +66,7 @@ export default function ProductEditor({ productId }: { productId?: number }) {
       const templateRequest = apiClient.get<{ data: ShippingTemplate[] }>('/admin/product-shipping-templates');
       const [categoryResponse, productResponse, templateResponse] = await Promise.all([categoryRequest, productRequest, templateRequest]);
       setCategories(categoryResponse.data.data?.categories ?? []);
-      setShippingTemplates(templateResponse.data.data ?? []);
+      setShippingTemplates(Array.isArray(templateResponse.data.data) ? templateResponse.data.data : []);
       if (productResponse) {
         const loadedProduct = productResponse.data.data;
         setProduct(loadedProduct);

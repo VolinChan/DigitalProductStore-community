@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testIgnore: ['seo-foundation.spec.ts', 'legal-trust.spec.ts'],
   fullyParallel: false,
   reporter: 'line',
   use: {

@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { mockCartContractRoute, seedNecessaryCookieConsent } from './helpers/shipping';
 
 const product = {
   id: 22, name: 'Accessible USB-C Hub', description: 'Reliable connections for home and office.', specifications: '{}',
@@ -9,13 +10,22 @@ const product = {
   }],
 };
 
+const cartItem = {
+  id: 1, cart_item_id: 1, product_id: product.id, product_name: product.name,
+  sku_id: product.skus[0].id, sku_code: product.skus[0].sku_code, sku: product.skus[0],
+  quantity: 1, unit_price: product.skus[0].price, line_total: product.skus[0].price,
+  subtotal: product.skus[0].price, stock_available: product.skus[0].inventory, available: true, issues: [],
+};
+
 test.beforeEach(async ({ page }) => {
+  await seedNecessaryCookieConsent(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route('http://localhost:8080/api/v1/**', async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/v1/products/22') return route.fulfill({ json: { data: product } });
     if (path === '/api/v1/products') return route.fulfill({ json: { data: { products: [product], total: 1 } } });
     if (path === '/api/v1/categories') return route.fulfill({ json: { data: { categories: [{ id: 7, name: 'Cables', slug: 'cables', is_active: true }] } } });
+    if (await mockCartContractRoute(route, [cartItem])) return;
     return route.fulfill({ json: { data: {} } });
   });
 });

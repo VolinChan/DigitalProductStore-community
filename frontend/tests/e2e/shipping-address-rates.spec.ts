@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { fillStructuredShipping, mockShippingRoute, testShippingQuote } from './helpers/shipping';
+import { acceptCheckoutPolicies, fillStructuredShipping, mockCartContractRoute, mockShippingRoute, seedNecessaryCookieConsent, testShippingQuote } from './helpers/shipping';
+
+const cartItem = { id: 1, cart_item_id: 1, product_id: 1, product_name: 'Test product', sku_id: 31, sku_code: 'SKU-31', quantity: 1, unit_price: 20000, line_total: 20000, subtotal: 20000, stock_available: 5, available: true, issues: [] };
 
 test.beforeEach(async ({ page }) => {
+  await seedNecessaryCookieConsent(page);
   await page.addInitScript(() => localStorage.setItem('cart-storage', JSON.stringify({ state: { items: [{ id: 1, sku_id: 31, sku_code: 'SKU-31', sku_name: 'Test product', quantity: 1, unit_price: 20000, subtotal: 20000 }], totalPrice: 20000, totalItems: 1 }, version: 0 })));
 });
 
@@ -13,6 +16,7 @@ test('guest sees itemized CLP shipping, explicitly persists address, and confirm
   await context.route('http://localhost:8080/api/v1/**', async (route) => {
     const request = route.request(); const path = new URL(request.url()).pathname;
     if (await mockShippingRoute(route, firstQuote)) return;
+    if (await mockCartContractRoute(route, [cartItem])) return;
     if (path === '/api/v1/store-config/transfer-payment') return route.fulfill({ json: { data: { configured: false, accounts: [] } } });
     if (path === '/api/v1/orders' && request.method() === 'POST') {
       orderPayloads.push(request.postDataJSON());
@@ -28,6 +32,7 @@ test('guest sees itemized CLP shipping, explicitly persists address, and confirm
   await expect(page.getByText('Base shipping').locator('..')).toContainText(/2,400/);
   await expect(page.getByText('Shipping subsidy').locator('..')).toContainText(/1,000/);
   await expect(page.getByText('Remote surcharge').locator('..')).toContainText(/900/);
+  await acceptCheckoutPolicies(page);
   await page.getByRole('button', { name: 'Submit & pay' }).click();
   await expect.poll(() => orderPayloads.length).toBe(1);
   await page.getByRole('button', { name: 'Submit & pay' }).click();
@@ -39,6 +44,7 @@ test('guest sees itemized CLP shipping, explicitly persists address, and confirm
 test('changing Región clears an incompatible Comuna', async ({ page, context }) => {
   await context.route('http://localhost:8080/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (await mockCartContractRoute(route, [cartItem])) return;
     if (path === '/api/v1/locations/regions') return route.fulfill({ json: { data: [{ id: 13, name: 'Metropolitana' }, { id: 5, name: 'Valparaíso' }] } });
     if (path === '/api/v1/locations/regions/13/communes') return route.fulfill({ json: { data: [{ id: 13101, region_id: 13, name: 'Santiago' }] } });
     if (path === '/api/v1/locations/regions/5/communes') return route.fulfill({ json: { data: [{ id: 5101, region_id: 5, name: 'Valparaíso' }] } });
@@ -63,6 +69,7 @@ test('authenticated buyer checks out with one saved address reference', async ({
     if (path === '/api/v1/auth/profile') return route.fulfill({ json: { data: { id: 9, email: 'buyer@example.com', full_name: 'Buyer', phone: '+56911111111', role: 'user' } } });
     if (path === '/api/v1/me/addresses') return route.fulfill({ json: { data: [{ id: 77, user_id: 9, label: 'Home', recipient: 'Buyer', phone: '+56911111111', region_id: 13, commune_id: 13101, street: 'Saved Street', street_number: '77', complement: '', reference: '', is_default: true }] } });
     if (await mockShippingRoute(route)) return;
+    if (await mockCartContractRoute(route, [cartItem])) return;
     if (path === '/api/v1/store-config/transfer-payment') return route.fulfill({ json: { data: { configured: false, accounts: [] } } });
     if (path === '/api/v1/orders' && request.method() === 'POST') {
       orderPayload = request.postDataJSON();
@@ -75,6 +82,7 @@ test('authenticated buyer checks out with one saved address reference', async ({
   await expect(page.getByText('Home · Saved Street 77', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Street')).toHaveValue('Saved Street');
   await expect(page.getByLabel('Street')).toBeDisabled();
+  await acceptCheckoutPolicies(page);
   await page.getByRole('button', { name: 'Submit & pay' }).click();
   await expect.poll(() => orderPayload).toBeTruthy();
   expect(orderPayload).toMatchObject({ address_source: 'existing', address_id: 77, shipping_quote_version: testShippingQuote.quote_version });

@@ -60,7 +60,7 @@ export default function OrdersPage() {
         : <div className="divide-y divide-[var(--sf-line)]">
           {orders.map((order) => <Link key={order.id} href={`/${locale}/orders/${order.id}`} className="group grid min-h-[118px] gap-4 py-6 transition sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-center">
             <div className="min-w-0"><p className="text-xs font-bold text-[var(--sf-muted)]">{t('orders.orderNumber')}</p><p className="mt-1 break-all font-mono text-sm font-black text-[var(--sf-ink)] group-hover:text-[var(--sf-accent)]">{order.order_number}</p></div>
-            <div><p className="text-xs font-bold text-[var(--sf-muted)] sm:hidden">{t('orders.status')}</p><div className="mt-1 sm:mt-0"><OrderStatusBadge status={order.status} label={t(statusKeys[order.status])} /></div></div>
+            <div><p className="text-xs font-bold text-[var(--sf-muted)] sm:hidden">{t('orders.status')}</p><div className="mt-1 sm:mt-0"><OrderStatusBadge status={order.status} label={order.payment_method === 'transfer' && order.status === 'pending_payment' ? t('orders.statusAwaitingTransferProof') : t(statusKeys[order.status])} /></div></div>
             <div className="flex items-end justify-between gap-4 sm:block"><div><p className="text-xs font-bold text-[var(--sf-muted)]">{formatDate(order.created_at, locale)}</p><p className="mt-1 text-lg font-black text-[var(--sf-brand)]">{formatCLP(order.total_amount, locale)}</p></div><ArrowRightOutlined className="mb-1 text-[var(--sf-accent)] sm:hidden" /></div>
             <ArrowRightOutlined className="hidden text-[var(--sf-accent)] transition group-hover:translate-x-1 sm:block" />
           </Link>)}

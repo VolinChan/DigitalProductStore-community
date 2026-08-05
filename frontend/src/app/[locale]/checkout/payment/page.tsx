@@ -12,7 +12,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import TransferPayment from '@/components/checkout/TransferPayment';
 import apiClient from '@/lib/api';
-import type { TransferPaymentAccount } from '@/types';
+import type { Order, TransferPaymentAccount } from '@/types';
 import OrderTrackingLink from '@/components/order/OrderTrackingLink';
 
 function PaymentPageContent() {
@@ -64,13 +64,32 @@ function PaymentPageContent() {
   useEffect(() => {
     if (method !== 'transfer' || !orderId) return;
     const stored = sessionStorage.getItem(`transfer-accounts:${orderId}`);
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as TransferPaymentAccount[];
-      if (Array.isArray(parsed) && parsed.length > 0) setTransferAccounts(parsed);
-    } catch {
-      sessionStorage.removeItem(`transfer-accounts:${orderId}`);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as TransferPaymentAccount[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTransferAccounts(parsed);
+          return;
+        }
+      } catch {
+        sessionStorage.removeItem(`transfer-accounts:${orderId}`);
+      }
     }
+
+    // A signed-in customer may return from order history in a new browser
+    // session. Reload the immutable account snapshot captured on the order.
+    let active = true;
+    void apiClient.get<{ data: Order }>(`/orders/${orderId}`)
+      .then((response) => {
+        if (!active) return;
+        const snapshot = response.data.data?.transfer_account_snapshot;
+        if (Array.isArray(snapshot) && snapshot.length > 0) {
+          setTransferAccounts(snapshot);
+          sessionStorage.setItem(`transfer-accounts:${orderId}`, JSON.stringify(snapshot));
+        }
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, [method, orderId]);
 
   const orderHref = orderId ? `/${locale}/orders/${orderId}` : `/${locale}/orders`;

@@ -361,7 +361,8 @@
     "status": "Status",
     "amount": "Amount",
     "statusPendingPayment": "Pending payment",
-    "statusPendingTransfer": "Pending transfer",
+    "statusAwaitingTransferProof": "Awaiting transfer proof",
+    "statusPendingTransfer": "Transfer under review",
     "statusPaid": "Paid",
     "statusPendingShipment": "Pending shipment",
     "statusShipped": "Shipped",
@@ -371,6 +372,7 @@
     "tracking": "Order tracking",
     "viewOrder": "View order",
     "payNow": "Pay now",
+    "continueTransfer": "Continue bank transfer",
     "noOrders": "You don't have any orders yet",
     "browseProducts": "Browse products",
     "backToOrders": "Back to orders",
@@ -512,8 +514,8 @@
     "defaultDesc": "Try again or return to the homepage"
   },
   "orderTracking": {
-    "title": "Order tracking", "description": "Enter your order number and the email used for your purchase.", "orderNumber": "Order number", "orderNumberRequired": "Enter your order number", "orderNumberPlaceholder": "Enter your order number", "email": "Purchase email", "emailRequired": "Enter your purchase email", "emailInvalid": "Enter a valid email address", "emailPlaceholder": "Enter the email used for your purchase", "submit": "Track order", "notFound": "No matching order was found.", "searchFailed": "We couldn't look up this order. Please try again.", "statusTitle": "Order status", "created": "Order created", "infoTitle": "Order information", "date": "Order date", "paymentMethod": "Payment method", "onlinePayment": "Online payment", "bankTransfer": "Bank transfer", "amount": "Order total", "carrier": "Shipping carrier", "trackingNumber": "Tracking number", "itemsTitle": "Items", "product": "Product", "unitPrice": "Unit price", "quantity": "Quantity", "subtotal": "Subtotal", "backHome": "Back to home",
-    "status": { "pending_payment": "Pending payment", "pending_transfer": "Pending transfer", "paid": "Paid", "pending_shipment": "Pending shipment", "shipped": "Shipped", "completed": "Completed", "cancelled": "Cancelled", "payment_failed": "Payment failed" }
+    "title": "Order tracking", "description": "Enter your order number and the email used for your purchase.", "orderNumber": "Order number", "orderNumberRequired": "Enter your order number", "orderNumberPlaceholder": "Enter your order number", "email": "Purchase email", "emailRequired": "Enter your purchase email", "emailInvalid": "Enter a valid email address", "emailPlaceholder": "Enter the email used for your purchase", "submit": "Track order", "notFound": "No matching order was found.", "searchFailed": "We couldn't look up this order. Please try again.", "statusTitle": "Order status", "created": "Order created", "infoTitle": "Order information", "date": "Order date", "paymentMethod": "Payment method", "onlinePayment": "Online payment", "bankTransfer": "Bank transfer", "amount": "Order total", "carrier": "Shipping carrier", "trackingNumber": "Tracking number", "itemsTitle": "Items", "product": "Product", "unitPrice": "Unit price", "quantity": "Quantity", "subtotal": "Subtotal", "backHome": "Back to home", "continueTransfer": "Continue bank transfer",
+    "status": { "pending_payment": "Pending payment", "awaiting_transfer_proof": "Awaiting transfer proof", "pending_transfer": "Transfer under review", "paid": "Paid", "pending_shipment": "Pending shipment", "shipped": "Shipped", "completed": "Completed", "cancelled": "Cancelled", "payment_failed": "Payment failed" }
   },
   "categories": {
     "title": "Product categories",
@@ -530,6 +532,10 @@
     "image": "Image {num}",
     "viewImage": "View image {num}",
     "zoomImage": "Zoom image to original size",
+    "openGallery": "Open full-screen image gallery",
+    "closeGallery": "Close image gallery",
+    "moreImages": "View {count} more images",
+    "counter": "{current} of {total}",
     "previousImage": "View previous image",
     "nextImage": "View next image"
   },

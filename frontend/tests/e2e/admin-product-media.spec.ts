@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const testImageURL = '/placeholder-product.svg';
+
 test('reuses media assets and updates alt text', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('access_token', 'e2e-token');
@@ -39,9 +41,9 @@ test('reuses media assets and updates alt text', async ({ page }) => {
       media_asset: {
         id: 11,
         kind: 'image',
-        storage_key: 'products/images/11.jpg',
-        url: '/test-image.jpg',
-        mime_type: 'image/jpeg',
+        storage_key: 'products/images/11.svg',
+        url: testImageURL,
+        mime_type: 'image/svg+xml',
         size_bytes: 100,
         alt_text: 'Old alt',
         created_at: '2026-01-01T00:00:00Z',
@@ -69,9 +71,9 @@ test('reuses media assets and updates alt text', async ({ page }) => {
       await route.fulfill({ json: { data: { media: [{
         id: 13,
         kind: 'image',
-        storage_key: 'products/images/13.jpg',
-        url: '/library-image.jpg',
-        mime_type: 'image/jpeg',
+        storage_key: 'products/images/13.svg',
+        url: testImageURL,
+        mime_type: 'image/svg+xml',
         size_bytes: 200,
         created_at: '2026-01-02T00:00:00Z',
         updated_at: '2026-01-02T00:00:00Z',
@@ -113,7 +115,10 @@ test('reuses media assets and updates alt text', async ({ page }) => {
   await expect(editor.locator('h3')).toHaveText('Fast charging');
 
   await page.getByRole('button', { name: 'Insert image' }).click();
-  await page.getByRole('button', { name: 'Insert media 13' }).click();
+  const insertDialog = page.getByRole('dialog', { name: '选择图片' });
+  await expect(insertDialog).toBeVisible();
+  await insertDialog.getByRole('button', { name: 'Insert media 13' }).click();
+  await expect(insertDialog).toBeHidden();
   await page.getByText('HTML 源码', { exact: true }).click();
   await expect(page.getByLabel('HTML source')).toHaveValue(/data-media-asset-id="13"/);
 });
@@ -164,7 +169,7 @@ test('retries an individual failed media upload without duplicating the gallery 
         await route.fulfill({ status: 503, json: { error: { code: 'STORAGE_UNAVAILABLE', message: 'retry' } } });
       } else {
         await route.fulfill({ json: { data: {
-          id: 21, kind: 'image', storage_key: 'products/images/21.jpg', url: '/retry-image.jpg', mime_type: 'image/jpeg',
+          id: 21, kind: 'image', storage_key: 'products/images/21.svg', url: testImageURL, mime_type: 'image/svg+xml',
           size_bytes: 4, created_at: '', updated_at: '',
         } } });
       }

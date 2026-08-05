@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import axios from 'axios';
 import apiClient from '@/lib/api';
 import type { Cart, CartItem, SKU } from '@/types';
 
@@ -90,7 +91,13 @@ export const useCartStore = create<CartStore>()(
           const line = get().items.find((item) => item.sku_id === sku.id);
           if (!line) throw new Error('The cart response did not contain the added product.');
           return line;
-        } catch (error) { set({ isLoading: false, lastIssue: 'cart_hydration_failed' }); throw error; }
+        } catch (error) {
+          set({ isLoading: false, lastIssue: 'cart_hydration_failed' });
+          if (axios.isAxiosError<{ error?: { message?: string } }>(error) && error.response?.data?.error?.message) {
+            throw new Error(error.response.data.error.message, { cause: error });
+          }
+          throw error;
+        }
       },
 
       updateQuantity: async (skuId, quantity) => {

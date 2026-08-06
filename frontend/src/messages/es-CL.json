@@ -577,5 +577,15 @@
   "error": {
     "title": "Algo salió mal",
     "subTitle": "Lo sentimos, ocurrió un error al cargar esta página. Por favor, inténtalo de nuevo."
+  },
+  "notFoundPage": {
+    "eyebrow": "Error 404",
+    "title": "No encontramos lo que buscabas",
+    "description": "Es posible que el producto ya no esté disponible, que haya cambiado de dirección o que el enlace esté incompleto. Puedes buscar otra opción o volver a explorar nuestro catálogo.",
+    "searchLabel": "Buscar en Plexoria",
+    "searchPlaceholder": "Busca un producto, modelo o conector...",
+    "searchAction": "Buscar",
+    "browseProducts": "Ver todos los productos",
+    "backHome": "Volver al inicio"
   }
 }

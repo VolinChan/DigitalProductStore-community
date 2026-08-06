@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import AuthShell from '@/components/storefront/AuthShell';
 import { useAuthStore } from '@/store/useAuthStore';
+import { sanitizeLocalRedirect } from '@/lib/admin-navigation';
 
 function LoginForm() {
   const t = useTranslations('auth');
@@ -17,7 +18,7 @@ function LoginForm() {
   const { login, isAuthenticated, isLoading } = useAuthStore();
   const [form] = Form.useForm();
   const [mounted, setMounted] = useState(false);
-  const destination = params.get('redirect') || `/${locale}`;
+  const destination = sanitizeLocalRedirect(params.get('redirect'), `/${locale}`);
   useEffect(() => setMounted(true), []);
   useEffect(() => { if (mounted && isAuthenticated) router.push(destination); }, [destination, isAuthenticated, mounted, router]);
   const submit = async (values: { email: string; password: string }) => {

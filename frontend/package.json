@@ -8,6 +8,7 @@
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "next start",
     "lint": "eslint .",
+    "audit:admin-i18n": "node scripts/audit-admin-i18n.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

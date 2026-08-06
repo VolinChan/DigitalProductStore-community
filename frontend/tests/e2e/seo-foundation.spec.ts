@@ -36,7 +36,14 @@ test('English fallback is noindex and legacy references redirect permanently', a
     expect(redirect.status()).toBe(308);
     expect(redirect.headers().location).toBe('/es-CL/products/seo-usb-c-hub');
   }
-  expect((await request.get('/es-CL/products/missing-product')).status()).toBe(404);
+  const missing = await request.get('/es-CL/products/missing-product');
+  expect(missing.status()).toBe(404);
+  const missingHTML = await missing.text();
+  expect(missingHTML).toContain('No encontramos lo que buscabas');
+  expect(missingHTML).toContain('href="/es-CL/products"');
+  expect(missingHTML).toContain('href="/es-CL"');
+  expect(missingHTML).toMatch(/name="robots" content="noindex/);
+  expect(missingHTML).not.toContain('<h1>Product not found</h1>');
 });
 
 test('home, listing, and categories expose primary content without browser API hydration', async ({ browser }) => {

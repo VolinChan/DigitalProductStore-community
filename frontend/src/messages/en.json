@@ -527,6 +527,16 @@
     "title": "Something went wrong",
     "subTitle": "Sorry, an error occurred while loading this page. Please try again."
   },
+  "notFoundPage": {
+    "eyebrow": "Error 404",
+    "title": "We couldn't find what you were looking for",
+    "description": "The product may no longer be available, its address may have changed, or the link may be incomplete. Search for another option or continue browsing our catalog.",
+    "searchLabel": "Search Plexoria",
+    "searchPlaceholder": "Search by product, model or connector...",
+    "searchAction": "Search",
+    "browseProducts": "Browse all products",
+    "backHome": "Back to home"
+  },
   "gallery": {
     "title": "Product image selection",
     "image": "Image {num}",

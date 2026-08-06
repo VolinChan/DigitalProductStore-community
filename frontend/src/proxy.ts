@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DEFAULT_INDEX_LOCALE, isStorefrontLocale } from '@/lib/seo/policy';
+import { renderProductNotFoundHTML } from '@/lib/seo/not-found-html';
 
 export async function proxy(request: NextRequest) {
   const segment = request.nextUrl.pathname.split('/')[1];
@@ -17,9 +18,13 @@ export async function proxy(request: NextRequest) {
           return NextResponse.redirect(new URL(`/${locale}/products/${encodeURIComponent(currentSlug)}`, request.url), 308);
         }
       } else if (resolvedResponse.status === 404) {
-        return new NextResponse('<!doctype html><html><head><meta name="robots" content="noindex, nofollow"><title>Product not found | Plexoria</title></head><body><main><h1>Product not found</h1></main></body></html>', {
+        return new NextResponse(renderProductNotFoundHTML(locale), {
           status: 404,
-          headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow' },
+          headers: {
+            'Cache-Control': 'no-store',
+            'Content-Type': 'text/html; charset=utf-8',
+            'X-Robots-Tag': 'noindex, nofollow',
+          },
         });
       }
     } catch {

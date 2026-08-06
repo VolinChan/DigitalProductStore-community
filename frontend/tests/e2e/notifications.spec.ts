@@ -76,8 +76,8 @@ test('notification administrator filters delivery state and creates a new retry 
 
   await page.goto('/admin/notifications');
   await expect(page.getByRole('heading', { name: '通知投递中心' })).toBeVisible();
-  await page.getByRole('combobox').first().click();
-  await page.locator('.ant-select-item-option[title="delivered"]').click();
+  await page.locator('.ant-select').filter({ hasText: '投递状态' }).getByRole('combobox').click();
+  await page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option').filter({ hasText: '已送达' }).click();
   await expect.poll(() => listQueries.some((query) => query.get('status') === 'delivered')).toBe(true);
   await page.getByRole('button', { name: '以新 attempt 重发' }).click();
   await expect.poll(() => calls).toContain('POST /api/v1/admin/notification-deliveries/21/retry');

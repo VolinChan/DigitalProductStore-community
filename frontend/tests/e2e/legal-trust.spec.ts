@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mockCartContractRoute, mockShippingRoute } from './helpers/shipping';
 
-const supplierAddress = 'Alameda 2963 2971 Maipu 17 D 35 a Romero, Santiago, XIII Región Metropolitana, Chile';
+const supplierAddress = 'Alameda 2963, Santiago, Región Metropolitana, Chile';
 const product = {
   id: 22, slug: 'compact-usb-c-hub', name: 'Compact USB-C Hub', description: 'Reliable connections.', specifications: '{}',
   status: 'published', is_active: true, created_at: '2026-08-01T09:00:00Z', updated_at: '2026-08-01T09:00:00Z', images: [],

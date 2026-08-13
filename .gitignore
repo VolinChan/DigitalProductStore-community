@@ -134,3 +134,4 @@ temp/
 .gocache
 /docs/
 .agents
+AGENTS.md

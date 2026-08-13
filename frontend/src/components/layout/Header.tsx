@@ -13,6 +13,7 @@ import {
   ShoppingOutlined,
   UserOutlined,
 	BellOutlined,
+	GiftOutlined,
 } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
@@ -68,7 +69,7 @@ export default function Header() {
     ? [
         { key: 'profile', label: <Link href={`/${locale}/profile`}>{t('layout.profile')}</Link> },
         { key: 'orders', label: <Link href={`/${locale}/orders`}>{t('layout.myOrders')}</Link> },
-        ...(user?.role === 'super_admin'
+        ...(user?.permissions?.length
           ? [{ key: 'admin', label: <Link href="/admin">{t('layout.admin')}</Link> }]
           : []),
         { type: 'divider' as const },
@@ -81,8 +82,8 @@ export default function Header() {
 
   return (
     <>
-      <div className="bg-[var(--sf-brand)] px-4 py-2 text-center text-[11px] font-semibold text-white sm:text-xs">
-        {t('layout.announcement')}
+      <div role="region" aria-label={t('layout.announcement')} className="bg-[var(--sf-brand)] px-4 py-2.5 text-center text-xs font-black tracking-wide text-white sm:text-sm">
+        <span className="inline-flex items-center gap-2"><GiftOutlined aria-hidden />{t('layout.announcement')}</span>
       </div>
 
       <header className="sticky top-0 z-50 border-b border-[var(--sf-line)] bg-[color:var(--sf-bg)]/95 backdrop-blur-xl">

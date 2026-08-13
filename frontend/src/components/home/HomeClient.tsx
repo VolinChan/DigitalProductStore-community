@@ -6,6 +6,7 @@ import { ArrowRightOutlined } from '@ant-design/icons';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Announcement, Banner, Category, Product } from '@/types';
 import apiClient from '@/lib/api';
+import { trackStorefrontEvent } from '@/lib/legal/consent';
 import AnnouncementBar from '@/components/home/AnnouncementBar';
 import BannerCarousel from '@/components/home/BannerCarousel';
 import ProductCard from '@/components/product/ProductCard';
@@ -34,6 +35,10 @@ export default function HomeClient({ banners: initialBanners, announcements: ini
   const [categories, setCategories] = useState(initialCategories);
   const [products, setProducts] = useState(initialProducts);
   const [productsLoading, setProductsLoading] = useState(clientFetch);
+
+	useEffect(() => {
+		trackStorefrontEvent({ event_type: 'homepage_view' });
+	}, []);
 
   useEffect(() => {
     if (!clientFetch) return;

@@ -62,7 +62,7 @@ test('notification administrator filters delivery state and creates a new retry 
   await context.route('http://localhost:8080/api/v1/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    if (url.pathname === '/api/v1/auth/profile') return route.fulfill({ json: { data: { id: 2, email: 'admin@example.com', full_name: 'Admin', role: 'super_admin' } } });
+    if (url.pathname === '/api/v1/auth/profile') return route.fulfill({ json: { data: { id: 2, email: 'admin@example.com', full_name: 'Admin', role: 'super_admin', permissions: ['manage_notifications'] } } });
     if (url.pathname === '/api/v1/admin/notification-deliveries' && request.method() === 'GET') {
       listQueries.push(url.searchParams);
       return route.fulfill({ json: { data: [attempt], meta: { total: 1 } } });

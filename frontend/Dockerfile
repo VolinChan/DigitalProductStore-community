@@ -9,7 +9,13 @@ COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
 # Install dependencies
 RUN \
   if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f package-lock.json ]; then \
+    for attempt in 1 2 3; do \
+      npm ci --no-audit --no-fund && break; \
+      if [ "$attempt" -eq 3 ]; then exit 1; fi; \
+      rm -rf node_modules; \
+      sleep $((attempt * 5)); \
+    done; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile; \
   else npm install; \
   fi
@@ -33,8 +39,12 @@ ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ARG NEXT_PUBLIC_CATALOG_EDITOR_ENABLED=true
 ARG NEXT_PUBLIC_CATALOG_STOREFRONT_ENABLED=true
+ARG NEXT_PUBLIC_GRAFANA_URL=https://grafana.plexoria.cl
+ARG NEXT_PUBLIC_SYSTEM_MONITORING_LINK_ENABLED=false
 ENV NEXT_PUBLIC_CATALOG_EDITOR_ENABLED=$NEXT_PUBLIC_CATALOG_EDITOR_ENABLED
 ENV NEXT_PUBLIC_CATALOG_STOREFRONT_ENABLED=$NEXT_PUBLIC_CATALOG_STOREFRONT_ENABLED
+ENV NEXT_PUBLIC_GRAFANA_URL=$NEXT_PUBLIC_GRAFANA_URL
+ENV NEXT_PUBLIC_SYSTEM_MONITORING_LINK_ENABLED=$NEXT_PUBLIC_SYSTEM_MONITORING_LINK_ENABLED
 ARG NEXT_PUBLIC_TRANSFER_BANK_NAME=
 ARG NEXT_PUBLIC_TRANSFER_ACCOUNT_NAME=
 ARG NEXT_PUBLIC_TRANSFER_ACCOUNT_NUMBER=

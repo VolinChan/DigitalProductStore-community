@@ -2,7 +2,7 @@ export const supplierProfile = {
   version: '0.1-owner-confirmed',
   legalName: 'Plexoria SpA',
   rut: '78.236.393-K',
-  principalAddress: 'Alameda 2963 2971 Maipu 17 D 35 a Romero, Santiago, XIII Región Metropolitana, Chile',
+  principalAddress: 'Alameda 2963, Santiago, Región Metropolitana, Chile',
   supportEmail: 'support@plexoria.cl',
   phoneDisplay: '+56 9 9509 6835',
   phoneHref: '+56995096835',

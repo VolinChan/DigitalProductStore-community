@@ -10,7 +10,7 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '**' },
+      { protocol: 'https', hostname: 'www.plexoria.cl' },
       { protocol: 'http', hostname: 'localhost' },
     ],
     dangerouslyAllowSVG: true,

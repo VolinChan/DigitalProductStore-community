@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import {
   AppstoreOutlined,
@@ -18,8 +17,8 @@ import {
   UsbOutlined,
   WifiOutlined,
 } from '@ant-design/icons';
-import { Button, Input } from 'antd';
 import type { Category } from '@/types';
+import ImageFallback from '@/components/ImageFallback';
 
 export const CATEGORY_ICON_KEYS = [
   'usb', 'power', 'mobile', 'tablet', 'laptop', 'monitor', 'peripherals',
@@ -77,79 +76,45 @@ export function getCategoryAncestorIconKeys(category: Category, categories: Cate
   return keys;
 }
 
+export function getCategoryAncestorImageURLs(category: Category, categories: Category[]): Array<string | null | undefined> {
+  const byID = new Map(categories.map((item) => [item.id, item]));
+  const urls: Array<string | null | undefined> = [];
+  const visited = new Set<number>([category.id]);
+  let parentID = category.parent_id;
+  while (parentID && !visited.has(parentID)) {
+    visited.add(parentID);
+    const parent = byID.get(parentID);
+    if (!parent) break;
+    urls.push(parent.image_asset?.url);
+    parentID = parent.parent_id;
+  }
+  return urls;
+}
+
 export function CategoryIcon({
   iconKey,
   ancestorKeys,
+  imageUrl,
+  ancestorImageUrls,
   label,
   className,
 }: {
   iconKey?: string | null;
   ancestorKeys?: Array<string | null | undefined>;
+  imageUrl?: string | null;
+  ancestorImageUrls?: Array<string | null | undefined>;
   label: string;
   className?: string;
 }) {
+  const resolvedImageURL = imageUrl || ancestorImageUrls?.find(Boolean);
+  if (resolvedImageURL) {
+    return (
+      <span role="img" aria-label={label} className={`relative overflow-hidden ${className ?? 'block h-full w-full'}`}>
+        <ImageFallback src={resolvedImageURL} alt="" fill className="object-contain p-2" sizes="160px" />
+      </span>
+    );
+  }
   const resolved = resolveCategoryIconKey(iconKey, ancestorKeys);
   const Icon = CATEGORY_ICON_REGISTRY[resolved].icon;
   return <span role="img" aria-label={label} className={className}><Icon aria-hidden /></span>;
-}
-
-export function CategoryIconPicker({
-  value,
-  onChange,
-}: {
-  value?: string | null;
-  onChange?: (value: CategoryIconKey | null) => void;
-}) {
-  const [query, setQuery] = useState('');
-  const entries = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase();
-    return CATEGORY_ICON_KEYS.filter((key) => {
-      const entry = CATEGORY_ICON_REGISTRY[key];
-      return !normalized || key.includes(normalized) || entry.labels.en.toLocaleLowerCase().includes(normalized) || entry.labels['es-CL'].toLocaleLowerCase().includes(normalized);
-    });
-  }, [query]);
-
-  return (
-    <div className="space-y-3">
-      <Input.Search
-        allowClear
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="搜索图标 / Buscar / Search"
-        aria-label="Buscar iconos / Search icons"
-      />
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="listbox" aria-label="Icono de categoría / Category icon">
-        <Button
-          className="h-auto min-h-16 whitespace-normal"
-          type={value == null ? 'primary' : 'default'}
-          aria-label="Sin icono / No icon"
-          aria-pressed={value == null}
-          onClick={() => onChange?.(null)}
-        >
-          未设置<br /><span className="text-xs opacity-70">Sin icono / No icon</span>
-        </Button>
-        {entries.map((key) => {
-          const entry = CATEGORY_ICON_REGISTRY[key];
-          const Icon = entry.icon;
-          const accessibleLabel = `${entry.labels['es-CL']} / ${entry.labels.en}`;
-          return (
-            <Button
-              key={key}
-              className="h-auto min-h-16 whitespace-normal"
-              type={value === key ? 'primary' : 'default'}
-              aria-label={accessibleLabel}
-              aria-pressed={value === key}
-              onClick={() => onChange?.(key)}
-            >
-              <span className="flex flex-col items-center gap-1"><Icon aria-hidden /><span>{accessibleLabel}</span><code className="text-[10px] opacity-70">{key}</code></span>
-            </Button>
-          );
-        })}
-      </div>
-      <div className="flex min-h-10 items-center gap-2 rounded-lg bg-gray-50 px-3 py-2" aria-live="polite">
-        <CategoryIcon iconKey={value} label="Vista previa / Preview" className="text-xl" />
-        <span className="text-sm">预览：{value && isCategoryIconKey(value) ? `${CATEGORY_ICON_REGISTRY[value].labels['es-CL']} / ${CATEGORY_ICON_REGISTRY[value].labels.en}` : 'Sin icono / No icon'}</span>
-      </div>
-    </div>
-  );
 }

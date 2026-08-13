@@ -114,4 +114,11 @@ test('catalog revalidation hook requires its deployment secret', async ({ reques
   });
   expect(accepted.status()).toBe(200);
   expect(await accepted.json()).toMatchObject({ revalidated: true, event: 'slug_changed' });
+
+  const categoryAccepted = await request.post('/api/revalidate/catalog', {
+    headers: { Authorization: 'Bearer seo-test-revalidation-secret' },
+    data: { category_id: 4, event: 'category_updated' },
+  });
+  expect(categoryAccepted.status()).toBe(200);
+  expect(await categoryAccepted.json()).toMatchObject({ revalidated: true, event: 'category_updated' });
 });

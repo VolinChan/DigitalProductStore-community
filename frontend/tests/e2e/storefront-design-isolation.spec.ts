@@ -12,7 +12,7 @@ test('storefront tokens stay scoped away from the admin application', async ({ p
   await page.route('http://localhost:8080/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/v1/auth/profile') {
-      await route.fulfill({ json: { data: { id: 9, email: 'admin@example.com', full_name: 'Admin', role: 'super_admin' } } });
+      await route.fulfill({ json: { data: { id: 9, email: 'admin@example.com', full_name: 'Admin', role: 'super_admin', permissions: ['manage_products'] } } });
       return;
     }
     if (path === '/api/v1/products') {

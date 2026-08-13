@@ -8,6 +8,7 @@ import apiClient from '@/lib/api';
 import { formatCLP, formatDateTime } from '@/lib/utils';
 import type { TransferDeclaration, TransferDeclarationEntry, TransferPaymentAccount, TransferPaymentConfig } from '@/types';
 import OrderTrackingLink from '@/components/order/OrderTrackingLink';
+import { groupTransferAccounts, normalizedTransferIdentity } from '@/lib/transferAccounts';
 
 interface TransferPaymentProps {
   orderId: number;
@@ -62,6 +63,7 @@ export default function TransferPayment({ orderId, orderNumber, totalAmount, acc
   const idempotencyKey = useRef(newKey('transfer-declaration'));
   const purchaseEmail = typeof window === 'undefined' ? '' : (sessionStorage.getItem(`transfer-email:${orderId}`) || '');
   const displayedAccounts = snapshotAccounts ?? transferConfig.accounts;
+  const payeeGroups = useMemo(() => groupTransferAccounts(displayedAccounts), [displayedAccounts]);
   const transferConfigured = displayedAccounts.length > 0;
 
   useEffect(() => {
@@ -183,9 +185,14 @@ export default function TransferPayment({ orderId, orderNumber, totalAmount, acc
       <p className="mt-3 text-sm leading-6 text-[var(--sf-muted)]">{t('transfer.bankInfoDesc')}</p>
       {!configLoading && !transferConfigured && <p role="alert" className="mt-4 rounded-lg bg-[#fff5d9] px-4 py-3 text-sm font-semibold text-[#835d00]">{t('transfer.configMissing')}</p>}
       <div className="mt-5 space-y-4">
-        {displayedAccounts.map((account, index) => <section key={account.id ?? `${account.bank_name}-${index}`} className="overflow-hidden rounded-[16px] border border-[var(--sf-line)] bg-white">
-          <h3 className="bg-[var(--sf-soft)] px-4 py-3 text-sm font-black">{t('transfer.accountHeading', { number: index + 1 })}</h3>
-          <dl>{[[t('transfer.bankName'), account.bank_name], [t('transfer.accountName'), account.account_name], [t('transfer.rut'), account.rut], [t('transfer.accountType'), account.account_type], [t('transfer.accountNumber'), account.account_number], [t('transfer.email'), account.email]].map(([label, value], row) => <div key={label} className={`grid gap-1 px-4 py-3 sm:grid-cols-[170px_1fr] ${row ? 'border-t border-[var(--sf-line)]' : ''}`}><dt className="text-xs font-bold text-[var(--sf-muted)]">{label}</dt><dd className="break-all text-sm font-black">{value || t('transfer.notConfigured')}</dd></div>)}</dl>
+        {payeeGroups.map((group, groupIndex) => <section key={`${normalizedTransferIdentity(group.accountName)}-${normalizedTransferIdentity(group.rut)}-${normalizedTransferIdentity(group.email)}-${groupIndex}`} className="overflow-hidden rounded-[16px] border border-[var(--sf-line)] bg-white">
+          <h3 className="bg-[var(--sf-soft)] px-4 py-3 text-sm font-black">{t('transfer.accountHeading', { number: groupIndex + 1 })}</h3>
+          <dl>{[[t('transfer.accountName'), group.accountName], [t('transfer.rut'), group.rut], [t('transfer.email'), group.email]].map(([label, value], row) => <div key={label} className={`grid gap-1 px-4 py-3 sm:grid-cols-[170px_1fr] ${row ? 'border-t border-[var(--sf-line)]' : ''}`}><dt className="text-xs font-bold text-[var(--sf-muted)]">{label}</dt><dd className="break-all text-sm font-black">{value || t('transfer.notConfigured')}</dd></div>)}</dl>
+          <div className="border-t border-[var(--sf-line)]">
+            {group.accounts.map((account, accountIndex) => <dl key={account.id ?? `${account.bank_name}-${account.account_number}-${accountIndex}`} className={`grid gap-3 px-4 py-4 sm:grid-cols-3 ${accountIndex ? 'border-t border-[var(--sf-line)]' : ''}`}>
+              {[[t('transfer.bankName'), account.bank_name], [t('transfer.accountType'), account.account_type], [t('transfer.accountNumber'), account.account_number]].map(([label, value]) => <div key={label}><dt className="text-xs font-bold text-[var(--sf-muted)]">{label}</dt><dd className="mt-1 break-all text-sm font-black">{value || t('transfer.notConfigured')}</dd></div>)}
+            </dl>)}
+          </div>
         </section>)}
         <dl className="overflow-hidden rounded-[16px] border border-[var(--sf-line)] bg-white">{[[t('transfer.amount'), formatCLP(totalAmount, locale)], [t('transfer.orderRef'), orderNumber]].map(([label, value], index) => <div key={label} className={`grid gap-1 px-4 py-3 sm:grid-cols-[170px_1fr] ${index ? 'border-t border-[var(--sf-line)]' : ''}`}><dt className="text-xs font-bold text-[var(--sf-muted)]">{label}</dt><dd className="break-all text-sm font-black text-[var(--sf-brand)]">{value}</dd></div>)}</dl>
       </div>

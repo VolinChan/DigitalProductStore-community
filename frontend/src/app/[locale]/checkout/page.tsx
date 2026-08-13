@@ -16,7 +16,7 @@ import apiClient from '@/lib/api';
 import SupplierDisclosure from '@/components/legal/SupplierDisclosure';
 import { getSKUImage } from '@/lib/catalog';
 import type { Cart, CartItem, CheckoutValidation, Order, PaymentMethod, Product, ShippingQuote, TransferPaymentConfig } from '@/types';
-import { trackStorefrontEvent } from '@/lib/legal/consent';
+import { getAnalyticsSessionID, trackStorefrontEvent } from '@/lib/legal/consent';
 
 interface ProductDetailResponse { data: Product }
 
@@ -171,6 +171,7 @@ export default function CheckoutPage() {
       setSubmitting(true);
       const response = await apiClient.post<{ data: Order }>('/orders', {
 		checkout_validation_id: validation?.checkout_validation_id,
+		analytics_session_id: getAnalyticsSessionID() || undefined,
         guest_name: shippingInfo.full_name,
         guest_email: shippingInfo.email,
         guest_phone: shippingInfo.phone,

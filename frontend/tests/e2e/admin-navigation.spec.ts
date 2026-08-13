@@ -12,7 +12,7 @@ async function authenticateAdmin(page: Page, role = 'super_admin') {
   await page.route('http://localhost:8080/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/v1/auth/profile') {
-      await route.fulfill({ json: { data: { id: 9, email: 'admin@example.com', full_name: 'Admin Plexoria', role, is_active: true, created_at: '', updated_at: '' } } });
+      await route.fulfill({ json: { data: { id: 9, email: 'admin@example.com', full_name: 'Admin Plexoria', role, permissions: role === 'user' ? [] : ['manage_products', 'manage_payments', 'review_transfer_payments', 'view_system_monitoring'], is_active: true, created_at: '', updated_at: '' } } });
       return;
     }
     if (path === '/api/v1/admin/products') {
@@ -87,6 +87,39 @@ test('mobile admin shell exposes an accessible storefront action', async ({ page
   await expect(storeHome).toBeVisible();
   await expect(storeHome).toHaveAttribute('href', '/es-CL');
   await expect(storeHome).toHaveAttribute('rel', /noopener/);
+});
+
+test('published product list exposes only the unpublish lifecycle command', async ({ page }) => {
+  await authenticateAdmin(page);
+  let unpublishCalls = 0;
+  await page.route('http://localhost:8080/api/v1/admin/products/12/unpublish', async (route) => {
+    unpublishCalls += 1;
+    await route.fulfill({ json: { data: { id: 12, status: 'unpublished' } } });
+  });
+  await page.goto('/admin/products');
+  await page.getByRole('button', { name: '下架' }).click();
+  await page.getByRole('button', { name: '确 定' }).click();
+  await expect.poll(() => unpublishCalls).toBe(1);
+});
+
+test('admin shell uses the Grafana vhost only when monitoring is explicitly enabled', async ({ page }) => {
+  await authenticateAdmin(page);
+  await page.goto('/admin/products');
+  const monitoringLink = page.getByRole('link', { name: '系统监控' });
+  if (process.env.NEXT_PUBLIC_SYSTEM_MONITORING_LINK_ENABLED === 'true') {
+    await expect(monitoringLink).toHaveAttribute('href', 'https://grafana.plexoria.cl');
+    await expect(monitoringLink).toHaveAttribute('target', '_blank');
+    await expect(monitoringLink).toHaveAttribute('rel', /noopener/);
+  } else {
+    await expect(monitoringLink).toHaveCount(0);
+  }
+});
+
+test('admin shell removes the legacy payment review entry and keeps trusted transfer review', async ({ page }) => {
+  await authenticateAdmin(page);
+  await page.goto('/admin/products');
+  await expect(page.getByText('转账确认', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('到账核验', { exact: true })).toBeVisible();
 });
 
 test('admin shell persists language, opens storefront links, and logs out without a 404', async ({ page }) => {

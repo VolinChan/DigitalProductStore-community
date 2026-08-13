@@ -15,7 +15,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import ImageFallback from '@/components/ImageFallback';
 import { getProductPrimaryImage } from '@/lib/catalog';
 import type { Category, Product } from '@/types';
-import { CategoryIcon, getCategoryAncestorIconKeys } from '@/components/category/CategoryIcon';
+import { CategoryIcon, getCategoryAncestorIconKeys, getCategoryAncestorImageURLs } from '@/components/category/CategoryIcon';
 
 export function HomeHero({ product, loading }: { product?: Product; loading: boolean }) {
   const t = useTranslations();
@@ -75,17 +75,17 @@ export function CategoryRail({ categories }: { categories: Category[] }) {
   const locale = useLocale();
   const fallback = [t('home.categoryCables'), t('home.categoryChargers'), t('home.categoryPeripherals'), t('home.categoryStorage'), t('home.categoryNetwork'), t('home.categoryAudio')];
   const items = categories.length
-    ? categories.slice(0, 6).map((category) => ({ id: category.id, label: category.name, href: `/${locale}/products?category_id=${category.id}`, iconKey: category.icon_key, ancestorKeys: getCategoryAncestorIconKeys(category, categories) }))
-    : fallback.map((label, index) => ({ id: `fallback-${index}`, label, href: `/${locale}/products`, iconKey: ['usb', 'power', 'peripherals', 'storage', 'network', 'audio'][index], ancestorKeys: [] }));
+    ? categories.slice(0, 6).map((category) => ({ id: category.id, label: category.name, href: `/${locale}/products?category_id=${category.id}`, imageUrl: category.image_asset?.url, ancestorImageUrls: getCategoryAncestorImageURLs(category, categories), iconKey: category.icon_key, ancestorKeys: getCategoryAncestorIconKeys(category, categories) }))
+    : fallback.map((label, index) => ({ id: `fallback-${index}`, label, href: `/${locale}/products`, imageUrl: undefined, ancestorImageUrls: [], iconKey: ['usb', 'power', 'peripherals', 'storage', 'network', 'audio'][index], ancestorKeys: [] }));
 
   return (
     <section id="categories" className="py-12 sm:py-16 lg:py-20">
       <SectionHeading eyebrow={t('home.findFast')} title={t('home.whatLookingFor')} action={<Link href={`/${locale}/categories`}>{t('common.viewAll')} <ArrowRightOutlined /></Link>} />
       <div className="-mx-4 mt-6 flex snap-x gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6">
         {items.map((item, index) => (
-          <Link key={item.id} href={item.href} className="group flex min-h-[142px] min-w-[138px] snap-start flex-col justify-between rounded-[18px] bg-white p-4 shadow-[0_2px_18px_rgba(21,48,66,0.05)] transition hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(21,48,66,0.10)] sm:min-w-0">
-            <span className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl ${index % 3 === 0 ? 'bg-[#e8f4fb] text-[#1677b8]' : index % 3 === 1 ? 'bg-[#fff0e9] text-[#df6043]' : 'bg-[#e8f4ef] text-[#25806b]'}`}>
-              <CategoryIcon iconKey={item.iconKey} ancestorKeys={item.ancestorKeys} label={`${item.label} category icon`} />
+          <Link key={item.id} href={item.href} className="group flex min-h-[172px] min-w-[150px] snap-start flex-col justify-between rounded-[18px] bg-white p-4 shadow-[0_2px_18px_rgba(21,48,66,0.05)] transition hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(21,48,66,0.10)] sm:min-w-0">
+            <span className={`flex h-20 w-full items-center justify-center rounded-2xl text-xl ${index % 3 === 0 ? 'bg-[#e8f4fb] text-[#1677b8]' : index % 3 === 1 ? 'bg-[#fff0e9] text-[#df6043]' : 'bg-[#e8f4ef] text-[#25806b]'}`}>
+              <CategoryIcon imageUrl={item.imageUrl} ancestorImageUrls={item.ancestorImageUrls} iconKey={item.iconKey} ancestorKeys={item.ancestorKeys} label={`${item.label} category image`} className="flex h-full w-full items-center justify-center" />
             </span>
             <span className="mt-5 text-sm font-bold leading-snug text-[#273746] group-hover:text-[var(--sf-accent)]">{item.label}</span>
           </Link>

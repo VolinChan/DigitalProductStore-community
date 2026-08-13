@@ -50,7 +50,7 @@ export default function ShippingForm({ form, initialValues, authenticated = fals
     else if (addresses[0]) selectAddress(addresses.find((row) => row.is_default) || addresses[0]);
   };
 
-  return <Form form={form} layout="vertical" initialValues={{ ...initialValues, address_source: 'new' }} requiredMark="optional" className="sf-checkout-form">
+  return <Form form={form} layout="vertical" initialValues={{ ...initialValues, address_source: 'new' }} requiredMark={false} className="sf-checkout-form">
     {authenticated && addresses.length > 0 && <div className="grid gap-4 sm:grid-cols-2"><Form.Item name="address_source" label={t('shipping.addressSource')}><Select onChange={switchSource} options={[{ value: 'existing', label: t('shipping.savedAddress') }, { value: 'new', label: t('shipping.newAddress') }]} /></Form.Item>{source === 'existing' && <Form.Item name="address_id" label={t('shipping.savedAddress')} rules={[{ required: true }]}><Select onChange={(id) => { const address = addresses.find((row) => row.id === id); if (address) selectAddress(address); }} options={addresses.map((row) => ({ value: row.id, label: `${row.label || row.recipient} · ${row.street} ${row.street_number}` }))} /></Form.Item>}</div>}
     <div className="grid gap-x-4 sm:grid-cols-2">
       <Form.Item name="full_name" label={t('shipping.fullName')} rules={[{ required: true, message: t('shipping.fullNameRequired') }, { min: 2, max: 100 }]}><Input disabled={source === 'existing'} autoComplete="name" prefix={<UserOutlined />} size="large" /></Form.Item>

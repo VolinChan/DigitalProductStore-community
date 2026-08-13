@@ -10,12 +10,34 @@ export interface User {
   full_name: string;
   phone?: string;
   role: UserRole;
+  permissions?: PermissionCode[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export type UserRole = 'guest' | 'user' | 'product_manager' | 'order_manager' | 'super_admin';
+export type UserRole = 'guest' | 'user' | 'operations_manager' | 'product_manager' | 'order_manager' | 'super_admin';
+
+export type PermissionCode =
+  | 'manage_staff'
+  | 'view_access_audit'
+  | 'manage_customers'
+  | 'manage_products'
+  | 'manage_skus'
+  | 'manage_categories'
+  | 'manage_inventory'
+  | 'manage_orders'
+  | 'manage_payments'
+  | 'review_transfer_payments'
+  | 'manage_notifications'
+  | 'manage_shipping'
+  | 'manage_content'
+  | 'view_sales_analytics'
+  | 'view_product_analytics'
+  | 'view_conversion_analytics'
+  | 'export_analytics'
+  | 'manage_system'
+  | 'view_system_monitoring';
 
 export interface AuthToken {
   access_token: string;
@@ -154,6 +176,8 @@ export interface MediaAsset {
   cover_asset_id?: number;
   cover_asset?: MediaAsset;
   alt_text?: string;
+  original_filename?: string;
+  deletion_status?: 'active' | 'deletion_pending' | 'objects_deleted' | 'cleanup_failed';
   created_at: string;
   updated_at: string;
 }
@@ -180,6 +204,8 @@ export interface Category {
   spec_template?: CategorySpecTemplateField[];
   variant_template?: CategoryVariantTemplate[];
   icon_key?: string | null;
+  image_asset_id?: number | null;
+  image_asset?: MediaAsset | null;
 }
 
 export interface CategorySpecTemplateField {
@@ -449,6 +475,24 @@ export interface DeliveryAttempt {
   diagnostic_code?: string;
   created_at: string;
   outbox?: NotificationOutbox;
+}
+
+export interface NotificationEmailTemplate {
+  event_type: string;
+  locale: 'es-CL' | 'en';
+  subject_template: string;
+  html_template: string;
+  variables: string[];
+  is_custom: boolean;
+  updated_at?: string;
+}
+
+export interface NotificationEmailPreview {
+  subject: string;
+  title: string;
+  body_summary: string;
+  html: string;
+  deep_link: string;
 }
 
 export interface InAppNotification {

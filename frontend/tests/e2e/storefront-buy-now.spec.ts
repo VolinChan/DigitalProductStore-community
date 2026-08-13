@@ -41,6 +41,8 @@ test('buy now checks out only the selected SKU and preserves the normal cart', a
   await page.goto('/en/products/22');
   await page.getByRole('button', { name: 'Buy now' }).first().click();
   await expect(page).toHaveURL(/\/en\/checkout\?mode=buy_now$/);
+  await expect(page.getByRole('region', { name: 'Free shipping from $19,900' })).toBeVisible();
+  await expect(page.getByText('(optional) (optional)', { exact: false })).toHaveCount(0);
   await expect(page.getByText('Compact USB-C Hub')).toBeVisible();
   await expect(page.getByText('Existing cart item')).toHaveCount(0);
 

@@ -1,4 +1,4 @@
-import type { Page, Route } from '@playwright/test';
+import { expect, type Page, type Route } from '@playwright/test';
 
 export const testShippingQuote = { formula_version: 'clp-shipping-v1', quote_version: 'quote-e2e-v1', region_id: 13, commune_id: 13101, shipping_rate_components: [{ template_id: 1, template_name: 'Default', quantity_mode: 'per_order', rule_id: 1, rule_scope: 'commune', product_ids: [1], sku_ids: [31], quantity_factor: 1, unit_base_amount: 0, raw_base_amount: 0, remote_surcharge: 0 }], raw_base_amount: 0, rounded_base_amount: 0, rounding_unit: 100, subsidy_amount: 0, remote_surcharge: 0, payable_shipping: 0, remote_assessment_required: false };
 
@@ -20,7 +20,14 @@ export async function mockCartContractRoute(route: Route, items: Array<Record<st
 
 export async function fillStructuredShipping(page: Page, street: string) {
   await page.getByLabel('Region').click(); await page.locator('.ant-select-item-option[title="Metropolitana"]').click();
+  await expect(page.getByLabel('Commune')).toBeEnabled();
+  const quoteResponse = page.waitForResponse((response) => {
+    const request = response.request();
+    return request.method() === 'POST' && new URL(response.url()).pathname === '/api/v1/shipping/quote' && response.ok();
+  });
   await page.getByLabel('Commune').click(); await page.locator('.ant-select-item-option[title="Santiago"]').click();
+  await quoteResponse;
+  await expect(page.getByLabel('Commune')).toHaveAccessibleName('Commune');
   await page.getByLabel('Street').fill(street); await page.getByLabel('Number').fill('123');
 }
 

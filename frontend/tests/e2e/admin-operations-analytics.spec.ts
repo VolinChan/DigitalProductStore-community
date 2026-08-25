@@ -66,6 +66,32 @@ test('analytics keeps successful sections visible when sales fails', async ({ pa
   await expect(page.getByText(/2 个匿名会话/)).toBeVisible();
 });
 
+test('single-day revenue renders as a normal chart column instead of a full-width block', async ({ page }) => {
+  await authenticated(page, ['view_sales_analytics']);
+  await page.route('http://localhost:8080/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v1/auth/profile') return route.fallback();
+    if (path.endsWith('/revenue')) return route.fulfill({ json: { data: { total_revenue: 24666, daily_data: [{ date: '2026-08-11', revenue: 24666 }] }, meta: { ...reportMeta, source: 'orders' } } });
+    if (path.endsWith('/orders')) return route.fulfill({ json: { data: { total_orders: 4, daily_data: [{ date: '2026-08-11', count: 4 }] }, meta: reportMeta } });
+    if (path.endsWith('/aov')) return route.fulfill({ json: { data: { average_order_value: 6166.5 }, meta: reportMeta } });
+    if (path.endsWith('/payment-distribution')) return route.fulfill({ json: { data: [{ method: 'transfer', count: 4, percentage: 100 }], meta: reportMeta } });
+    if (path.endsWith('/status-distribution')) return route.fulfill({ json: { data: [{ status: 'paid', count: 4, percentage: 100 }], meta: reportMeta } });
+    return route.fulfill({ json: { data: {}, meta: reportMeta } });
+  });
+
+  await page.goto('/admin/analytics');
+  const chart = page.getByTestId('daily-revenue-chart');
+  const bar = page.getByTestId('daily-revenue-bar');
+  await expect(chart).toBeVisible();
+  await expect(bar).toBeVisible();
+  const chartBox = await chart.boundingBox();
+  const barBox = await bar.boundingBox();
+  expect(chartBox?.width).toBeGreaterThan(500);
+  expect(barBox?.width).toBeLessThanOrEqual(40);
+  await expect(chart).toContainText(/\$24,7\s*(?:k|mil)/);
+  await expect(chart).toContainText('08-11');
+});
+
 test('staff, customers and immutable audit are separated and invitation posts', async ({ page }) => {
   await authenticated(page, ['manage_customers', 'manage_staff', 'view_access_audit']);
   let invitation: Record<string, unknown> | undefined;
@@ -79,6 +105,7 @@ test('staff, customers and immutable audit are separated and invitation posts', 
     return route.fulfill({ json: { data: {} } });
   });
   await page.goto('/admin/users');
+  await expect(page.getByRole('heading', { name: '客户与人员' })).toBeVisible();
   await expect(page.getByRole('tab', { name: '客户账号' })).toBeVisible();
   await page.getByRole('tab', { name: '员工账号' }).click();
   await page.getByRole('button', { name: '邀请员工' }).click();
@@ -89,6 +116,23 @@ test('staff, customers and immutable audit are separated and invitation posts', 
   await expect(page.getByText('员工邀请已创建并进入投递队列')).toBeVisible();
   await page.getByRole('tab', { name: '访问审计' }).click();
   await expect(page.getByPlaceholder('按动作代码筛选')).toBeVisible();
+});
+
+test('user management tabs follow the selected admin language', async ({ page }) => {
+  await authenticated(page, ['manage_customers', 'manage_staff', 'view_access_audit']);
+  await page.addInitScript(() => localStorage.setItem('plexoria_admin_locale', 'es-CL'));
+  await page.route('http://localhost:8080/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v1/auth/profile') return route.fallback();
+    if (path === '/api/v1/admin/customers') return route.fulfill({ json: { data: { customers: [] }, meta: { total: 0 } } });
+    return route.fulfill({ json: { data: {} } });
+  });
+
+  await page.goto('/admin/users');
+  await expect(page.getByRole('tab', { name: 'Clientes' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Personal' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Auditoría de acceso' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '客户账号' })).toHaveCount(0);
 });
 
 test('paid order ships with one semantic shipment request', async ({ page }) => {

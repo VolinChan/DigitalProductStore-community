@@ -13,7 +13,7 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--disable-web-security'] } } },
   ],
   webServer: {
-    command: 'npm run build && HOSTNAME=127.0.0.1 PORT=3110 node .next/standalone/server.js',
+    command: 'npm run build -- --webpack && HOSTNAME=127.0.0.1 PORT=3110 node .next/standalone/server.js',
     url: 'http://127.0.0.1:3110/admin/categories',
     reuseExistingServer: false,
     timeout: 120_000,

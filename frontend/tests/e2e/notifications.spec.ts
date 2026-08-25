@@ -75,6 +75,10 @@ test('notification administrator filters delivery state and creates a new retry 
   });
 
   await page.goto('/admin/notifications');
+  await expect(page).toHaveURL(/\/admin\/messaging\/deliveries$/);
+  await expect(page.getByRole('menuitem', { name: /通知与投递/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '投递中心' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '邮件模板' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '通知投递中心' })).toBeVisible();
   await page.locator('.ant-select').filter({ hasText: '投递状态' }).getByRole('combobox').click();
   await page.locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option').filter({ hasText: '已送达' }).click();

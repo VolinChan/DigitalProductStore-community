@@ -9,6 +9,7 @@ const statusStyles: Record<OrderStatus, string> = {
   completed: 'bg-[#e4f3e9] text-[#24723f]',
   cancelled: 'bg-[#edf0ee] text-[#5d696f]',
   payment_failed: 'bg-[#fdebea] text-[#a33a32]',
+  payment_review: 'bg-[#fff5d9] text-[#835d00]',
 };
 
 export default function OrderStatusBadge({ status, label }: { status: OrderStatus; label: string }) {

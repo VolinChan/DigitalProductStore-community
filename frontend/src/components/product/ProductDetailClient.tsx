@@ -36,6 +36,7 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
   const [loading, setLoading] = useState(!initialProduct);
   const [error, setError] = useState<string | null>(null);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  const [selectedSkuId, setSelectedSkuId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
@@ -78,7 +79,7 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
 
   useEffect(() => {
     const enabled = product?.skus?.filter((sku) => sku.is_active) ?? [];
-    if (!enabled.length) { setSelectedAttributes({}); return; }
+    if (!enabled.length) { setSelectedAttributes({}); setSelectedSkuId(null); return; }
     let initial: SKU | undefined;
     if (enabled.length === 1) {
       initial = enabled[0];
@@ -91,15 +92,19 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
         })[0];
     }
     setSelectedAttributes(initial ? Object.fromEntries((initial.attributes ?? []).map((attribute) => [attribute.name, attribute.value])) : {});
+    setSelectedSkuId(initial?.id ?? null);
   }, [product?.id, product?.promoted_sku_id, product?.skus]);
 
   const selectedSku = useMemo((): SKU | null => {
     const activeSKUs = product?.skus?.filter((sku) => sku.is_active) || [];
     if (activeSKUs.length === 0) return null;
     const attributeNames = new Set(activeSKUs.flatMap((sku) => (sku.attributes || []).map((attribute) => attribute.name)));
+    if (attributeNames.size === 0) {
+      return activeSKUs.find((sku) => sku.id === selectedSkuId) || activeSKUs[0];
+    }
     if (![...attributeNames].every((name) => selectedAttributes[name])) return null;
     return activeSKUs.find((sku) => (sku.attributes || []).every((attribute) => selectedAttributes[attribute.name] === attribute.value)) || null;
-  }, [product, selectedAttributes]);
+  }, [product, selectedAttributes, selectedSkuId]);
 
   const displayPrice = useMemo(() => {
     if (selectedSku) return { type: 'exact' as const, price: Number(selectedSku.price) };
@@ -127,11 +132,18 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
       attribute.name !== name && selectedAttributes[attribute.name] === attribute.value ? total + 1 : total
     ), 0);
     const best = [...candidates].sort((a, b) => score(b) - score(a) || Number(b.inventory > 0) - Number(a.inventory > 0) || a.id - b.id)[0];
+    setSelectedSkuId(best?.id ?? null);
     setSelectedAttributes(best
       ? Object.fromEntries((best.attributes || []).map((attribute) => [attribute.name, attribute.value]))
       : (previous) => ({ ...previous, [name]: value }));
     setQuantity(1);
   }, [product?.skus, selectedAttributes]);
+
+  const changeSku = useCallback((sku: SKU) => {
+    setSelectedSkuId(sku.id);
+    setSelectedAttributes(Object.fromEntries((sku.attributes || []).map((attribute) => [attribute.name, attribute.value])));
+    setQuantity(1);
+  }, []);
 
   const validatePurchase = () => {
     if (!selectedSku) { toast.warning(t('products.selectSku')); return false; }
@@ -211,7 +223,7 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
             <p className={`mt-2 text-sm font-bold ${inventoryStatus.available ? 'text-[var(--sf-success)]' : 'text-[var(--sf-warm)]'}`}>{inventoryStatus.label}</p>
           </div>
 
-          {(activeSKUs.length > 1 || activeSKUs.some((sku) => (sku.attributes || []).length > 0)) && <div className="mt-6"><SKUSelector skus={activeSKUs} selectedSku={selectedSku} selectedAttributes={selectedAttributes} onAttributeChange={changeAttribute} /></div>}
+          {(activeSKUs.length > 1 || activeSKUs.some((sku) => (sku.attributes || []).length > 0)) && <div className="mt-6"><SKUSelector skus={activeSKUs} selectedSku={selectedSku} selectedAttributes={selectedAttributes} onAttributeChange={changeAttribute} onSkuChange={changeSku} /></div>}
 
           <div className="mt-6 flex flex-wrap items-center gap-3 sm:gap-4">
             <span className="text-sm font-black text-[var(--sf-ink)]">{t('common.quantity')}</span>

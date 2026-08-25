@@ -125,8 +125,9 @@ uploads/
 # ---- Temp ----
 tmp/
 temp/
+.temp
 *.tmp
-
+output/
 # ---- Local helper scripts that may contain secrets ----
 *.local.ps1
 *.local.sh

@@ -77,7 +77,7 @@ async function mockShippingAdmin(page: Page) {
 test('region rules omit stale commune values and show API errors', async ({ page }) => {
   savedRule = null;
   await mockShippingAdmin(page);
-  await page.goto('/admin/shipping');
+  await page.goto('/admin/fulfillment/rates');
 
   await page.getByRole('tab', { name: '区域规则' }).click();
   await page.getByRole('button', { name: /编\s*辑/ }).click();
@@ -96,7 +96,7 @@ test('region rules omit stale commune values and show API errors', async ({ page
 test('subsidy editor uses named regions and omits hidden compatibility arrays', async ({ page }) => {
   savedSubsidy = null;
   await mockShippingAdmin(page);
-  await page.goto('/admin/shipping');
+  await page.goto('/admin/fulfillment/rates');
   await page.getByRole('tab', { name: '补贴', exact: true }).click();
   await page.getByRole('button', { name: /编\s*辑/ }).click();
   await expect(page.locator('.ant-select-selection-item', { hasText: 'Metropolitana' })).toBeVisible();
@@ -115,6 +115,7 @@ test('location workbook preview handles a null errors field without crashing', a
   const pageErrors: Error[] = [];
   page.on('pageerror', (error) => pageErrors.push(error));
   await page.goto('/admin/shipping');
+  await expect(page).toHaveURL(/\/admin\/fulfillment\/locations$/);
 
   await page.locator('input[type="file"][accept=".xlsx"]').setInputFiles({
     name: 'chile-locations-template.xlsx',

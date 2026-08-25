@@ -50,6 +50,10 @@ test('super admin previews and saves a localized email template', async ({ page 
   savedPayload = undefined;
   await mockAdmin(page);
   await page.goto('/admin/email-templates');
+  await expect(page).toHaveURL(/\/admin\/messaging\/templates$/);
+  await expect(page.getByRole('menuitem', { name: /通知与投递/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '投递中心' })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: '邮件模板' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '邮件模板' })).toBeVisible();
   const row = page.getByRole('row', { name: /付款确认.*Español/ });
   await row.getByRole('button', { name: '编辑' }).click();

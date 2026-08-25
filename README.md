@@ -14,8 +14,8 @@ Visit the live store here:
 
 ## Repositories
 
-- Community repository: `vigoordi/DigitalProductStore`
-- Private Pro repository: `vigoordi/DigitalProductStore-Pro`
+- Community repository: `VolinChan/DigitalProductStore-community`
+- Private Pro repository: `VolinChan/DigitalProductStore-Pro`
 
 ## What is included
 
@@ -47,8 +47,8 @@ The production backend is maintained in the private Pro repository. Keep product
 Requirements: Docker Desktop and Git.
 
 ```bash
-git clone https://github.com/vigoordi/DigitalProductStore.git
-cd DigitalProductStore
+git clone https://github.com/VolinChan/DigitalProductStore-community.git
+cd DigitalProductStore-community
 cp .env.community.example .env
 docker compose -f docker-compose.community.yml up --build
 ```
@@ -109,8 +109,8 @@ The community edition is available under the [GNU Affero General Public License 
 
 ### Production Backend (Private)
 
-The production backend — including payment processing, order management, inventory, analytics, admin panel, and deployment configuration — is maintained in the private Pro repository (`vigoordi/DigitalProductStore-Pro`). It is not included in this community edition.
+The production backend — including payment processing, order management, inventory, analytics, admin panel, and deployment configuration — is maintained in the private Pro repository (`VolinChan/DigitalProductStore-Pro`). It is not included in this community edition.
 
 ### Commercial Licensing
 
-This project is dual-licensed. The community edition is open-source under AGPLv3. For organizations that want to deploy a private fork without AGPL obligations, or require commercial support, SLA, custom integrations, or white-label licensing, please contact **vigoordi** via GitHub. Commercial license terms are negotiable on a case-by-case basis.
+This project is dual-licensed. The community edition is open-source under AGPLv3. For organizations that want to deploy a private fork without AGPL obligations, or require commercial support, SLA, custom integrations, or white-label licensing, please contact **VolinChan** via GitHub. Commercial license terms are negotiable on a case-by-case basis.

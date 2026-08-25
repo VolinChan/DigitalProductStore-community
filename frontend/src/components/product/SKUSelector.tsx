@@ -13,6 +13,8 @@ interface SKUSelectorProps {
   selectedAttributes: Record<string, string>;
   /** Callback when user selects an attribute value */
   onAttributeChange: (name: string, value: string) => void;
+  /** Direct selection for operational SKUs that do not define dimensions. */
+  onSkuChange?: (sku: SKU) => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export default function SKUSelector({
   selectedSku,
   selectedAttributes,
   onAttributeChange,
+  onSkuChange,
 }: SKUSelectorProps) {
   const t = useTranslations();
   // Extract all unique attribute types and their values
@@ -68,7 +71,33 @@ export default function SKUSelector({
   );
 
   if (attributeGroups.length === 0) {
-    return null;
+    const selectable = skus.filter((sku) => sku.is_active);
+    if (selectable.length <= 1 || !onSkuChange) return null;
+    return (
+      <div>
+        <label className="mb-2 block text-sm font-black text-[var(--sf-ink)]">
+          {t('products.selectSku')}
+          {selectedSku && <span className="ml-2 font-normal text-[var(--sf-muted)]">: {selectedSku.sku_code}</span>}
+        </label>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('products.selectSku')}>
+          {selectable.map((sku) => {
+            const isSelected = selectedSku?.id === sku.id;
+            const inStock = sku.inventory > 0;
+            return <button
+              key={sku.id}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              className={`min-h-[44px] min-w-[44px] rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${isSelected ? 'border-[var(--sf-accent)] bg-[var(--sf-soft-blue)] text-[var(--sf-accent)] ring-1 ring-[var(--sf-accent)]' : inStock ? 'border-[var(--sf-line)] bg-white text-[var(--sf-ink)] hover:border-[var(--sf-accent)] hover:text-[var(--sf-accent)]' : 'border-[var(--sf-line)] bg-white text-[var(--sf-muted)] hover:border-[var(--sf-muted)]'}`}
+              onClick={() => onSkuChange(sku)}
+            >
+              {sku.sku_code}
+              {!inStock && <span className="ml-1 text-xs text-[var(--sf-muted)]">({t('common.outOfStock')})</span>}
+            </button>;
+          })}
+        </div>
+      </div>
+    );
   }
 
   return (

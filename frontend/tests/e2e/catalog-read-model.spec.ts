@@ -46,6 +46,30 @@ test('storefront prefers the modern catalog read model and keeps legacy fallback
   await expect(page.getByText('legacy', { exact: true })).toHaveCount(0);
 });
 
+test('keeps multiple operational SKUs selectable without forcing variant dimensions', async ({ page }) => {
+  await page.route('http://localhost:8080/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v1/products/13') {
+      await route.fulfill({ json: { data: {
+        id: 13, name: 'Teclado mini variantes', description: '', specifications: '{}', status: 'published', is_active: true,
+        created_at: '', updated_at: '', images: [], media: [], skus: [
+          { id: 41, product_id: 13, sku_code: 'KB-TEST-BLK', price: 15990, inventory: 7, attributes: [], is_active: true },
+          { id: 42, product_id: 13, sku_code: 'KB-TEST-WHT', price: 16990, inventory: 5, attributes: [], is_active: true },
+        ],
+      } } });
+      return;
+    }
+    await route.fulfill({ json: { data: {} } });
+  });
+
+  await page.goto('/es-CL/products/13');
+  await expect(page.getByRole('radio', { name: 'KB-TEST-BLK', exact: true })).toBeChecked();
+  await page.getByRole('radio', { name: 'KB-TEST-WHT', exact: true }).click();
+  await expect(page.getByText('SKU: KB-TEST-WHT')).toBeVisible();
+  await expect(page.getByText(/16[.,]990/).first()).toBeVisible();
+  await expect(page.getByText(/Disponible \(5 en stock\)/).first()).toBeVisible();
+});
+
 test('selects a color and length combination and updates SKU price stock and media', async ({ page }) => {
   const skus = [
     ['Red', '1 m', 101, 10990, 4],

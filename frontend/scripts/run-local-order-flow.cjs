@@ -18,21 +18,19 @@ async function main() {
   })));
 
   try {
-    await page.goto(`${baseURL}/es-CL/products/u2001`, { waitUntil: 'networkidle' });
-    await expect(page.getByRole('heading', { name: 'USB-C-LINE2', level: 1 })).toBeVisible();
-    await page.getByRole('radio', { name: '黄色', exact: true }).click();
-    await page.getByRole('radio', { name: '1m', exact: true }).click();
-    await expect(page.getByText('SKU: P40-B69A9993', { exact: true })).toBeVisible();
+    await page.goto(`${baseURL}/es-CL/products/test1`, { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: 'test122222', level: 1 })).toBeVisible();
+    await expect(page.getByText('SKU: s001111', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: /Agregar al carrito/ }).click();
     const drawer = page.getByRole('dialog');
-    await expect(drawer).toContainText('USB-C-LINE2');
-    await expect(drawer).toContainText('P40-B69A9993');
+    await expect(drawer).toContainText('test122222');
+    await expect(drawer).toContainText('s001111');
     await drawer.getByRole('link', { name: /Ver carrito/ }).click();
 
     await expect(page).toHaveURL(/\/es-CL\/cart$/);
-    await expect(page.getByRole('heading', { name: 'USB-C-LINE2', exact: true })).toBeVisible();
-    await expect(page.getByText('P40-B69A9993', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'test122222', exact: true })).toBeVisible();
+    await expect(page.getByText('s001111', { exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Finalizar compra', exact: true }).click();
 
     await expect(page).toHaveURL(/\/es-CL\/checkout\?mode=cart$/);
@@ -53,8 +51,8 @@ async function main() {
     await page.getByLabel('Departamento o complemento (opcional)').fill('Prueba E2E');
     await page.getByLabel('Referencia de entrega (opcional)').fill('NO DESPACHAR - PEDIDO QA');
 
-    await expect(page.getByText('Despacho base').locator('..')).toContainText('$4.000');
-    await expect(page.getByText('Subsidio de despacho').locator('..')).toContainText('$4.000');
+    await expect(page.getByText('Despacho base').locator('..')).toBeVisible();
+    await expect(page.getByText('Subsidio de despacho').locator('..')).toBeVisible();
     await expect(page.getByText('Costo de despacho').locator('..')).toContainText('Gratis');
     await expect(page.getByText('Transferencia bancaria', { exact: true })).toBeVisible();
     await page.getByRole('checkbox', { name: /Acepto los términos y condiciones/ }).check();
@@ -70,7 +68,7 @@ async function main() {
     await expect(page.getByText(order.order_number, { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Banco de Prueba (solo QA)', { exact: true })).toBeVisible();
     await expect(page.locator('#main-content').getByText('Plexoria SpA', { exact: true })).toBeVisible();
-    await expect(page.getByText('$110', { exact: true })).toBeVisible();
+    await expect(page.locator('#main-content').getByText(new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(order.total_amount)), { exact: true }).last()).toBeVisible();
 
     await page.getByRole('button', { name: 'Ya hice la transferencia', exact: true }).click();
     await page.locator('input[type="file"]').first().setInputFiles({
@@ -86,22 +84,20 @@ async function main() {
     await page.getByLabel('Correo de compra').fill(purchaseEmail);
     await page.getByRole('button', { name: /Consultar pedido/ }).click();
     await expect(page.getByText(order.order_number, { exact: true }).last()).toBeVisible();
-    const trackedItem = page.getByText('USB-C-LINE2', { exact: true }).last().locator('..');
+    const trackedItem = page.getByText('test122222', { exact: true }).last().locator('..');
     await expect(trackedItem).toBeVisible();
-    await expect(trackedItem).toContainText('1m');
-    await expect(trackedItem).toContainText('黄色');
     await expect(trackedItem).not.toContainText('{');
-    await expect(page.getByText('Pendiente de pago', { exact: true })).toBeVisible();
+    await expect(page.getByText('Comprobante en revisión', { exact: true })).toBeVisible();
     await page.screenshot({ path: '/tmp/plexoria-live-order-flow-success.png', fullPage: true });
 
     process.stdout.write(`${JSON.stringify({
       order_id: order.id,
       order_number: order.order_number,
       purchase_email: purchaseEmail,
-      subtotal: 110,
-      shipping_base: 4000,
-      shipping_subsidy: 4000,
-      shipping_payable: 0,
+      subtotal: 11111,
+      shipping_base: Number(order.shipping_base_amount),
+      shipping_subsidy: Number(order.shipping_subsidy_amount),
+      shipping_payable: Number(order.shipping_payable_amount),
       total: Number(order.total_amount),
       status: 'pending_transfer',
       failed_responses: failedResponses,

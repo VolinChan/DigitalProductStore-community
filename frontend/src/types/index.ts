@@ -37,7 +37,11 @@ export type PermissionCode =
   | 'view_conversion_analytics'
   | 'export_analytics'
   | 'manage_system'
-  | 'view_system_monitoring';
+  | 'view_system_monitoring'
+  | 'manage_integrations'
+  | 'manage_catalog_integrations'
+  | 'manage_fiscal_documents'
+  | 'adjust_external_inventory';
 
 export interface AuthToken {
   access_token: string;
@@ -233,6 +237,12 @@ export interface SKU {
   version?: number;
   price: number;
   inventory: number;
+  available_to_sell?: number;
+  inventory_provider?: string;
+  inventory_synced_at?: string;
+  inventory_freshness?: string;
+  inventory_sellable?: boolean;
+  inventory_managed_externally?: boolean;
   attributes: SKUAttribute[];
   image_url?: string;
   media?: SKUMedia[];
@@ -328,6 +338,8 @@ export interface Order {
   shipping_address: string;
   status: OrderStatus;
   payment_method: PaymentMethod;
+  payment_provider?: string;
+  payment_access_token?: string;
   subtotal: number;
   shipping_fee: number;
   total_amount: number;
@@ -345,6 +357,39 @@ export interface Order {
   shipping_subsidy_amount?: number;
   shipping_remote_surcharge?: number;
   shipping_payable_amount?: number;
+  integration?: OrderIntegrationSummary;
+}
+
+export interface InventoryCommitmentSummary {
+  provider: string;
+  state: 'local_pending' | 'provider_submitting' | 'externally_committed' | 'release_pending' | 'released' | 'failed' | 'manual_attention';
+  external_reference?: string;
+  provider_reflected: boolean;
+  submitted_at?: string;
+  committed_at?: string;
+  released_at?: string;
+  last_error_code?: string;
+  last_error_message?: string;
+}
+
+export interface OrderDocumentSummary {
+  id: number;
+  provider: string;
+  kind: string;
+  lifecycle_status: string;
+  external_reference?: string;
+  folio?: string;
+  sii_status?: string;
+  issued_at?: string;
+  voided_at?: string;
+  synced_at?: string;
+  last_error_code?: string;
+  last_error_message?: string;
+}
+
+export interface OrderIntegrationSummary {
+  inventory_commitment?: InventoryCommitmentSummary;
+  documents: OrderDocumentSummary[];
 }
 
 export interface CheckoutValidation {
@@ -536,9 +581,53 @@ export type OrderStatus =
   | 'shipped'
   | 'completed'
   | 'cancelled'
-  | 'payment_failed';
+	| 'payment_failed'
+	| 'payment_review';
 
 export type PaymentMethod = 'online' | 'transfer';
+
+// ============ Logistics Types ============
+
+export type LogisticsProviderAdapter = 'moveup' | 'manual';
+export type LogisticsShipmentStatus = 'submitting' | 'created' | 'in_transit' | 'delivered' | 'failed' | 'manual_attention' | 'cancelled';
+
+export interface LogisticsProvider {
+  id: number;
+  code: string;
+  name: string;
+  adapter: LogisticsProviderAdapter;
+  api_base_url: string;
+  request_domain: string;
+  access_token_hint: string;
+  credential_configured: boolean;
+  service_region_codes: string[];
+  settings: Record<string, unknown>;
+  is_active: boolean;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LogisticsShipment {
+  id: number;
+  order_id: number;
+  provider_id: number;
+  provider?: LogisticsProvider;
+  status: LogisticsShipmentStatus;
+  provider_status: string;
+  provider_shipment_id: string;
+  tracking_number: string;
+  package_size: number;
+  package_quantity: number;
+  package_price: number;
+  observations: string;
+  last_error_code: string;
+  last_error_message: string;
+  last_synced_at?: string;
+  label_fetched_at?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 // ============ Payment Types ============
 
@@ -550,6 +639,7 @@ export interface Payment {
   amount: number;
   currency: string;
   transaction_id?: string;
+  provider_status_detail?: string;
   transfer_proof_url?: string;
   confirmed_by?: number;
   confirmed_at?: string;

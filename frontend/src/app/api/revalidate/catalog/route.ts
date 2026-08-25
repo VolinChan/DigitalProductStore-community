@@ -24,6 +24,9 @@ export async function POST(request: NextRequest) {
   const categoryChanged = Boolean(payload.category_id);
   if (productChanged) {
     revalidateTag('catalog-products', expireImmediately);
+    // Public category cards expose counts of published products, so every
+    // product lifecycle or category-assignment change can affect this data.
+    revalidateTag('catalog-categories', expireImmediately);
     revalidateTag('catalog-seo-index', expireImmediately);
     if (payload.slug) revalidateTag(`product:${payload.slug}`, expireImmediately);
     if (payload.previous_slug) revalidateTag(`product:${payload.previous_slug}`, expireImmediately);

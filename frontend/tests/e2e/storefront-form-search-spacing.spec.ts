@@ -26,7 +26,10 @@ for (const width of [320, 390]) {
       expect(cardBox && inputBox).toBeTruthy();
       expect(inputBox!.x - cardBox!.x).toBeGreaterThanOrEqual(19);
       expect(cardBox!.x + cardBox!.width - inputBox!.x - inputBox!.width).toBeGreaterThanOrEqual(19);
-      expect(inputBox!.height).toBeGreaterThanOrEqual(48);
+      // Chromium may report a CSS 48px control as 47.99997px after subpixel
+      // layout at narrow viewports. Keep the accessibility threshold while
+      // avoiding a false failure from floating-point geometry.
+      expect(inputBox!.height).toBeGreaterThanOrEqual(47.9);
     }
 
     const visibleSearch = page.locator('form[role="search"]:visible');

@@ -50,6 +50,19 @@ async function authenticateAdmin(page: Page, role = 'super_admin') {
   });
 }
 
+async function authenticateSystemAdmin(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem('access_token', 'e2e-token');
+    localStorage.setItem('auth-storage', JSON.stringify({ state: { token: 'e2e-token', refreshToken: 'refresh', isAuthenticated: true }, version: 0 }));
+  });
+  await page.route('http://localhost:8080/api/v1/auth/profile', (route) => route.fulfill({
+    json: { data: { id: 9, email: 'admin@example.test', full_name: 'Admin', role: 'super_admin', permissions: ['manage_system'], is_active: true } },
+  }));
+  await page.route('http://localhost:8080/api/v1/admin/store-config/transfer-accounts', (route) => route.fulfill({
+    json: { data: { accounts: [] } },
+  }));
+}
+
 test('deep admin entry redirects unauthenticated users to the real localized login route', async ({ page }) => {
   await page.goto('/admin/products');
   await expect(page).toHaveURL(/\/es-CL\/login\?redirect=%2Fadmin%2Fproducts$/);
@@ -150,4 +163,13 @@ test('admin shell persists language, opens storefront links, and logs out withou
   await expect(page).toHaveURL(/\/es-CL\/login$/);
   await expect(page.getByRole('heading', { name: /Iniciar sesión/ })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('access_token'))).toBeNull();
+});
+
+test('system settings keeps its legacy URL and presents payment accounts as an inner page', async ({ page }) => {
+  await authenticateSystemAdmin(page);
+  await page.goto('/admin/settings');
+
+  await expect(page).toHaveURL(/\/admin\/settings\/payment-accounts$/);
+  await expect(page.getByRole('menuitem', { name: /系统设置/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '收款账户' })).toBeVisible();
 });

@@ -10,8 +10,8 @@
 
 ## 仓库关系
 
-- 开放社区仓库：`vigoordi/DigitalProductStore`
-- 私有 Pro 仓库：`vigoordi/DigitalProductStore-Pro`
+- 开放社区仓库：`VolinChan/DigitalProductStore-community`
+- 私有 Pro 仓库：`VolinChan/DigitalProductStore-Pro`
 
 社区版用于展示、学习、引流和社区协作。真实支付、订单履约、库存扣减、后台运营、生产部署配置、客户数据和任何密钥，都不属于公开仓库。
 
@@ -48,8 +48,8 @@
 环境要求：Docker Desktop 和 Git。
 
 ```powershell
-git clone https://github.com/vigoordi/DigitalProductStore.git
-cd DigitalProductStore
+git clone https://github.com/VolinChan/DigitalProductStore-community.git
+cd DigitalProductStore-community
 copy .env.community.example .env
 docker compose -f docker-compose.community.yml up --build
 ```
@@ -73,8 +73,8 @@ docker compose -f docker-compose.community.yml up --build
 
 ### 生产后端（私有）
 
-生产后端的支付处理、订单管理、库存、分析、管理面板和部署配置等完整商用能力维护在私有 Pro 仓库 (`vigoordi/DigitalProductStore-Pro`) 中，社区版不包含这些内容。
+生产后端的支付处理、订单管理、库存、分析、管理面板和部署配置等完整商用能力维护在私有 Pro 仓库 (`VolinChan/DigitalProductStore-Pro`) 中，社区版不包含这些内容。
 
 ### 商业授权
 
-本项目采用**双重许可**。社区版基于 AGPLv3 开源。如需在不遵守 AGPL 义务的前提下部署私有分支，或需要商业支持、SLA、定制集成、白标授权，请通过 GitHub 联系 **vigoordi**。商业授权条款可按项目个案协商。
+本项目采用**双重许可**。社区版基于 AGPLv3 开源。如需在不遵守 AGPL 义务的前提下部署私有分支，或需要商业支持、SLA、定制集成、白标授权，请通过 GitHub 联系 **VolinChan**。商业授权条款可按项目个案协商。

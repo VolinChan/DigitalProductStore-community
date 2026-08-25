@@ -19,13 +19,15 @@ import type { Cart, CartItem, CheckoutValidation, Order, PaymentMethod, Product,
 import { getAnalyticsSessionID, trackStorefrontEvent } from '@/lib/legal/consent';
 
 interface ProductDetailResponse { data: Product }
+interface OnlinePaymentProvider { code: string; display_name_key: string; redirect_method: string; accepting_new: boolean; environment?: string }
+interface OnlinePaymentCapability { configured: boolean; provider?: string; default_provider?: string; providers?: OnlinePaymentProvider[] }
 
 const legacyTransferAvailable = Boolean(
   process.env.NEXT_PUBLIC_TRANSFER_BANK_NAME?.trim()
   && process.env.NEXT_PUBLIC_TRANSFER_ACCOUNT_NAME?.trim()
   && process.env.NEXT_PUBLIC_TRANSFER_ACCOUNT_NUMBER?.trim(),
 );
-const onlinePaymentAvailable = process.env.NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED === 'true';
+const legacyOnlinePaymentAvailable = process.env.NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED === 'true';
 
 export default function CheckoutPage() {
   const t = useTranslations();
@@ -37,7 +39,10 @@ export default function CheckoutPage() {
   const { cart, items: cartItems, clearCart, hydrationStatus } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { buyNow, hydrated, clearBuyNow } = useCheckoutIntentStore();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(onlinePaymentAvailable ? 'online' : 'transfer');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(legacyOnlinePaymentAvailable ? 'online' : 'transfer');
+  const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(legacyOnlinePaymentAvailable);
+  const [onlinePaymentProvider, setOnlinePaymentProvider] = useState<string>(legacyOnlinePaymentAvailable ? 'stripe' : '');
+  const [onlinePaymentProviders, setOnlinePaymentProviders] = useState<OnlinePaymentProvider[]>([]);
   const [transferAvailable, setTransferAvailable] = useState(false);
   const [transferLoading, setTransferLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -79,6 +84,26 @@ export default function CheckoutPage() {
       })
       .finally(() => { if (active) setTransferLoading(false); });
     return () => { active = false; };
+  }, [onlinePaymentAvailable]);
+
+  useEffect(() => {
+	let active = true;
+	void apiClient.get<{ data: OnlinePaymentCapability }>('/store-config/online-payment')
+	  .then((response) => {
+		if (!active) return;
+		const capability = response.data.data;
+		if (typeof capability?.configured !== 'boolean') return;
+		setOnlinePaymentAvailable(capability.configured);
+		const providers = Array.isArray(capability.providers) ? capability.providers.filter((provider) => provider.accepting_new) : [];
+		setOnlinePaymentProviders(providers);
+		setOnlinePaymentProvider(capability.default_provider || capability.provider || providers[0]?.code || '');
+		if (!capability.configured && paymentMethod === 'online') setPaymentMethod('transfer');
+	  })
+	  .catch(() => undefined);
+	return () => { active = false; };
+  // Runtime capability is authoritative when available; the build flag is a
+  // compatibility fallback for static/mocked test deployments.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -181,10 +206,14 @@ export default function CheckoutPage() {
 		shipping_quote_version: shippingQuote.quote_version,
 		shipping_payable_amount: shippingQuote.payable_shipping,
         payment_method: paymentMethod,
+        payment_provider: paymentMethod === 'online' ? onlinePaymentProvider : undefined,
         locale,
         items: checkoutItems.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })),
       });
       const order = response.data.data;
+	  if (order.payment_access_token) {
+		sessionStorage.setItem(`payment-access:${order.id}`, order.payment_access_token);
+	  }
 	  if (!isAuthenticated) persistGuestAddress(shippingInfo);
 
       if (paymentMethod === 'transfer') {
@@ -252,7 +281,7 @@ export default function CheckoutPage() {
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-9">
           <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.shippingInfo')}</h2><div className="mt-5"><ShippingForm form={form} authenticated={isAuthenticated} initialValues={isAuthenticated && user ? { full_name: user.full_name, email: user.email, phone: user.phone || '' } : undefined} /></div>{shippingQuoteLoading && <p className="text-sm text-[var(--sf-muted)]">{t('shipping.quoting')}</p>}{shippingRestriction && <p role="alert" className="text-sm font-bold text-[#a33a32]">{shippingRestriction}</p>}</section>
-          <section className="border-t border-[var(--sf-line)] pt-8"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.paymentMethod')}</h2><div className="mt-5"><PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} transferAvailable={transferAvailable} transferLoading={transferLoading} onlineAvailable={onlinePaymentAvailable} /></div></section>
+          <section className="border-t border-[var(--sf-line)] pt-8"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.paymentMethod')}</h2><div className="mt-5"><PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} transferAvailable={transferAvailable} transferLoading={transferLoading} onlineAvailable={onlinePaymentAvailable} onlineProvider={onlinePaymentProvider} onlineProviders={onlinePaymentProviders} onOnlineProviderChange={setOnlinePaymentProvider} /></div></section>
           <section className="border-t border-[var(--sf-line)] pt-8"><SupplierDisclosure locale={locale} /><label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--sf-line)] bg-white p-4 text-sm leading-6"><input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} className="mt-1 h-4 w-4" /><span>{t.rich('checkout.legalAcceptance', { terms: (chunks) => <Link className="font-bold underline" href={`/${locale}/legal/terms`} target="_blank">{chunks}</Link>, returns: (chunks) => <Link className="font-bold underline" href={`/${locale}/legal/returns-withdrawal`} target="_blank">{chunks}</Link> })}</span></label></section>
         </div>
         <aside className="lg:sticky lg:top-28 lg:h-fit"><div className="rounded-[22px] bg-white p-5 sm:p-6"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.orderSummary')}</h2><div className="mt-5"><OrderSummary items={checkoutItems} totalPrice={totalPrice} shippingQuote={shippingQuote} /></div><button type="button" onClick={handleSubmitOrder} disabled={submitting || shippingQuoteLoading || !shippingQuote || !legalAccepted || !(paymentMethod === 'transfer' ? transferAvailable : onlinePaymentAvailable)} className="sf-button-primary mt-6 w-full">{submitting ? t('checkout.submitting') : paymentMethod === 'online' ? t('checkout.submitAndPay') : t('checkout.submitOrder')}</button><p className="mt-3 text-center text-xs leading-5 text-[var(--sf-muted)]">{paymentMethod === 'online' ? t('checkout.submitOnline') : t('checkout.submitTransfer')}</p></div></aside>

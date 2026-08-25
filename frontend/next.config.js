@@ -38,6 +38,17 @@ const nextConfig = {
     ];
   },
 
+  async redirects() {
+    return [
+      { source: '/admin/shipping', destination: '/admin/fulfillment/locations', permanent: false },
+      { source: '/admin/logistics', destination: '/admin/fulfillment/providers', permanent: false },
+      { source: '/admin/shipping-adjustments', destination: '/admin/fulfillment/remote-adjustments', permanent: false },
+      { source: '/admin/settings', destination: '/admin/settings/payment-accounts', permanent: false },
+      { source: '/admin/notifications', destination: '/admin/messaging/deliveries', permanent: false },
+      { source: '/admin/email-templates', destination: '/admin/messaging/templates', permanent: false },
+    ];
+  },
+
 };
 
 module.exports = createNextIntlPlugin('./src/i18n/request.ts')(nextConfig);

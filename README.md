@@ -61,6 +61,21 @@ To stop it:
 docker compose -f docker-compose.community.yml down
 ```
 
+## Optional Cloudflare real-IP updater
+
+The repository includes a reusable, credential-free updater for deployments that put an Nginx container behind Cloudflare. It downloads Cloudflare's official IPv4 and IPv6 proxy feeds over HTTPS, validates the candidate Nginx configuration, replaces the trusted-network file atomically, and reloads Nginx only after validation succeeds. A systemd timer runs it daily with a randomized delay and preserves the last working configuration if a download or reload fails.
+
+Files:
+
+```text
+nginx/runtime/cloudflare-real-ip.conf                 Current public baseline
+scripts/update-cloudflare-real-ip.sh                  Validated updater
+scripts/systemd/plexoria-cloudflare-real-ip.service   One-shot systemd service
+scripts/systemd/plexoria-cloudflare-real-ip.timer     Daily systemd timer
+```
+
+This component is not enabled by the frontend-only community Compose preview. To reuse it in your own Docker/Nginx deployment, mount the host directory containing `cloudflare-real-ip.conf` at `/etc/nginx/runtime` in the Nginx container, include that file from the Nginx `http` context, and adjust `CLOUDFLARE_REAL_IP_TARGET` and `NGINX_CONTAINER` in the service for your installation. Trust `CF-Connecting-IP` only through these Cloudflare source networks; do not add a blanket trust rule for arbitrary origin clients.
+
 ## Local frontend development
 
 ```bash
@@ -84,6 +99,9 @@ The production API, deployment topology, certificates, monitoring, backups, and 
 frontend/                         Storefront UI
 docker-compose.community.yml      Frontend preview stack
 .env.community.example            Non-secret demo configuration
+nginx/runtime/                    Public Cloudflare trusted-network baseline
+scripts/update-cloudflare-real-ip.sh  Optional validated network updater
+scripts/systemd/                  Optional updater service and timer
 ```
 
 ## Security boundary

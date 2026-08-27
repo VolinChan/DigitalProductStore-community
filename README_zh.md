@@ -58,6 +58,21 @@ docker compose -f docker-compose.community.yml up --build
 
 社区版 Compose 只启动前端预览，不启动生产 API、数据库、Nginx、Grafana、Prometheus，也不会接入真实支付。
 
+## 可选的 Cloudflare 真实 IP 更新器
+
+仓库提供一个无凭据、可复用的更新器，适合自行把 Nginx 容器部署在 Cloudflare 后方的用户。它通过 HTTPS 下载 Cloudflare 官方 IPv4/IPv6 代理网段，验证候选 Nginx 配置后再原子替换可信网段文件；只有完整验证通过才会 reload Nginx。配套 systemd timer 每日运行并加入随机延迟；下载、验证或 reload 失败时会保留最后一份可用配置。
+
+相关文件：
+
+```text
+nginx/runtime/cloudflare-real-ip.conf                 当前公开基线
+scripts/update-cloudflare-real-ip.sh                  带验证与回滚的更新脚本
+scripts/systemd/plexoria-cloudflare-real-ip.service   systemd 单次服务
+scripts/systemd/plexoria-cloudflare-real-ip.timer     每日定时器
+```
+
+前端 Community Compose 预览不会自动启用这项功能。若要用于自己的 Docker/Nginx 部署，需要把主机上保存 `cloudflare-real-ip.conf` 的目录挂载到 Nginx 容器的 `/etc/nginx/runtime`，在 Nginx `http` 上下文 include 该文件，并按实际安装修改 service 中的 `CLOUDFLARE_REAL_IP_TARGET` 与 `NGINX_CONTAINER`。只有来自这些 Cloudflare 官方网段的连接才应信任 `CF-Connecting-IP`，不要对任意直连来源设置全局信任。
+
 ## 许可证
 
 社区版采用 [GNU AGPL v3.0](LICENSE)。私有部署、生产集成和商业支持不属于本公开仓库范围，需要单独的商业协议。

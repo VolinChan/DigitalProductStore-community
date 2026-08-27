@@ -1,0 +1,25 @@
+[Unit]
+Description=Refresh trusted Cloudflare proxy networks for Plexoria nginx
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Environment=CLOUDFLARE_REAL_IP_TARGET=/etc/plexoria/nginx/cloudflare-real-ip.conf
+Environment=NGINX_CONTAINER=digital-store-nginx
+ExecStart=/usr/local/sbin/plexoria-update-cloudflare-real-ip
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/etc/plexoria/nginx
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

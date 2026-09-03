@@ -4,7 +4,7 @@ Open-source community edition of the storefront behind Plexoria, a live electron
 
 This repository is the public community edition of a real digital-store project. Its main purpose is to showcase the storefront, invite feedback, and send interested visitors to the live store. Production payment credentials, operational data, fulfillment rules, backend services, and private deployment configuration do not belong here.
 
-[中文说明](README_zh.md)
+[中文说明](README_zh.md) · [Español (Chile)](readme_es_cl.md)
 
 ## Live store
 

@@ -1,28 +1,37 @@
 # Plexoria Digital Store Community Edition
 
-Open-source community edition of the storefront behind Plexoria, a live electronics marketplace.
+A mobile-first, Chile-ready storefront for physical products, built from the customer experience behind Plexoria's live electronics store.
 
-This repository is the public community edition of a real digital-store project. Its main purpose is to showcase the storefront, invite feedback, and send interested visitors to the live store. Production payment credentials, operational data, fulfillment rules, backend services, and private deployment configuration do not belong here.
+Plexoria helps merchants turn a product catalog into a clear, localized buying journey: discovery, SKU selection, current price and availability, cart, and checkout. This public Community Edition lets developers and merchants evaluate that storefront, contribute improvements, and see the project in action without exposing production credentials, customer data, fulfillment rules, or private backend services.
 
 [中文说明](README_zh.md) · [Español (Chile)](readme_es_cl.md)
 
 ## Live store
 
-Visit the live store here:
+Explore the customer-facing experience in the live store:
 
 <https://www.plexoria.cl>
+
+## Why Plexoria stands out
+
+- **Built around real products:** variants, SKU-specific media, pricing, availability, and purchase controls stay connected throughout the product journey.
+- **Localized for Chile:** Spanish (Chile) routes, CLP-oriented presentation, locale-preserving navigation, and locally familiar buying language.
+- **Designed for mobile shopping:** a responsive experience from 320px, with fast product discovery, Buy Now, cart, and checkout flows.
+- **Ready to grow beyond the storefront:** the private Pro platform extends this experience with authoritative ordering, administration, payments, inventory, tax documents, shipping, notifications, and operational observability.
+
+For the merchant-focused overview, local integrations, and honest production-readiness boundaries, read [Plexoria para vender productos físicos en Chile](readme_es_cl.md).
 
 ## Repositories
 
 - Community repository: `VolinChan/DigitalProductStore-community`
 - Private Pro repository: `VolinChan/DigitalProductStore-Pro`
 
-## What is included
+## What you can evaluate in Community
 
 - Mobile-first responsive storefront from 320px to desktop widths
 - Localized English and Spanish (Chile) routes with locale-preserving navigation
-- Product discovery with URL-persisted search, filters, sorting, and pagination
-- Product detail pages with SKU selection, live price, stock, media, and purchase-state updates
+- Shareable product discovery with search, filters, sorting, and pagination persisted in the URL
+- Product detail pages that connect SKU selection with price, stock, media, and purchase-state updates
 - Cart, mini-cart, Buy Now, login, registration, and checkout UI
 - Keyboard-accessible menus, drawers, dialogs, focus restoration, reduced-motion support, and localized form errors
 - Playwright coverage for storefront discovery, purchasing, accessibility, and responsive layouts
@@ -30,9 +39,9 @@ Visit the live store here:
 - Next.js storefront code
 - Docker-based frontend preview
 
-## What is intentionally not a production promise
+## A clear production boundary
 
-The public repository must not be used as the source of truth for a live store. The following remain private operational concerns and may change without notice:
+The Community Edition is an honest storefront preview, not a bundle of production secrets or merchant-specific operating rules. The following remain private operational concerns and may change between deployments:
 
 - Live payment keys, webhook credentials, and payment settlement rules
 - Production order, inventory, warehouse, customer, and analytics data
@@ -40,7 +49,7 @@ The public repository must not be used as the source of truth for a live store. 
 - Pricing, membership, coupon, recommendation, and fraud rules
 - Production certificates, backups, monitoring credentials, and deployment secrets
 
-The production backend is maintained in the private Pro repository. Keep production credentials, operational data, and deployment configuration out of community forks.
+The production backend is maintained in the private Pro repository. This separation keeps the public project useful while protecting each merchant's credentials, customers, operating decisions, and deployment configuration.
 
 ## Quick start: community UI preview
 
@@ -80,7 +89,7 @@ This component is not enabled by the frontend-only community Compose preview. To
 
 ```bash
 cd frontend
-copy .env.local.example .env.local
+cp .env.local.example .env.local
 npm ci
 npm run dev
 ```
@@ -121,14 +130,14 @@ The community edition is available under the [GNU Affero General Public License 
 | Layer | Technologies |
 |-------|-------------|
 | **Frontend** | Next.js 16 · React 19 · TypeScript · Ant Design 6 · Tailwind CSS · Framer Motion · Zustand · Axios · Sonner (toasts) |
-| **Backend API** | Go 1.25 · Gin · GORM · PostgreSQL · Redis · JWT auth · Stripe Payments · SMTP email |
+| **Backend API** | Go 1.25 · Gin · GORM · PostgreSQL · Redis · JWT auth · Payment provider adapters · Transactional email |
 | **Infrastructure** | Docker Compose · Nginx (reverse proxy, HTTPS/SSL, rate limiting) · Prometheus · Grafana · Cloudflare Origin CA |
 | **Architecture** | RESTful API · Microservices-style (Docker Compose) · Multi-subdomain routing · Background worker (transfer deadline & reminder checkers) |
 
 ### Production Backend (Private)
 
-The production backend — including payment processing, order management, inventory, analytics, admin panel, and deployment configuration — is maintained in the private Pro repository (`VolinChan/DigitalProductStore-Pro`). It is not included in this community edition.
+The production backend — including authoritative checkout, payment processing, order management, inventory, shipping, analytics, the admin panel, and deployment configuration — is maintained in the private Pro repository (`VolinChan/DigitalProductStore-Pro`). It is configured and validated for each merchant rather than published with live secrets in this Community Edition.
 
 ### Commercial Licensing
 
-This project is dual-licensed. The community edition is open-source under AGPLv3. For organizations that want to deploy a private fork without AGPL obligations, or require commercial support, SLA, custom integrations, or white-label licensing, please contact **VolinChan** via GitHub. Commercial license terms are negotiable on a case-by-case basis.
+This project is dual-licensed. The Community Edition is open-source under AGPLv3. If you are evaluating Plexoria for a physical-goods business, or need a private deployment without AGPL obligations, commercial support, an SLA, catalog migration, custom integrations, or white-label licensing, contact **[VolinChan on GitHub](https://github.com/VolinChan)**. Commercial terms are agreed case by case.

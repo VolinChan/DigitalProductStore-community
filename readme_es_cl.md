@@ -109,11 +109,15 @@ Preferimos mostrar el estado real de cada integración. “Implementado” no si
 | Transferencia bancaria | Flujo Pro de comprobantes, abonos y revisión implementado | Configurar cuentas, responsables y procedimiento de conciliación del comercio |
 | Mercado Pago Checkout Pro | Ciclo Sandbox implementado, incluidos el retorno, el webhook y la idempotencia | Incorporar credenciales productivas y completar pruebas de fallos y una compra controlada con dinero real |
 | Webpay Plus | Protocolo principal, retorno seguro y reconciliación implementados | Completar validación formal con Transbank, instalar credenciales productivas y ejecutar un despliegue gradual |
-| Relbase | OAuth, sondas controladas, mapeo de SKU, compromiso de stock y flujo tributario desarrollados. El contrato de conversión de una Nota de Venta con stock a DTE confirmado por el proveedor aún no coincide con el comportamiento observado en una prueba controlada del API v2 | Resolver la discrepancia con el equipo técnico del proveedor, ejecutar un piloto y aprobar las reglas con el contador antes de habilitar por etapas la autoridad de stock; la emisión automática de DTE permanece deshabilitada hasta completar estas validaciones |
+| Relbase | OAuth, mapeo de SKU, compromiso de stock y flujo tributario desarrollados. La revisión técnica conjunta permitió precisar las condiciones de conversión y el modo de importes de la nota; las protecciones locales contra envíos duplicados y diferencias de total están desplegadas en Pro | Estado revisado el 10 de septiembre de 2026: la conversión actualizada sigue pendiente de confirmación de disponibilidad y de una prueba de punta a punta. Mantener suspendidos los reintentos de conversión hasta verificar documento, vínculo, pago e inventario; revisar las notas anteriores individualmente |
 | Conector logístico MoveUp | Adaptador y pruebas controladas disponibles | Completar pruebas de punta a punta cuando la API del proveedor responda de forma estable; las últimas pruebas externas obtuvieron respuestas HTTP 500/EOF |
 | Privacidad y textos legales | Páginas base y controles de consentimiento disponibles | Revisar textos, versiones y obligaciones aplicables con asesoría legal del comercio |
 
 La integración de inventario disminuye desajustes, pero no promete sobreventa cero entre todos los canales: la consistencia final también depende del proveedor externo, del mapeo de SKU y de las reglas operativas de cada bodega.
+
+## Caso de ingeniería
+
+El trabajo de integración también incluye reproducir casos límite, aclarar contratos con el proveedor y proteger los pedidos cuando una respuesta es incierta. El [caso técnico de inventario y documentos tributarios (inglés)](case-studies/relbase-integration.md) explica las decisiones y distingue las protecciones ya desplegadas de la conversión externa todavía pendiente de validación.
 
 ## Community Edition y edición Pro
 

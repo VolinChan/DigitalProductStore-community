@@ -21,6 +21,10 @@ Plexoria 帮助商家把商品目录变成清晰、本地化的购买链路：�
 
 如需了解面向智利实体卖家的经营价值、当地集成及真实的生产启用边界，请阅读[智利西班牙语卖家说明](readme_es_cl.md)。
 
+## 工程案例
+
+外部转换结果不明时，如何保证库存、运费和税票仍然一致？阅读[不止于接口调通：验证库存到税票的交易一致性](case-studies/relbase-integration.zh-CN.md)，了解 Pro 集成中的问题复现、设计取舍和真实验证边界。
+
 ## 仓库关系
 
 - 开放社区仓库：`VolinChan/DigitalProductStore-community`

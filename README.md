@@ -21,6 +21,10 @@ Explore the customer-facing experience in the live store:
 
 For the merchant-focused overview, local integrations, and honest production-readiness boundaries, read [Plexoria para vender productos físicos en Chile](readme_es_cl.md).
 
+## Engineering case study
+
+How do you keep inventory, shipping charges and tax documents consistent when an external conversion has unresolved outcomes? Read [Beyond the happy path: validating an inventory-to-invoice integration](case-studies/relbase-integration.md) for the investigation, design tradeoffs and current verification limits behind the private Pro integration.
+
 ## Repositories
 
 - Community repository: `VolinChan/DigitalProductStore-community`

@@ -1,73 +1,55 @@
-# Beyond the happy path: validating an inventory-to-invoice integration
+# Beyond the happy path: my investigation of an inventory-to-invoice integration
 
-[中文](relbase-integration.zh-CN.md) · [Project overview](../README.md)
+[中文](relbase-integration.zh-CN.md) · [Español (Chile)](relbase-integration.es-CL.md) · [Project overview](../README.md)
 
-**Plexoria engineering case study · Status reviewed 10 September 2026**
+**Plexoria development notes · 10 September 2026**
 
-Connecting a storefront to an ERP is more than sending a valid request. One purchase must remain consistent across stock, payment, shipping charges and the tax document—even when a response is missing or a documented conversion behaves differently in a particular workflow.
+When integrating RelBase into Plexoria, I needed to connect a specific sequence: create a sales note to commit inventory when a customer orders, then issue a Boleta or Factura from that note after payment. Inventory had already been committed. Issuing the tax document must not deduct it again, and shipping charges and payment totals had to remain consistent.
 
-This case describes work on Plexoria's private Pro integration with RelBase. The public contribution is the investigation method, the design decisions and their limits. The production adapter and operational records are not included in Community.
+Creating the sales note worked. Converting it exposed a problem. Investigating that path also led me to revisit how shipping enters the document, where the gross amount mode is set, and whether a failed request can safely be retried. These notes describe that work on the private Pro implementation.
 
-## The business invariant
+## Making the conversion issue reproducible
 
-A sales note commits merchandise inventory before payment. After payment, the resulting Boleta or Factura must refer to that note, preserve the complete payable amount and avoid a second stock deduction.
+The behavior was difficult to reconcile: a request referring to the source note without product lines was asked to supply products; adding the products produced a validation saying that this conversion could not include them.
 
-```mermaid
-flowchart LR
-    A[Order and shipping snapshot] --> B[Sales note: merchandise and charged shipping]
-    B --> C[Confirmed payment]
-    C --> D[Convert using source-note identity]
-    D --> E[Reconcile document, amount, payment and stock]
-    D --> F[Uncertain result]
-    F --> G[Hold and investigate before another write]
-```
+I collected the differences between those requests, the source note's state and correlation identifiers for the support team. A controlled attempt following their suggested procedure still encountered the detail validation, so I asked for a technical review of the conversion path actually being executed.
 
-A successful HTTP response alone does not prove those conditions. Conversely, a rejected API request is not evidence that the tax authority rejected a document.
+I did not bypass the source note by issuing a standalone document with products. The source note had already committed inventory. Even a successful standalone invoice could leave a second stock deduction and an unlinked sales note.
 
-## What the investigation established
+The subsequent technical discussion clarified the behavior that needed adjustment and the source note's amount requirements. That gave us a more specific integration contract and a concrete basis for the next validation.
 
-| Observation | Engineering response |
-| --- | --- |
-| The conversion path required source-note identity, yet controlled requests encountered incompatible detail validations. | Reduced the case to paired requests with and without explicit lines, captured correlation identifiers and the source-note state, and asked support to inspect the executed validation path. |
-| Shipping appeared in the order but could be absent from an earlier source note. | Treated this as a separate local completeness issue. Included charged shipping in the source document through a non-stock service mapping; free shipping adds no line. Did not claim this explained the conversion response. |
-| A generally advertised idempotency header was not sufficient evidence of replay protection for the document resource. | Verified the guarantee with the provider and designed durable application-side dispatch protection. A timeout or empty lookup does not authorize another document creation. |
-| Source and destination documents can interpret amounts differently. | Kept new source notes in gross, IVA-inclusive CLP values and let conversion inherit their amount mode. Preserved local line/total checks rather than relying on the payment amount to repair an incomplete source note. |
+## Shipping was a local omission, but a separate question
 
-The provider's technical review clarified the conversion behavior and the required source amount mode. A provider-side update was scheduled. This was a collaborative contract-validation process: the useful outcome is a more precise integration boundary and a testable acceptance plan.
+During the investigation, a colleague compared an order with its sales note and noticed that shipping appeared in the order but not in the note. That was a gap in our own flow.
 
-## Design decisions that followed
+If the tax document inherits its lines, charged shipping has to be present when the source note is created. I made shipping part of the document's charges, mapped by the RelBase adapter to a non-stock service item. Free shipping adds no line. Merchandise and shipping contribute to the total, while inventory checks and deductions remain limited to merchandise.
 
-**Protect the write before sending it.** A durable claim, keyed by provider connection and stable business command, is recorded before an external creation request. A second worker or a restarted process cannot silently dispatch the same command again. Document writes do not inherit generic automatic replay on authentication failure or redirects.
+Finding that omission did not establish the cause of the contradictory detail validation. I kept the conversion reproduction separate and progressed the local amount fix alongside the provider investigation. I also could not assume that correcting the code would update previously created notes.
 
-This is application-side duplicate-dispatch protection, not an end-to-end “exactly once” guarantee. If the process stops after the claim but before the request, reconciliation or an explicit recovery decision is necessary. That availability tradeoff is preferable to blindly duplicating a stock or fiscal operation.
+## Rechecking the right to retry
 
-**Keep amount and inventory scopes distinct.** Charged shipping belongs in the monetary document but not in merchandise inventory checks or deductions. The fiscal command must match the source note's product identities, quantities, prices, fees and total. Historical notes are checked individually; changing today's payload does not repair yesterday's document.
+A generally advertised idempotency header was not enough to establish replay protection for the document resource. After checking the guarantee with support, I moved duplicate-dispatch protection into durable local records.
 
-**Reconcile the business result.** Acceptance requires the emitted document identity and status, source linkage, payable total, payment handling and inventory quantity. A zero-quantity stock-history entry can be consistent with traceability; counting stock-history rows is not a reliable test for a second deduction.
+Before a creation request leaves the application, it claims a dispatch for the provider connection and stable business command. Another worker, a restarted service or a repeated action cannot silently send the same command again. Document writes also do not inherit generic automatic replay on authentication failure or redirects.
 
-**Keep provider specifics at the adapter boundary.** The application retains generic shipping charges and business commands. Provider service identifiers, wire fields and conversion semantics belong in the connector. This limits the effect of a provider contract change on checkout and order logic.
+There is a cost: a process that stops after claiming the dispatch but before sending the request can leave work requiring investigation. This does not solve end-to-end “exactly once” execution. I accepted that tradeoff because pausing an uncertain stock or fiscal operation is more controllable than issuing it a second time.
 
-## Evidence and current limits
+## Setting the amount mode on the source
 
-As of 10 September 2026:
+The clarified conversion rule requires a Boleta's source note to contain gross, IVA-inclusive amounts. Conversion then inherits the source amount mode.
 
-- The local shipping-completeness change, dispatch protection and amount-mode preparation have been implemented and deployed in Pro.
-- The conversion simulation covers 12 combinations: Boleta/Factura, free/two charged-shipping amounts, and one/three merchandise units. It inherits the lines actually received when creating the simulated source note, rather than fabricating an invoice total from the expected answer.
-- Backend race checks against PostgreSQL 14 and Redis 7, and the release regression suite, passed. These are reported results from the private implementation, not tests a Community checkout can reproduce.
-- The updated provider conversion has **not yet been accepted in a live end-to-end test**. Controlled conversion retries remain on hold pending release confirmation and reconciliation of the selected source note.
+Plexoria already created sales notes with gross prices. The adjustment here was to stop specifying the amount mode again during conversion, while retaining checks across source lines, fees and the total. A conversion parameter cannot repair an old note with missing shipping or an unsuitable amount mode.
 
-This case does not claim that Plexoria was the first or only integrator to encounter the issue. It demonstrates finding and resolving assumptions that ordinary successful-request testing would miss. Future live results should be recorded as a dated update, not retroactively presented as already verified.
+I kept these provider-specific details in the adapter. Checkout and order logic still work with generic merchandise, shipping charges and business commands; a wire-contract change should not require rewriting the purchase flow.
 
-## What this demonstrates in an engineering portfolio
+## How I checked the changes
 
-- Reproduction and fault isolation across application, provider and fiscal-status boundaries.
-- State-machine reasoning when local persistence and external side effects are not atomic.
-- Monetary and inventory invariants, including shipping and gross/net amount semantics.
-- Evidence-driven collaboration with an external technical team.
-- A release process that separates deployed safeguards from unverified external capability.
+The local conversion simulation covers 12 combinations: Boleta/Factura, free/two charged-shipping amounts, and one/three merchandise units. The simulated provider calculates its result from the lines actually received when creating the source note. It does not simply return the expected invoice total supplied by the test.
 
-A concise portfolio description:
+Backend race checks against PostgreSQL 14 and Redis 7, and the release regression suite, passed. Those tests belong to the private Pro implementation; their backend code is not included in Community. Shipping completeness, dispatch protection and the amount-mode adjustment have been deployed.
 
-> Developed a Chilean commerce integration around stock, payments and tax documents; reproduced conversion edge cases, coordinated provider contract clarification, and implemented durable dispatch protection and source-document amount validation. Deployed the safeguards while keeping external conversion acceptance explicitly gated.
+As of this note's date, however, the updated external conversion has not completed live end-to-end acceptance. I have kept controlled conversion retries on hold pending release confirmation and review of the selected source note.
 
-No customer records, production identifiers, private support correspondence or backend source code are published in this case study.
+The next check goes beyond a successful response: the issued document must link to its source, amounts and payment handling must agree, the source state must update, and merchandise inventory must not decrease again. A zero-quantity stock-history entry described by the provider also needs to be distinguished from an actual deduction.
+
+This investigation made my acceptance criteria more concrete: not just whether a request succeeds, but whether the same transaction remains consistent across the systems involved. I will add the live validation results here as that work progresses.

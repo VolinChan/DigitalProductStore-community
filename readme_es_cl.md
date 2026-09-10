@@ -117,7 +117,7 @@ La integración de inventario disminuye desajustes, pero no promete sobreventa c
 
 ## Caso de ingeniería
 
-El trabajo de integración también incluye reproducir casos límite, aclarar contratos con el proveedor y proteger los pedidos cuando una respuesta es incierta. El [caso técnico de inventario y documentos tributarios (inglés)](case-studies/relbase-integration.md) explica las decisiones y distingue las protecciones ya desplegadas de la conversión externa todavía pendiente de validación.
+En [mis notas sobre la integración con RelBase](case-studies/relbase-integration.es-CL.md) cuento cómo investigué la conversión de notas de venta, separé una omisión del despacho del problema de conversión y añadí protección contra envíos repetidos. También explico las decisiones y las comprobaciones de integración que aún faltan.
 
 ## Community Edition y edición Pro
 

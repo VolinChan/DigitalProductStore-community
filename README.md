@@ -23,7 +23,7 @@ For the merchant-focused overview, local integrations, and honest production-rea
 
 ## Engineering case study
 
-How do you keep inventory, shipping charges and tax documents consistent when an external conversion has unresolved outcomes? Read [Beyond the happy path: validating an inventory-to-invoice integration](case-studies/relbase-integration.md) for the investigation, design tradeoffs and current verification limits behind the private Pro integration.
+In [my notes on the RelBase integration](case-studies/relbase-integration.md), I describe how I investigated the sales-note conversion flow, separated a shipping omission from the conversion issue, and added protection against repeated document requests. I also record the tradeoffs and the live checks still to complete.
 
 ## Repositories
 

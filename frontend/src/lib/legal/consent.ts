@@ -1,6 +1,6 @@
 import apiClient from '@/lib/api';
 
-export const consentPolicyVersion = '0.1-draft';
+export const consentPolicyVersion = '2026-10-02';
 export const consentStorageKey = 'plexoria-cookie-consent:v1';
 export const consentChangedEvent = 'plexoria:consent-changed';
 export const openConsentCenterEvent = 'plexoria:open-consent-center';

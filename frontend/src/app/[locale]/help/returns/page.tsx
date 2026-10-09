@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
+import PublishedLegalDocument from '@/components/legal/PublishedLegalDocument';
 
-export default async function ReturnsRedirect({ params }: { params: Promise<{ locale: string }> }) {
+export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  redirect(`/${locale}/legal/returns-withdrawal`);
+  return <PublishedLegalDocument locale={locale} documentKey="returns_withdrawal" />;
 }

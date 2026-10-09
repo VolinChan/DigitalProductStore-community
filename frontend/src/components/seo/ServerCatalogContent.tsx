@@ -2,6 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Category, Product } from '@/types';
 import type { StorefrontLocale } from '@/lib/seo/policy';
+import { buildPublicCategoryTree } from '@/lib/category-tree';
+import { HOME_CATEGORY_LIMIT, HOME_COMPACT_PRODUCTS_PER_SECTION, type HomeProductSection } from '@/lib/home';
 import { getProductPrimaryImage } from '@/lib/catalog';
 
 function productHref(locale: StorefrontLocale, product: Product): string {
@@ -18,18 +20,20 @@ function price(product: Product, locale: StorefrontLocale): string | undefined {
   return new Intl.NumberFormat(locale === 'es-CL' ? 'es-CL' : 'en-US', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Math.min(...values));
 }
 
-export function ServerProductGrid({ products, locale }: { products: Product[]; locale: StorefrontLocale }) {
+export function ServerProductGrid({ products, locale, home = false }: { products: Product[]; locale: StorefrontLocale; home?: boolean }) {
+  const Heading = home ? 'h3' : 'h2';
   return (
-    <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
-      {products.map((product) => {
+    <div className={home ? "grid grid-cols-2 gap-5 lg:grid-cols-4 xl:grid-cols-5" : "grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4"}>
+      {products.map((product, index) => {
         const image = getProductPrimaryImage(product);
         const startingPrice = price(product, locale);
         const soldOut = Boolean(product.skus?.length) && product.skus!.every((sku) => sku.inventory <= 0);
         return (
-          <article key={product.id}>
+          <article key={product.id} className={home && index >= HOME_COMPACT_PRODUCTS_PER_SECTION ? 'hidden xl:block' : undefined}>
             <Link href={productHref(locale, product)} className="block rounded-[18px] bg-white p-4">
               {image && <Image src={image} alt={product.name} width={480} height={480} unoptimized={imageNeedsNoOptimization(image)} className="aspect-square w-full object-contain" sizes="(max-width: 768px) 50vw, 25vw" />}
-              <h2 className="mt-3 text-base font-black text-[var(--sf-ink)]">{product.name}</h2>
+              <Heading className="mt-3 text-base font-black text-[var(--sf-ink)]">{product.name}</Heading>
+              {home && product.is_recommended && <span className="text-xs text-[var(--sf-accent)]">{locale === 'es-CL' ? 'Recomendado' : 'Recommended'}</span>}
               {startingPrice && <p className="mt-2 font-bold text-[var(--sf-brand)]">{startingPrice}</p>}
               <p className="mt-1 text-sm text-[var(--sf-muted)]">{soldOut ? (locale === 'es-CL' ? 'Agotado' : 'Sold out') : (locale === 'es-CL' ? 'Disponible' : 'Available')}</p>
             </Link>
@@ -40,22 +44,23 @@ export function ServerProductGrid({ products, locale }: { products: Product[]; l
   );
 }
 
-export function ServerHomeContent({ locale, products, categories }: { locale: StorefrontLocale; products: Product[]; categories: Category[] }) {
+export function ServerHomeContent({ locale, sections, categories }: { locale: StorefrontLocale; sections: HomeProductSection[]; categories: Category[] }) {
+  const roots = buildPublicCategoryTree(categories).slice(0, HOME_CATEGORY_LIMIT - 1);
   return (
     <main className="seo-server-content store-container">
-      <section className="rounded-[26px] bg-[#dff1f5] px-6 py-10">
-        <h1 className="max-w-3xl text-4xl font-black text-[var(--sf-brand)]">{locale === 'es-CL' ? 'Tecnología útil para todos los días' : 'Useful technology for every day'}</h1>
-        <p className="mt-4 max-w-2xl text-lg text-[var(--sf-subtle)]">{locale === 'es-CL' ? 'Explora accesorios y productos con precios y disponibilidad claros.' : 'Browse accessories and products with clear pricing and availability.'}</p>
-        <Link href={`/${locale}/products`} className="sf-button-primary mt-6">{locale === 'es-CL' ? 'Ver productos' : 'View products'}</Link>
-      </section>
-      <section className="py-10">
-        <h2 className="text-2xl font-black">{locale === 'es-CL' ? 'Categorías' : 'Categories'}</h2>
-        <ul className="mt-4 flex flex-wrap gap-3">{categories.map((category) => <li key={category.id}><Link className="sf-button-secondary" href={`/${locale}/products?category_id=${category.id}`}>{category.name}</Link></li>)}</ul>
-      </section>
-      <section className="pb-12">
-        <h2 className="mb-6 text-2xl font-black">{locale === 'es-CL' ? 'Productos destacados' : 'Featured products'}</h2>
-        <ServerProductGrid products={products} locale={locale} />
-      </section>
+      <h1 className="sr-only lg:not-sr-only lg:text-4xl lg:font-black">{locale === 'es-CL' ? 'PLEXORIA · Tecnología y accesorios' : 'PLEXORIA · Technology and accessories'}</h1>
+      <nav className="py-8" aria-label={locale === 'es-CL' ? 'Categorías' : 'Categories'}>
+        <ul className="flex flex-wrap gap-3">
+          {roots.map((category) => <li key={category.id}><Link className="sf-button-secondary" href={`/${locale}/products?category_id=${category.id}`}>{category.name}</Link></li>)}
+          {roots.length > 0 && <li><Link className="sf-button-secondary" href={`/${locale}/categories`}>{locale === 'es-CL' ? 'Todas las categorías' : 'All categories'}</Link></li>}
+        </ul>
+      </nav>
+      {sections.map(section => (
+        <section key={section.category.id} className="pb-12" aria-labelledby={`server-home-category-${section.category.id}`}>
+          <h2 id={`server-home-category-${section.category.id}`} className="mb-6 text-2xl font-black"><Link href={`/${locale}/products?category_id=${section.category.id}`}>{section.category.name}</Link></h2>
+          <ServerProductGrid products={section.products} locale={locale} home />
+        </section>
+      ))}
     </main>
   );
 }

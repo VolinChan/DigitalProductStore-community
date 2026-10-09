@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Drawer } from 'antd';
 import { AppstoreOutlined, HomeOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
-import BrandMark from '@/components/storefront/BrandMark';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
 import { trapFocusWithin } from '@/lib/focus';
@@ -37,9 +37,8 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
       onKeyDown={trapFocusWithin}
       width="min(88vw, 360px)"
       title={
-        <Link href={`/${locale}`} onClick={onClose} className="flex items-center gap-2.5">
-          <BrandMark />
-          <span className="text-lg font-black text-[var(--sf-brand)]">PLEXORIA</span>
+        <Link href={`/${locale}`} onClick={onClose} className="flex min-h-11 w-fit max-w-full items-center" aria-label={t('layout.logo')}>
+          <Image src="/plexoria-logo.png" alt="PLEXORIA" width={240} height={80} className="h-8 w-auto max-w-full object-contain" />
         </Link>
       }
       styles={{ body: { padding: 0 }, header: { borderBottom: '1px solid var(--sf-line)' } }}

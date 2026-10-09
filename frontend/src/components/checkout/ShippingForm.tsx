@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Checkbox, Form, Input, Select } from 'antd';
+import { Checkbox, Form, Input, Select } from 'antd';
 import { MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
 import apiClient from '@/lib/api';
@@ -11,11 +11,11 @@ export interface ShippingInfo {
   full_name: string; email: string; phone: string; address_source: 'existing' | 'new'; address_id?: number;
   region_id: number; commune_id: number; street: string; street_number: string; complement?: string; reference?: string; remember_address?: boolean;
 }
-interface ShippingFormProps { form: ReturnType<typeof Form.useForm>[0]; initialValues?: Partial<ShippingInfo>; authenticated?: boolean }
+interface ShippingFormProps { form: ReturnType<typeof Form.useForm>[0]; authenticated?: boolean }
 
 const guestAddressKey = 'plexoria:guest-address:v1';
 
-export default function ShippingForm({ form, initialValues, authenticated = false }: ShippingFormProps) {
+export default function ShippingForm({ form, authenticated = false }: ShippingFormProps) {
   const t = useTranslations();
   const [regions, setRegions] = useState<ChileRegion[]>([]);
   const [communes, setCommunes] = useState<ChileCommune[]>([]);
@@ -50,7 +50,7 @@ export default function ShippingForm({ form, initialValues, authenticated = fals
     else if (addresses[0]) selectAddress(addresses.find((row) => row.is_default) || addresses[0]);
   };
 
-  return <Form form={form} layout="vertical" initialValues={{ ...initialValues, address_source: 'new' }} requiredMark={false} className="sf-checkout-form">
+  return <>
     {authenticated && addresses.length > 0 && <div className="grid gap-4 sm:grid-cols-2"><Form.Item name="address_source" label={t('shipping.addressSource')}><Select onChange={switchSource} options={[{ value: 'existing', label: t('shipping.savedAddress') }, { value: 'new', label: t('shipping.newAddress') }]} /></Form.Item>{source === 'existing' && <Form.Item name="address_id" label={t('shipping.savedAddress')} rules={[{ required: true }]}><Select onChange={(id) => { const address = addresses.find((row) => row.id === id); if (address) selectAddress(address); }} options={addresses.map((row) => ({ value: row.id, label: `${row.label || row.recipient} · ${row.street} ${row.street_number}` }))} /></Form.Item>}</div>}
     <div className="grid gap-x-4 sm:grid-cols-2">
       <Form.Item name="full_name" label={t('shipping.fullName')} rules={[{ required: true, message: t('shipping.fullNameRequired') }, { min: 2, max: 100 }]}><Input disabled={source === 'existing'} autoComplete="name" prefix={<UserOutlined />} size="large" /></Form.Item>
@@ -63,8 +63,8 @@ export default function ShippingForm({ form, initialValues, authenticated = fals
       <Form.Item name="complement" label={t('shipping.complement')}><Input disabled={source === 'existing'} autoComplete="address-line2" /></Form.Item>
       <Form.Item name="reference" label={t('shipping.reference')}><Input disabled={source === 'existing'} /></Form.Item>
     </div>
-    {!authenticated && <div className="flex flex-wrap items-center gap-3"><Form.Item name="remember_address" valuePropName="checked" noStyle><Checkbox>{t('shipping.rememberInBrowser')}</Checkbox></Form.Item><Button type="link" onClick={() => { localStorage.removeItem(guestAddressKey); form.setFieldValue('remember_address', false); }}>{t('shipping.clearSaved')}</Button></div>}
-  </Form>;
+    {!authenticated && <div className="flex flex-wrap items-center gap-3"><Form.Item name="remember_address" valuePropName="checked" noStyle><Checkbox>{t('shipping.rememberInBrowser')}</Checkbox></Form.Item><button type="button" className="sf-button-quiet" onClick={() => { localStorage.removeItem(guestAddressKey); form.setFieldValue('remember_address', false); }}>{t('shipping.clearSaved')}</button></div>}
+  </>;
 }
 
 export function persistGuestAddress(values: ShippingInfo) {

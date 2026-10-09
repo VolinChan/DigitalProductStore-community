@@ -5,19 +5,24 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import ImageFallback from '@/components/ImageFallback';
 import SearchHighlight from '@/components/product/SearchHighlight';
-import { getProductPrimaryImage, getProductSummary } from '@/lib/catalog';
+import MutedVideoPreview from '@/components/product/MutedVideoPreview';
+import { getProductPrimaryImage, getProductPreviewVideo, getProductSummary } from '@/lib/catalog';
 import { formatCLP } from '@/lib/utils';
 import type { Product } from '@/types';
 
 interface ProductCardProps {
   product: Product;
   highlightQuery?: string;
+  showRecommendation?: boolean;
 }
 
-export default function ProductCard({ product, highlightQuery }: ProductCardProps) {
+export default function ProductCard({ product, highlightQuery, showRecommendation = false }: ProductCardProps) {
   const t = useTranslations();
   const locale = useLocale();
   const primaryImage = getProductPrimaryImage(product) || '/placeholder-product.svg';
+  const previewVideo = getProductPreviewVideo(product);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const startingPrice = getStartingPrice(product);
   const outOfStock = checkOutOfStock(product);
   const summary = getProductSummary(product);
@@ -30,7 +35,9 @@ export default function ProductCard({ product, highlightQuery }: ProductCardProp
   };
 
   return (
-    <Link href={`/${locale}/products/${encodeURIComponent(product.slug || String(product.id))}`} className="group block min-w-0">
+    <Link href={`/${locale}/products/${encodeURIComponent(product.slug || String(product.id))}`} className="group block min-w-0"
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}>
       <div className="relative aspect-square overflow-hidden rounded-[18px] border border-solid border-[var(--sf-line)] transition-colors duration-200 sm:rounded-[22px]" style={{ backgroundColor: imageSurface }}>
         {outOfStock && (
           <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-[#273746] px-2.5 py-1 text-[10px] font-bold text-white sm:left-3 sm:top-3 sm:text-xs">
@@ -46,10 +53,16 @@ export default function ProductCard({ product, highlightQuery }: ProductCardProp
           loading="lazy"
           onLoad={matchImageSurface}
         />
+        {previewVideo && <MutedVideoPreview src={previewVideo} active={hovered || focused} hoverOnly />}
       </div>
 
       <div className="pt-3">
-        {product.brand && (
+        {showRecommendation ? (
+          <div className="flex min-h-5 items-center gap-2">
+            {product.brand && <p className="min-w-0 truncate text-[10px] font-bold uppercase text-[var(--sf-muted)]">{product.brand}</p>}
+            {product.is_recommended && <span className="inline-flex shrink-0 rounded-md bg-[#eaf3f8] px-2 py-0.5 text-[10px] font-semibold leading-4 text-[#286082] sm:text-[11px]">{t('home.recommended')}</span>}
+          </div>
+        ) : product.brand && (
           <p className="truncate text-[10px] font-bold uppercase text-[var(--sf-muted)]">{product.brand}</p>
         )}
         <h3 className="mt-1 line-clamp-2 min-h-[38px] text-[13px] font-bold leading-[19px] text-[var(--sf-ink)] transition-colors group-hover:text-[var(--sf-accent)] sm:text-sm">

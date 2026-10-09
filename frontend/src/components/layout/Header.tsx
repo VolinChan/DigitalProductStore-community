@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -10,6 +10,7 @@ import {
   MenuOutlined,
   SearchOutlined,
   CloseCircleFilled,
+  CloseOutlined,
   ShoppingOutlined,
   UserOutlined,
 	BellOutlined,
@@ -28,6 +29,9 @@ export default function Header() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchButtonRef = useRef<HTMLButtonElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
   const { isAuthenticated, user, logout, loadUser } = useAuthStore();
@@ -38,8 +42,13 @@ export default function Header() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    setMobileSearchOpen(false);
     if (pathname?.startsWith(`/${locale}/products/search`)) setSearchQuery(searchParams.get('q') || '');
   }, [locale, pathname, searchParams]);
+
+  useEffect(() => {
+    if (mobileSearchOpen) mobileSearchInputRef.current?.focus();
+  }, [mobileSearchOpen]);
 
   useEffect(() => {
     if (mounted && isAuthenticated && !user) {
@@ -56,6 +65,7 @@ export default function Header() {
     event.preventDefault();
     const query = searchQuery.trim();
     if (!query) return;
+    setMobileSearchOpen(false);
     router.push(`/${locale}/products/search?q=${encodeURIComponent(query)}`);
   };
 
@@ -73,7 +83,7 @@ export default function Header() {
           ? [{ key: 'admin', label: <Link href="/admin">{t('layout.admin')}</Link> }]
           : []),
         { type: 'divider' as const },
-        { key: 'logout', label: <button type="button" onClick={handleLogout}>{t('layout.logout')}</button> },
+        { key: 'logout', label: t('layout.logout'), onClick: handleLogout, danger: true },
       ]
     : [
         { key: 'login', label: <Link href={`/${locale}/login`}>{t('layout.login')}</Link> },
@@ -86,10 +96,10 @@ export default function Header() {
         <span className="inline-flex items-center gap-2"><GiftOutlined aria-hidden />{t('layout.announcement')}</span>
       </div>
 
-      <header className="sticky top-0 z-50 border-b border-[var(--sf-line)] bg-[color:var(--sf-bg)]/95 backdrop-blur-xl">
+      <header className="sf-header sticky top-0 z-50 border-b border-[var(--sf-line)] backdrop-blur-xl">
         <div className="sf-shell">
           <div className="flex h-[68px] items-center gap-3 lg:h-[76px]">
-            <Link href={`/${locale}`} className="flex shrink-0 items-center gap-2.5" aria-label={t('layout.logo')}>
+            <Link href={`/${locale}`} className="flex min-h-11 shrink-0 items-center rounded-lg px-2 py-2 sm:px-2.5" aria-label={t('layout.logo')}>
               <Image src="/plexoria-logo.png" alt="Plexoria Logo" width={240} height={80} className="h-7 w-auto sm:h-8" priority />
             </Link>
 
@@ -108,6 +118,17 @@ export default function Header() {
             </form>
 
             <div className="ml-auto flex items-center gap-1 lg:ml-2">
+              <button
+                ref={mobileSearchButtonRef}
+                type="button"
+                className="sf-icon-button lg:hidden"
+                aria-label={t(mobileSearchOpen ? 'layout.closeSearch' : 'layout.searchAria')}
+                aria-expanded={mobileSearchOpen}
+                aria-controls="storefront-mobile-search"
+                onClick={() => setMobileSearchOpen(current => !current)}
+              >
+                {mobileSearchOpen ? <CloseOutlined className="text-xl" /> : <SearchOutlined className="text-xl" />}
+              </button>
               <div className="hidden lg:block"><LanguageSwitcher /></div>
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
                 <button type="button" className="sf-icon-button hidden sm:flex" aria-label={t('layout.userMenu')}>
@@ -128,14 +149,25 @@ export default function Header() {
                   </span>
                 )}
               </Link>
-              <button type="button" className="sf-icon-button lg:hidden" onClick={() => setMobileMenuOpen(true)} aria-label={t('layout.menu')}>
+              <button type="button" className="sf-icon-button lg:hidden" onClick={() => { setMobileSearchOpen(false); setMobileMenuOpen(true); }} aria-label={t('layout.menu')}>
                 <MenuOutlined className="text-xl" />
               </button>
             </div>
           </div>
 
-          <form role="search" onSubmit={submitSearch} className="pb-3 lg:hidden">
-            <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('layout.closeSearch')} />
+          <form
+            id="storefront-mobile-search"
+            role="search"
+            onSubmit={submitSearch}
+            className={`${mobileSearchOpen ? 'block' : 'hidden'} pb-3 lg:hidden`}
+            onKeyDown={event => {
+              if (event.key !== 'Escape') return;
+              event.preventDefault();
+              setMobileSearchOpen(false);
+              mobileSearchButtonRef.current?.focus();
+            }}
+          >
+            <SearchField inputRef={mobileSearchInputRef} value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('layout.closeSearch')} />
           </form>
         </div>
       </header>
@@ -145,11 +177,12 @@ export default function Header() {
   );
 }
 
-function SearchField({ value, onChange, placeholder, searchLabel, clearLabel }: { value: string; onChange: (value: string) => void; placeholder: string; searchLabel: string; clearLabel: string }) {
+function SearchField({ value, onChange, placeholder, searchLabel, clearLabel, inputRef }: { value: string; onChange: (value: string) => void; placeholder: string; searchLabel: string; clearLabel: string; inputRef?: RefObject<HTMLInputElement | null> }) {
   return (
     <div className="flex h-12 items-center gap-1 rounded-xl border border-[var(--sf-line)] bg-white p-1 pl-3 transition focus-within:border-[var(--sf-accent)] focus-within:ring-4 focus-within:ring-[var(--sf-accent)]/12">
       <SearchOutlined className="mr-1 shrink-0 text-[17px] text-[var(--sf-muted)]" aria-hidden />
       <input
+        ref={inputRef}
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}

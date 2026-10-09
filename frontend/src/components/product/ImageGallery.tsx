@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { CloseOutlined, LeftOutlined, PlayCircleOutlined, RightOutlined, VideoCameraOutlined, ZoomInOutlined } from '@ant-design/icons';
 import ImageFallback from '@/components/ImageFallback';
+import MutedVideoPreview from '@/components/product/MutedVideoPreview';
+import ProductVideo from '@/components/product/ProductVideo';
 import type { ProductMedia, SKUMedia } from '@/types';
 import { useTranslations } from 'next-intl';
 
@@ -37,6 +39,7 @@ export default function ImageGallery({ images, media = [], skuImageUrl, skuMedia
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
   const [zoomPanel, setZoomPanel] = useState<{ left: number; top: number; size: number } | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const ignoreNextClick = useRef(false);
   const ignoreClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,7 +63,7 @@ export default function ImageGallery({ images, media = [], skuImageUrl, skuMedia
     const legacy: GalleryItem[] = modern.length ? [] : [...images]
       .sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)) || a.sort_order - b.sort_order)
       .map((image) => ({ id: image.id, kind: 'image', url: image.image_url, thumbnail: image.thumbnail_url || image.image_url, alt: productName }));
-    const base = skuGallery.length ? skuGallery : modern.length ? modern : legacy;
+    const base = skuGallery.length ? [...skuGallery, ...modern.filter((item) => item.kind === 'video')] : modern.length ? modern : legacy;
     if (!skuGallery.length && skuImageUrl) base.unshift({ id: -1, kind: 'image', url: skuImageUrl, thumbnail: skuImageUrl, alt: productName });
     return base.length ? base : [{ id: 0, kind: 'image', url: '/placeholder-product.svg', thumbnail: '/placeholder-product.svg', alt: productName }];
   }, [images, media, productName, skuImageUrl, skuMedia]);
@@ -68,6 +71,8 @@ export default function ImageGallery({ images, media = [], skuImageUrl, skuMedia
   useEffect(() => setSelectedIndex(0), [skuImageUrl, skuMedia, media]);
   const current = items[selectedIndex] ?? items[0];
   const isYouTube = current.mimeType === 'video/youtube';
+  const previewIndex = items.findIndex((item) => item.kind === 'video' && item.mimeType !== 'video/youtube');
+  const preview = previewIndex >= 0 ? items[previewIndex] : undefined;
 
   useEffect(() => {
     setIsZoomed(false);
@@ -186,7 +191,9 @@ export default function ImageGallery({ images, media = [], skuImageUrl, skuMedia
           <ZoomInOutlined />
         </span>
       </button>}
-      {current.kind === 'video' && !isYouTube && <video key={current.url} src={current.url} poster={current.thumbnail} controls preload="metadata" className="h-full w-full object-contain" aria-label={current.alt} />}
+      {preview && current.kind === 'image' && selectedIndex === 0 && <MutedVideoPreview src={preview.url} active={!lightboxOpen} controls onPlayingChange={setPreviewPlaying} />}
+      {preview && current.kind === 'image' && <button type="button" onClick={() => setSelectedIndex(previewIndex)} className="absolute bottom-3 right-3 z-20 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold text-[var(--sf-ink)] shadow-sm focus-visible:outline-2 focus-visible:outline-[var(--sf-accent)]">{t('gallery.watchVideo')}</button>}
+      {current.kind === 'video' && !isYouTube && !lightboxOpen && <ProductVideo key={current.url} src={current.url} poster={current.thumbnail} label={current.alt} />}
       {current.kind === 'video' && isYouTube && <a href={current.url} target="_blank" rel="noopener noreferrer" className="relative block h-full w-full" aria-label={`YouTube: ${current.alt}`}>
         {current.thumbnail ? <ImageFallback src={current.thumbnail} alt={current.alt} fill className="object-contain" sizes="(max-width: 768px) 100vw, 500px" loading="lazy" /> : <VideoCameraOutlined className="absolute left-1/2 top-1/2 text-5xl text-gray-400" />}
         <PlayCircleOutlined className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl text-white drop-shadow" />
@@ -202,7 +209,7 @@ export default function ImageGallery({ images, media = [], skuImageUrl, skuMedia
       {items.length > 1 && <span className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/55 px-2.5 py-1 text-xs font-bold text-white md:hidden" aria-hidden="true">{selectedIndex + 1} / {items.length}</span>}
     </div>
 
-    {isZoomed && zoomPanel && current.kind === 'image' && <div
+    {isZoomed && zoomPanel && current.kind === 'image' && !previewPlaying && <div
       data-testid="product-image-zoom"
       aria-hidden="true"
       className="pointer-events-none fixed z-[70] hidden overflow-hidden rounded-[22px] border border-solid border-[var(--sf-line)] bg-white bg-no-repeat shadow-[0_24px_70px_rgba(21,48,66,0.24)] lg:block"
@@ -249,7 +256,7 @@ export default function ImageGallery({ images, media = [], skuImageUrl, skuMedia
       <button ref={closeButtonRef} type="button" aria-label={t('gallery.closeGallery')} onClick={closeLightbox} className="absolute right-3 top-3 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-xl text-white transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-6 sm:top-6"><CloseOutlined /></button>
       <div className="relative h-[calc(100dvh-7rem)] w-[calc(100vw-1.5rem)] max-w-5xl sm:h-[calc(100dvh-8rem)] sm:w-[calc(100vw-7rem)]">
         {current.kind === 'image' && <ImageFallback src={current.url} alt={current.alt} fill className="object-contain" sizes="100vw" priority />}
-        {current.kind === 'video' && !isYouTube && <video key={current.url} src={current.url} poster={current.thumbnail} controls autoPlay preload="metadata" className="h-full w-full object-contain" aria-label={current.alt} />}
+        {current.kind === 'video' && !isYouTube && <ProductVideo key={current.url} src={current.url} poster={current.thumbnail} autoPlay label={current.alt} />}
         {current.kind === 'video' && isYouTube && <a href={current.url} target="_blank" rel="noopener noreferrer" className="relative block h-full w-full" aria-label={`YouTube: ${current.alt}`}>
           {current.thumbnail ? <ImageFallback src={current.thumbnail} alt={current.alt} fill className="object-contain" sizes="100vw" /> : <VideoCameraOutlined className="absolute left-1/2 top-1/2 text-6xl text-white" />}
           <PlayCircleOutlined className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl text-white drop-shadow" />

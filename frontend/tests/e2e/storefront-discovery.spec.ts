@@ -1,9 +1,58 @@
 import { expect, test } from '@playwright/test';
+import { seedNecessaryCookieConsent } from './helpers/shipping';
+
+test('price filters reject letters, negatives and decimals while search has one clear action', async ({ page }) => {
+  await seedNecessaryCookieConsent(page);
+  await page.route('http://localhost:8080/api/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    const data = path === '/api/v1/categories' ? { categories: [] }
+      : path === '/api/v1/products/search' ? { products: [], total: 0 } : {};
+    await route.fulfill({ json: { data } });
+  });
+  await page.goto('/en/products/search?q=adapter');
+  const minimum = page.getByRole('textbox', { name: 'Minimum price', exact: true });
+  const maximum = page.getByRole('textbox', { name: 'Maximum price', exact: true });
+  await expect(minimum).toHaveAttribute('inputmode', 'numeric');
+  await minimum.fill('1200');
+  await minimum.pressSequentially('abc.-e');
+  await expect(minimum).toHaveValue('1200');
+  await maximum.fill('1000');
+  await expect(page.getByRole('button', { name: 'Apply filters' })).toBeDisabled();
+  await maximum.fill('2000');
+  await expect(page.getByRole('button', { name: 'Apply filters' })).toBeEnabled();
+  const search = page.locator('header input[type="search"]:visible');
+  const searchForm = search.locator('xpath=ancestor::form');
+  await expect(searchForm.locator('button[type="button"]')).toHaveCount(1);
+  await searchForm.locator('button[type="button"]').click();
+  await expect(search).toHaveValue('');
+  await expect(searchForm.locator('button[type="button"]')).toHaveCount(0);
+});
 
 const makeProduct = (id: number, name: string) => ({
   id, name, description: '', specifications: '{}', status: 'published', is_active: true,
   created_at: '2026-07-30T09:00:00Z', updated_at: '2026-07-30T09:00:00Z', images: [],
   skus: [{ id: id * 10, product_id: id, sku_code: `SKU-${id}`, price: 9990 + id, inventory: 5, attributes: [], is_active: true }],
+});
+
+test('search summaries strip rich text before truncation and keyword highlighting', async ({ page }) => {
+  await page.route('http://localhost:8080/api/v1/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v1/categories') return route.fulfill({ json: { data: { categories: [] } } });
+    if (path === '/api/v1/products/search') {
+      return route.fulfill({ json: { data: { products: [{
+        ...makeProduct(2, 'Network adapter'),
+        short_description: '<p><br></p>',
+        description: '<p>Fast <strong>switch</strong>&nbsp;&amp; adapter.</p><p>8 ports.</p>',
+      }], total: 1 } } });
+    }
+    return route.fulfill({ json: { data: {} } });
+  });
+
+  await page.goto('/en/products/search?q=switch');
+  const card = page.getByRole('link').filter({ has: page.getByRole('heading', { name: 'Network adapter' }) });
+  await expect(card).toContainText('Fast switch & adapter. 8 ports.');
+  await expect(card.locator('mark')).toHaveText('switch');
+  await expect(card).not.toContainText(/<\/?(?:p|strong)>|&(?:nbsp|amp);/);
 });
 
 test('home category entry keeps the locale and applies the category filter', async ({ page }) => {
@@ -26,12 +75,13 @@ test('home category entry keeps the locale and applies the category filter', asy
   });
 
   await page.goto('/es-CL');
-  await page.locator('a[href="/es-CL/products?category_id=7"]').click();
+  await page.locator('#categories a[href="/es-CL/products?category_id=7"]').click();
   await expect(page).toHaveURL(/\/es-CL\/products\?category_id=7$/);
   await expect.poll(() => Boolean(filteredRequest)).toBe(true);
 });
 
 test('mobile product discovery persists filters, sorting and pagination in the URL', async ({ page }) => {
+  await seedNecessaryCookieConsent(page);
   const productRequests: URL[] = [];
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route('http://localhost:8080/api/v1/**', async route => {
@@ -48,8 +98,11 @@ test('mobile product discovery persists filters, sorting and pagination in the U
   await expect(page).toHaveURL(/sort=price_asc/);
 
   await page.getByRole('button', { name: /^Filters/ }).click();
-  const filterDialog = page.getByRole('dialog');
+  const filterDialog = page.getByRole('dialog', { name: 'Filters', exact: true });
   await filterDialog.getByRole('button', { name: 'Cables', exact: true }).click();
+  await expect(page).toHaveURL(/category_id=7/);
+  await expect(filterDialog).toBeHidden();
+  await page.getByRole('button', { name: /^Filters/ }).click();
   await filterDialog.getByLabel('Minimum price').fill('1000');
   await filterDialog.getByLabel('Maximum price').fill('20000');
   await filterDialog.getByRole('button', { name: 'Apply filters' }).click();

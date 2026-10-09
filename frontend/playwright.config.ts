@@ -13,12 +13,13 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--disable-web-security'] } } },
   ],
   webServer: {
-    command: 'npm run build -- --webpack && HOSTNAME=127.0.0.1 PORT=3110 node .next/standalone/server.js',
-    url: 'http://127.0.0.1:3110/admin/categories',
+    command: 'npm run build && HOSTNAME=127.0.0.1 PORT=3110 node .next/standalone/server.js',
+    url: 'http://127.0.0.1:3110/en',
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
       ...process.env,
+      NEXT_PUBLIC_APP_VERSION: 'v1.2.1',
       SEO_E2E_CLIENT_CATALOG: 'true',
       NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED: 'true',
       NEXT_PUBLIC_TRANSFER_BANK_NAME: 'Banco de Prueba',

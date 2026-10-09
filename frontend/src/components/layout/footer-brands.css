@@ -1,0 +1,149 @@
+.sf-footer {
+  --footer-bg: #132f4b;
+  --footer-mark-bg: rgba(255, 255, 255, 0.08);
+  --footer-touch-mark-bg: #cbd5df;
+  --footer-line: rgba(255, 255, 255, 0.10);
+  --footer-active-bg: #fff;
+  --footer-muted: rgba(255, 255, 255, 0.65);
+  --footer-mark-opacity: 0.65;
+  --footer-mark-filter: grayscale(1) brightness(1.8);
+  --footer-gap: 8px;
+  --footer-section-gap: 24px;
+  --footer-radius: 6px;
+  --footer-card-height: 28px;
+  --footer-card-width: 44px;
+  --footer-card-wide: 64px;
+  --footer-channel-width: 104px;
+  --footer-channel-height: 48px;
+  --footer-card-px: 6px;
+  --footer-card-py: 4px;
+  --footer-transition: 220ms ease;
+  --footer-small: 12px;
+  --footer-heading: 11px;
+  --footer-payments-width: 448px;
+  --footer-mercadolibre-image-width: 52px;
+  --footer-mercadolibre-image-height: 42px;
+  --footer-visa-image-size: 30px;
+  --footer-mercadopago-image-size: 24px;
+  --footer-amex-image-size: 22px;
+  --footer-amex-touch-image-size: 24px;
+  background: var(--footer-bg);
+}
+
+.sf-footer .sf-footer-eyebrow {
+  margin: 0 0 var(--footer-gap);
+  color: var(--footer-muted);
+  font-size: var(--footer-heading);
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sf-footer-marketplaces { margin-top: var(--footer-section-gap); }
+.sf-footer-marketplace-list,
+.sf-footer-payment-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--footer-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sf-footer-payment-list > li { margin: 0; padding: 0; }
+
+.sf-footer-brand-card {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--footer-card-width);
+  height: var(--footer-card-height);
+  padding: var(--footer-card-py) var(--footer-card-px);
+  border: 1px solid var(--footer-line);
+  border-radius: var(--footer-radius);
+  background-color: var(--footer-mark-bg);
+  transition: background-color var(--footer-transition), border-color var(--footer-transition);
+}
+.sf-footer-brand-card--wide { width: var(--footer-card-wide); }
+.sf-footer-brand-card--channel {
+  width: var(--footer-channel-width);
+  height: var(--footer-channel-height);
+}
+.sf-footer-brand-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: saturate(0.6);
+  opacity: 1;
+  transition: filter var(--footer-transition), opacity var(--footer-transition);
+}
+/* These source SVGs contain extra viewBox whitespace. Enlarge the image box,
+   not its paths: the complete brand artwork remains visible and undistorted. */
+.sf-footer-mark--mercadolibre .sf-footer-brand-image { width: var(--footer-mercadolibre-image-width); height: var(--footer-mercadolibre-image-height); }
+.sf-footer-mark--visa .sf-footer-brand-image { width: var(--footer-visa-image-size); height: var(--footer-visa-image-size); }
+.sf-footer-mark--visa { --footer-mark-filter: grayscale(1) brightness(3); }
+.sf-footer-mark--mercadopago .sf-footer-brand-image { width: var(--footer-mercadopago-image-size); height: var(--footer-mercadopago-image-size); }
+.sf-footer-mark--amex .sf-footer-brand-image { width: var(--footer-amex-image-size); height: var(--footer-amex-image-size); }
+.sf-footer-mark--webpay { --footer-mark-filter: grayscale(1); }
+.sf-footer-mark--santander .sf-footer-brand-image { width: 20px; height: 20px; }
+
+/* Dark blue artwork needs a light surface when touch keeps its brand colour.
+   Preserve the original SVGs, card geometry and all other brand treatments. */
+@media (hover: none), (pointer: coarse) {
+  .sf-footer-mark--visa,
+  .sf-footer-mark--amex { background-color: var(--footer-touch-mark-bg); }
+  .sf-footer-mark--amex .sf-footer-brand-image {
+    width: var(--footer-amex-touch-image-size);
+    height: var(--footer-amex-touch-image-size);
+  }
+  .sf-footer-mark--santander { background-color: #ec0000; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sf-footer-brand-card { background-color: var(--footer-mark-bg); }
+  .sf-footer-mark--amex .sf-footer-brand-image { width: var(--footer-amex-image-size); height: var(--footer-amex-image-size); }
+  .sf-footer-brand-image { filter: var(--footer-mark-filter); opacity: var(--footer-mark-opacity); }
+  .sf-footer-brand-card:hover { background-color: var(--footer-active-bg); border-color: var(--footer-active-bg); }
+  .sf-footer-brand-card:hover .sf-footer-brand-image { filter: none; opacity: 1; }
+  .sf-footer-mark--santander:hover { background-color: #ec0000; border-color: #ec0000; }
+}
+
+/* Keyboard access also applies to touch devices with an attached keyboard. */
+.sf-footer a.sf-footer-brand-card:focus-visible {
+  background-color: var(--footer-active-bg);
+  border-color: var(--footer-active-bg);
+  outline: 2px solid var(--footer-active-bg);
+  outline-offset: 3px;
+}
+.sf-footer a.sf-footer-brand-card:focus-visible .sf-footer-brand-image { filter: none; opacity: 1; }
+
+.sf-footer-bottom { border-top: 1px solid var(--footer-line); }
+.sf-footer-bottom-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--footer-section-gap);
+  padding-top: var(--footer-section-gap);
+}
+.sf-footer-copyright { min-width: 0; }
+.sf-footer-payments { max-width: 100%; }
+.sf-footer-transfer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--footer-muted);
+  font-size: var(--footer-small);
+  line-height: var(--footer-card-height);
+}
+@media (min-width: 1024px) {
+  .sf-footer-bottom-content { flex-direction: row; align-items: center; justify-content: space-between; }
+  .sf-footer-copyright { flex: 1; }
+  .sf-footer-payments { flex: 0 1 var(--footer-payments-width); text-align: right; }
+  .sf-footer-payment-list { justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-footer-brand-card, .sf-footer-brand-image { transition: none; }
+}

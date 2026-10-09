@@ -1,8 +1,15 @@
 import type { Product, ProductMedia, SKU } from '@/types';
 import { catalogStorefrontEnabled } from '@/lib/catalog-flags';
+import { toPlainText } from '@/lib/plain-text';
 
 function sortedProductMedia(media: ProductMedia[] = []) {
   return [...media].sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order);
+}
+
+export function getProductPreviewVideo(product: Pick<Product, 'media'>): string | undefined {
+  if (!catalogStorefrontEnabled) return undefined;
+  return sortedProductMedia(product.media).find((item) => item.media_asset?.kind === 'video'
+    && item.media_asset.mime_type !== 'video/youtube' && item.media_asset.url)?.media_asset?.url;
 }
 
 export function getProductPrimaryImage(product: Pick<Product, 'media' | 'images'>): string | undefined {
@@ -17,9 +24,11 @@ export function getProductPrimaryImage(product: Pick<Product, 'media' | 'images'
 }
 
 export function getProductSummary(product: Pick<Product, 'short_description' | 'description'>): string {
+  const shortDescription = toPlainText(product.short_description);
+  const description = toPlainText(product.description);
   return catalogStorefrontEnabled
-    ? product.short_description?.trim() || product.description?.trim() || ''
-    : product.description?.trim() || product.short_description?.trim() || '';
+    ? shortDescription || description
+    : description || shortDescription;
 }
 
 export function getSKUImage(sku?: SKU | null): string | undefined {

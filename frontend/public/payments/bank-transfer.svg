@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img">
+  <title>Bank transfer</title>
+  <path fill="#176B52" d="M24 4 4 14v4h40v-4L24 4Zm-14 18v14H6v6h36v-6h-4V22h-5v14h-6V22h-6v14h-6V22h-5Z"/>
+  <path fill="#42A07E" d="m29 25 4-4 4 4h-3v5h-2v-5h-3Zm-10 7-4 4-4-4h3v-5h2v5h3Z"/>
+</svg>

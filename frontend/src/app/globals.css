@@ -62,6 +62,7 @@
 
   .storefront {
     --sf-bg: #fbfaf7;
+    --sf-header-surface: rgba(251, 250, 247, 0.96);
     --sf-surface: #ffffff;
     --sf-ink: #1c2733;
     --sf-subtle: #425466;
@@ -101,9 +102,43 @@
   .storefront :where(button, input, textarea, select) {
     font: inherit;
   }
+
+  /* Preflight is disabled for Ant Design. Reset native storefront buttons at
+     zero specificity so component and utility styles remain authoritative. */
+  :where(.storefront) :where(button) {
+    appearance: none;
+    margin: 0;
+    padding: 0;
+    border: 0 solid transparent;
+    background: transparent;
+    color: inherit;
+    text-transform: none;
+    cursor: pointer;
+  }
+
+  :where(.storefront) :where(button:disabled) {
+    cursor: not-allowed;
+  }
+
+  :where(.storefront) :where(a, button, input, textarea, select):focus-visible {
+    outline: 2px solid var(--sf-accent);
+    outline-offset: 3px;
+  }
 }
 
 @layer components {
+  /* An explicit surface keeps the transparent brand mark readable over dark
+     sections without giving the logo its own background tile. */
+  .storefront .sf-header {
+    background-color: var(--sf-header-surface);
+  }
+
+  /* Header already provides a translated, keyboard-accessible clear button. */
+  .sf-header-search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    display: none;
+  }
+
   /* Container for pages */
   .store-container {
     @apply mx-auto w-full px-4 py-7 sm:px-6 sm:py-10 lg:px-8 lg:py-12;
@@ -121,7 +156,7 @@
     display: flex;
     width: 44px;
     height: 44px;
-    flex: 0 0 44px;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     border: 0;
@@ -131,12 +166,12 @@
     transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
   }
 
-  .sf-icon-button:hover {
+  .sf-icon-button:hover:not(:disabled) {
     background: var(--sf-soft);
     color: var(--sf-accent);
   }
 
-  .sf-icon-button:active {
+  .sf-icon-button:active:not(:disabled) {
     transform: scale(0.96);
   }
 
@@ -156,7 +191,7 @@
     transition: background-color 150ms ease, transform 150ms ease;
   }
 
-  .sf-button-primary:hover {
+  .sf-button-primary:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--sf-brand-hover);
     transform: translateY(-1px);
   }
@@ -183,9 +218,118 @@
     transition: background-color 150ms ease, transform 150ms ease;
   }
 
-  .sf-button-secondary:hover {
+  .sf-button-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--sf-soft-blue);
     transform: translateY(-1px);
+  }
+
+  .sf-button-quiet,
+  .sf-button-danger {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    padding-inline: 1rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+
+  .sf-button-quiet {
+    background: transparent;
+    color: var(--sf-brand);
+  }
+
+  .sf-button-quiet:hover:not(:disabled) {
+    background: var(--sf-soft-blue);
+  }
+
+  .sf-button-danger {
+    border-color: #e7b9b4;
+    background: #fff;
+    color: #a33a32;
+  }
+
+  .sf-button-danger:hover:not(:disabled) {
+    border-color: #a33a32;
+    background: #fdebea;
+  }
+
+  .sf-icon-button-danger {
+    color: #a33a32;
+  }
+
+  .sf-icon-button-danger:hover:not(:disabled) {
+    background: #fdebea;
+    color: #a33a32;
+  }
+
+  :is(.sf-button-primary, .sf-button-secondary, .sf-button-quiet, .sf-button-danger) {
+    max-width: 100%;
+    padding-block: 0.65rem;
+    line-height: 1.4;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  :is(.sf-button-primary, .sf-button-secondary, .sf-button-quiet, .sf-button-danger, .sf-icon-button):is(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+  }
+
+  :is(.sf-button-primary, .sf-button-secondary, .sf-button-quiet, .sf-button-danger, .sf-icon-button):focus-visible,
+  .storefront label:has(> input[type="file"]:focus-visible) {
+    outline: 2px solid var(--sf-accent);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :is(.sf-button-primary, .sf-button-secondary, .sf-button-quiet, .sf-button-danger, .sf-icon-button) {
+      transition: none;
+      transform: none !important;
+    }
+  }
+
+  .sf-input {
+    min-height: 48px;
+    border: 1px solid var(--sf-line);
+    border-radius: 12px;
+    background: #fff;
+    padding: 0.75rem 0.875rem;
+    color: var(--sf-ink);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .sf-input::placeholder {
+    color: var(--sf-muted);
+    opacity: 0.8;
+  }
+
+  .sf-input:focus {
+    border-color: var(--sf-accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--sf-accent) 12%, transparent);
+  }
+
+  .sf-input:disabled {
+    cursor: not-allowed;
+    background: var(--sf-soft);
+    color: var(--sf-muted);
+    opacity: 0.75;
+  }
+
+  .admin-sidebar-menu.ant-menu-inline .ant-menu-item {
+    height: 46px;
+    min-height: 46px;
+    margin-block: 4px;
+    border-radius: 10px;
+    line-height: 46px;
   }
 
   .storefront .sf-auth-form .ant-form-item-label > label,
@@ -376,6 +520,101 @@
   }
   .animate-fade-in-up {
     animation: fade-in-up 0.3s ease-out forwards;
+  }
+}
+
+/* A quiet contact entry with an optional, user-opened service-hours notice. */
+.storefront .sf-whatsapp-widget {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 40;
+}
+
+.storefront .sf-whatsapp-contact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 52px;
+  height: 52px;
+  padding-inline: 13px;
+  border: 1px solid var(--sf-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--sf-brand);
+  box-shadow: 0 4px 18px rgb(19 47 75 / 12%);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+/* A user-opened notice must stay readable above the sticky header on short screens. */
+.storefront .sf-whatsapp-widget:has(.sf-whatsapp-notice) {
+  z-index: 60;
+}
+
+.storefront .sf-whatsapp-contact:hover {
+  border-color: #167c49;
+  box-shadow: 0 6px 20px rgb(19 47 75 / 16%);
+}
+
+.storefront .sf-whatsapp-notice {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  width: min(340px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-height: calc(100dvh - 110px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--sf-line);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 30px rgb(19 47 75 / 14%);
+}
+
+/* Reserve room at the end of the page for the small floating contact link. */
+.storefront > footer .sf-footer-bottom > .sf-shell {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* Existing overlays own focus; the contact link must not compete with them. */
+body:has(.ant-drawer-open, .ant-modal-wrap:not([style*="display: none"]), .storefront [aria-modal="true"]:not(.ant-drawer-section)) .sf-whatsapp-widget {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .storefront .sf-whatsapp-widget {
+    right: max(24px, env(safe-area-inset-right));
+    bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  .storefront .sf-whatsapp-contact { padding-inline: 16px; }
+}
+
+@media (max-width: 639px) {
+  .storefront .sf-whatsapp-contact {
+    min-width: 48px;
+    height: 48px;
+    padding-inline: 10px;
+  }
+
+  .storefront .sf-whatsapp-widget[data-mobile-hidden="true"]:not(:focus-within) {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .storefront:has(.sf-mobile-purchase-bar) .sf-whatsapp-widget {
+    bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .storefront:has(.sf-mobile-purchase-bar) .sf-whatsapp-notice {
+    max-height: calc(100dvh - 190px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  .storefront:has(.sf-mobile-purchase-bar) > footer .sf-footer-bottom > .sf-shell {
+    padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  }
+
+  .storefront:has(input:focus, textarea:focus, select:focus) .sf-whatsapp-widget {
+    display: none;
   }
 }
 

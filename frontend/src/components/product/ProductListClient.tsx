@@ -38,6 +38,7 @@ function ProductListContent({ initialProducts, initialCategories, initialTotal, 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [total, setTotal] = useState(initialTotal);
   const initialRender = useRef(!clientFetch);
+  const requestSequence = useRef(0);
   const page = Number(searchParams.get('page')) || 1;
   const sort = searchParams.get('sort') || 'newest';
   const filters = useMemo<FilterValues>(() => ({
@@ -65,12 +66,13 @@ function ProductListContent({ initialProducts, initialCategories, initialTotal, 
   }, [clientFetch]);
 
   const loadProducts = useCallback(() => {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     setFailed(false);
     apiClient.get<ProductListResponse>('/products', { params: { page, page_size: PAGE_SIZE, sort_by: sortOption.sort_by, sort_order: sortOption.sort_order, ...filters } })
-      .then((response) => { setProducts(response.data.data?.products || []); setTotal(response.data.data?.total || 0); })
-      .catch(() => { setProducts([]); setTotal(0); setFailed(true); })
-      .finally(() => setLoading(false));
+      .then((response) => { if (sequence === requestSequence.current) { setProducts(response.data.data?.products || []); setTotal(response.data.data?.total || 0); } })
+      .catch(() => { if (sequence === requestSequence.current) { setProducts([]); setTotal(0); setFailed(true); } })
+      .finally(() => { if (sequence === requestSequence.current) setLoading(false); });
   }, [filters, page, sortOption]);
   useEffect(() => {
     if (initialRender.current) {
@@ -81,6 +83,7 @@ function ProductListContent({ initialProducts, initialCategories, initialTotal, 
   }, [loadProducts]);
 
   const applyFilters = (next: FilterValues) => { setDrawerOpen(false); updateUrl(1, sort, next); };
+  const selectCategory = (id: number | undefined) => applyFilters({ ...filters, category_id: id });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const activeFilterCount = Object.values(filters).filter((value) => value !== undefined).length;
 
@@ -105,7 +108,7 @@ function ProductListContent({ initialProducts, initialCategories, initialTotal, 
 
       <div className="flex gap-8">
         <aside className="hidden w-60 shrink-0 lg:block" aria-label={t('products.filter')}>
-          <div className="sticky top-28"><ProductFilters categories={categories} initialValues={filters} onApply={applyFilters} onReset={() => applyFilters({})} /></div>
+          <div className="sticky top-28"><ProductFilters categories={categories} initialValues={filters} onApply={applyFilters} onReset={() => applyFilters({})} onCategoryChange={selectCategory} /></div>
         </aside>
 
         <div className="min-w-0 flex-1">
@@ -135,7 +138,7 @@ function ProductListContent({ initialProducts, initialCategories, initialTotal, 
       </div>
 
       <Drawer title={t('products.filter')} placement="bottom" className="storefront" height="min(86vh, 720px)" open={drawerOpen} onClose={() => setDrawerOpen(false)} onKeyDown={trapFocusWithin} styles={{ body: { paddingBottom: 'max(24px, env(safe-area-inset-bottom))' } }}>
-        <ProductFilters categories={categories} initialValues={filters} onApply={applyFilters} onReset={() => applyFilters({})} />
+        <ProductFilters categories={categories} initialValues={filters} onApply={applyFilters} onReset={() => applyFilters({})} onCategoryChange={selectCategory} />
       </Drawer>
     </main>
   );

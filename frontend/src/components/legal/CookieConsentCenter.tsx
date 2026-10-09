@@ -36,21 +36,21 @@ export default function CookieConsentCenter() {
 
   if (!visible) return null;
   return <div className="fixed inset-x-0 bottom-0 z-[120] p-3 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="cookie-consent-title">
-    <div className="mx-auto max-w-3xl rounded-[20px] border border-[var(--sf-line)] bg-white p-5 shadow-[0_20px_70px_rgba(21,48,66,0.25)] sm:p-6">
+    <div className="mx-auto max-h-[calc(100dvh-24px)] max-w-3xl overflow-y-auto rounded-[20px] border border-[var(--sf-line)] bg-white p-5 shadow-[0_20px_70px_rgba(21,48,66,0.25)] sm:max-h-[calc(100dvh-40px)] sm:p-6">
       <h2 id="cookie-consent-title" className="text-lg font-black text-[var(--sf-ink)]">{es ? 'Tus preferencias de privacidad' : 'Your privacy preferences'}</h2>
-      <p className="mt-2 text-sm leading-6 text-[var(--sf-muted)]">{es ? 'Usamos almacenamiento necesario para carrito, sesión, seguridad e idioma. El análisis, marketing y personalización solo se activan si los autorizas.' : 'We use necessary storage for cart, session, security, and language. Analytics, marketing, and personalization activate only if you allow them.'} <Link href={`/${locale}/legal/cookies`} className="font-bold underline">{es ? 'Ver política' : 'View policy'}</Link>.</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--sf-muted)]">{es ? 'Usamos almacenamiento necesario para carrito, sesión, seguridad e idioma. El análisis requiere tu autorización. Las preferencias de marketing y personalización no implican que esas herramientas estén actualmente activas.' : 'We use necessary storage for cart, session, security, and language. Analytics requires your consent. Marketing and personalization preferences do not mean those tools are currently active.'} <Link href={`/${locale}/legal/cookies`} className="font-bold underline">{es ? 'Ver política' : 'View policy'}</Link>.</p>
       {customizing && <fieldset className="mt-4 grid gap-3 sm:grid-cols-2"><legend className="sr-only">{es ? 'Categorías de cookies' : 'Cookie categories'}</legend>
         <ConsentChoice label={es ? 'Necesarias (siempre activas)' : 'Necessary (always active)'} checked disabled onChange={() => undefined} />
         <ConsentChoice label={es ? 'Análisis' : 'Analytics'} checked={choices.analytics} onChange={(analytics) => setChoices((value) => ({ ...value, analytics }))} />
         <ConsentChoice label="Marketing" checked={choices.marketing} onChange={(marketing) => setChoices((value) => ({ ...value, marketing }))} />
         <ConsentChoice label={es ? 'Personalización' : 'Personalization'} checked={choices.personalization} onChange={(personalization) => setChoices((value) => ({ ...value, personalization }))} />
       </fieldset>}
-      <div className="mt-5 grid gap-2 sm:grid-cols-3">
+      <div className="mt-5 grid gap-2 md:grid-cols-3 [&>button]:whitespace-nowrap [&>button]:px-4">
         <button type="button" className="sf-button-primary w-full" onClick={() => persist(accepted)}>{es ? 'Aceptar todas' : 'Accept all'}</button>
         <button type="button" className="sf-button-secondary w-full" onClick={() => persist(rejected)}>{es ? 'Rechazar no necesarias' : 'Reject nonessential'}</button>
         {customizing ? <button type="button" className="sf-button-secondary w-full" onClick={() => persist(choices)}>{es ? 'Guardar preferencias' : 'Save preferences'}</button> : <button type="button" className="sf-button-secondary w-full" onClick={() => setCustomizing(true)}>{es ? 'Personalizar' : 'Customize'}</button>}
       </div>
-      {receipt && <button type="button" className="mt-3 min-h-11 text-sm font-bold underline" onClick={() => { setVisible(false); setCustomizing(false); }}>{es ? 'Cerrar sin cambios' : 'Close without changes'}</button>}
+      {receipt && <button type="button" className="sf-button-secondary mt-3 w-full sm:w-auto" onClick={() => { setVisible(false); setCustomizing(false); }}>{es ? 'Cerrar sin cambios' : 'Close without changes'}</button>}
     </div>
   </div>;
 }

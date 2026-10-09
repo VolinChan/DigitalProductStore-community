@@ -1,3 +1,4 @@
+import { loadHomeSections } from '@/lib/home';
 import { CatalogNotFoundError, getPublicCategories, getPublicProductBySlug, getPublicProducts } from '@/lib/server/catalog';
 import type { StorefrontLocale } from '@/lib/seo/policy';
 import { ServerCategoryContent, ServerHomeContent, ServerProductDetailContent, ServerProductListContent } from './ServerCatalogContent';
@@ -13,8 +14,9 @@ export default async function SEOInitialRouteContent({ locale, pathname, search 
   if (process.env.SEO_E2E_CLIENT_CATALOG === 'true') return null;
   const relative = pathname.replace(new RegExp(`^/${locale}/?`), '');
   if (relative === '') {
-    const [catalog, categories] = await Promise.all([getPublicProducts({ page: 1, pageSize: 10 }), getPublicCategories()]);
-    return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd(locale)) }} /><ServerHomeContent locale={locale} products={catalog.products} categories={categories} /></>;
+    const categories = await getPublicCategories();
+    const sections = await loadHomeSections(categories, getPublicProducts);
+    return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd(locale)) }} /><ServerHomeContent locale={locale} sections={sections} categories={categories} /></>;
   }
   if (relative === 'products') {
     const query = new URLSearchParams(search);

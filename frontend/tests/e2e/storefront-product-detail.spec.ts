@@ -51,6 +51,29 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test('product view analytics uses the supported identifier-only contract', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('plexoria-cookie-consent:v1', JSON.stringify({
+      policy_version: '2026-10-02', locale: 'en', recorded_at: new Date().toISOString(),
+      necessary: true, analytics: true, marketing: false, personalization: false,
+    }));
+    localStorage.setItem('plexoria-analytics-session:v1', '550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  const productViewRequest = page.waitForRequest((request) => {
+    if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/v1/analytics/track') return false;
+    return request.postDataJSON()?.event_type === 'product_view';
+  });
+  await page.goto('/en/products/22');
+
+  const payload = (await productViewRequest).postDataJSON();
+  expect(payload).toEqual({
+    event_type: 'product_view',
+    product_id: product.id,
+    session_id: '550e8400-e29b-41d4-a716-446655440000',
+  });
+});
+
 test('SKU selection updates price, stock, image and purchase state', async ({ page }) => {
   await page.goto('/en/products/22');
   const addButton = page.getByRole('button', { name: 'Add to cart' }).first();

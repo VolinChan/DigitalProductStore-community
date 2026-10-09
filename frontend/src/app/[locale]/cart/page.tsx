@@ -54,7 +54,7 @@ export default function CartPage() {
       <header className="flex flex-col gap-4 border-b border-[var(--sf-line)] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">PLEXORIA</p><h1 className="mt-2 flex items-center gap-3 text-3xl font-black text-[var(--sf-ink)] sm:text-4xl"><ShoppingCartOutlined />{t('cart.title')}</h1><p className="mt-2 text-sm text-[var(--sf-muted)]">{t('cart.itemQuantity', { count: cart.totalItems })}</p></div>
         <Popconfirm title={t('cart.confirmClear')} onConfirm={clear} okText={t('common.confirm')} cancelText={t('common.cancel')}>
-          <button type="button" className="min-h-11 text-sm font-bold text-[var(--sf-muted)] hover:text-[var(--sf-warm)]">{t('cart.clearCart')}</button>
+          <button type="button" className="sf-button-danger">{t('cart.clearCart')}</button>
         </Popconfirm>
       </header>
 
@@ -97,7 +97,7 @@ function CartLineItemView({ item, warning, updating, onChange, onRemove, onAckno
         {display.skuCode && <p className="mt-2 font-mono text-xs text-[var(--sf-muted)]">{display.skuCode}</p>}
         {soldOut && <p role="alert" className="mt-2 text-xs font-bold text-[var(--sf-warm)]">{t('common.soldOut')}</p>}
         {warning && <LineIssueNotice code={warning} />}
-        {item.price_changed && <div className="mt-2 rounded-xl bg-[#fff7e6] p-3 text-xs"><p>{t('cart.priceChanged', { previous: money(item.previous_unit_price || item.unit_price), current: money(item.unit_price) })}</p><button type="button" onClick={() => void onAcknowledge()} className="mt-2 font-black text-[var(--sf-accent)]">{t('cart.acceptPrice')}</button></div>}
+        {item.price_changed && <div className="mt-2 rounded-xl bg-[#fff7e6] p-3 text-xs"><p>{t('cart.priceChanged', { previous: money(item.previous_unit_price || item.unit_price), current: money(item.unit_price) })}</p><button type="button" onClick={() => void onAcknowledge()} className="sf-button-secondary mt-2">{t('cart.acceptPrice')}</button></div>}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><QuantityControl item={item} max={max} soldOut={soldOut} updating={updating} onChange={onChange} /><div className="text-right"><p className="text-xs text-[var(--sf-muted)]">{money(item.unit_price)} {t('common.per')}</p><p className="mt-1 text-base font-black text-[var(--sf-brand)]">{money(item.subtotal)}</p></div></div>
       </div>
     </article>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img">
+  <title>Online card payment</title>
+  <rect x="4" y="9" width="40" height="30" rx="5" fill="#1769AA"/>
+  <path fill="#fff" d="M4 16h40v6H4zm6 13h14v4H10z" opacity=".92"/>
+</svg>

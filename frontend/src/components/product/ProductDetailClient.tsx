@@ -17,6 +17,7 @@ import { catalogStorefrontEnabled } from '@/lib/catalog-flags';
 import { formatCLP } from '@/lib/utils';
 import type { CartItem, Product, ProductSpecification, SKU } from '@/types';
 import { trackStorefrontEvent } from '@/lib/legal/consent';
+import { useWhatsAppProduct } from '@/components/layout/WhatsAppContact';
 
 interface ProductDetailResponse { data: Product }
 
@@ -45,6 +46,7 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
   const addToCartTriggerRef = useRef<HTMLButtonElement | null>(null);
   const addToCart = useCartStore((state) => state.addToCart);
   const createBuyNow = useCheckoutIntentStore((state) => state.createBuyNow);
+  useWhatsAppProduct(product, productRef, loading || Boolean(error) || isPreview);
 
   useEffect(() => {
     if (initialProduct) return;
@@ -73,7 +75,6 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
     trackStorefrontEvent({
       event_type: 'product_view',
       product_id: product.id,
-      metadata: { product_name: product.name, category_id: product.category_id },
     });
   }, [isPreview, product]);
 
@@ -251,7 +252,7 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
         )}
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 w-full max-w-full overflow-hidden border-t border-[var(--sf-line)] bg-white/95 px-4 py-3 backdrop-blur-xl sm:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }} data-testid="mobile-purchase-bar">
+      <div className="sf-mobile-purchase-bar fixed inset-x-0 bottom-0 z-50 w-full max-w-full overflow-hidden border-t border-[var(--sf-line)] bg-white/95 px-4 py-3 backdrop-blur-xl sm:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }} data-testid="mobile-purchase-bar">
         <div className="mx-auto flex min-w-0 max-w-[640px] items-center gap-2">
           <div className="min-w-0 flex-1"><p className="truncate text-lg font-black text-[var(--sf-brand)]">{currentPrice !== null ? formatCLP(currentPrice, locale) : t('products.noPrice')}</p></div>
           <button type="button" onClick={handleAddToCart} disabled={purchaseDisabled || addingToCart} className="sf-button-secondary !h-12 !w-12 !min-h-12 shrink-0 !px-0" aria-label={t('products.addToCart')}><ShoppingCartOutlined /></button>

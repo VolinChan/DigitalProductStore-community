@@ -52,6 +52,8 @@ test('home, listing, and categories expose primary content without browser API h
   await page.goto('/es-CL');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByText('SEO USB-C Hub').first()).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Connectivity' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Todas las categorías' })).toHaveAttribute('href', '/es-CL/categories');
   await page.goto('/es-CL/products');
   await expect(page.getByRole('heading', { name: /Productos/ })).toBeVisible();
   await expect(page.getByText('SEO USB-C Hub').first()).toBeVisible();

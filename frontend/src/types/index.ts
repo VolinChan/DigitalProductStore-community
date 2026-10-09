@@ -66,6 +66,7 @@ export interface RegisterRequest {
 // ============ Product Types ============
 
 export interface Product {
+  is_recommended?: boolean;
   id: number;
   name: string;
   description: string;
@@ -247,6 +248,8 @@ export interface SKU {
   image_url?: string;
   media?: SKUMedia[];
   is_active: boolean;
+  tax_treatment?: 'unverified' | 'standard_iva' | 'exempt';
+  tax_rate_code?: string;
   // Optionally preloaded by backend (e.g. cart items, order items detail).
   product?: Product;
 }
@@ -357,13 +360,27 @@ export interface Order {
   shipping_subsidy_amount?: number;
   shipping_remote_surcharge?: number;
   shipping_payable_amount?: number;
+  fiscal_summary?: OrderFiscalListSummary;
   integration?: OrderIntegrationSummary;
+}
+
+export interface OrderFiscalListSummary {
+  intent: 'boleta' | 'factura';
+  status: FiscalCaseDetail['status'];
+  document_kind?: string;
+  document_status?: string;
+  sii_status?: string;
+  last_error_code?: string;
+  updated_at: string;
+  dispatch_blocked: boolean;
 }
 
 export interface InventoryCommitmentSummary {
   provider: string;
   state: 'local_pending' | 'provider_submitting' | 'externally_committed' | 'release_pending' | 'released' | 'failed' | 'manual_attention';
   external_reference?: string;
+  payment_method_key?: string;
+  payment_type_external_id?: string;
   provider_reflected: boolean;
   submitted_at?: string;
   committed_at?: string;
@@ -390,6 +407,75 @@ export interface OrderDocumentSummary {
 export interface OrderIntegrationSummary {
   inventory_commitment?: InventoryCommitmentSummary;
   documents: OrderDocumentSummary[];
+  fiscal?: FiscalCaseDetail;
+}
+
+export interface FiscalTaxProfile {
+  version: number;
+  schema_version: number;
+  rut: string;
+  legal_name: string;
+  business_activity: string;
+  fiscal_address: string;
+  commune: string;
+  city: string;
+  tax_email: string;
+  address_same_as_shipping?: boolean;
+  region_id?: number;
+  region_location_code?: string;
+  region_name?: string;
+  commune_id?: number;
+  commune_location_code?: string;
+  commune_name?: string;
+  created_at: string;
+}
+
+export interface FiscalDocumentDetail {
+  id: number;
+  kind: string;
+  role: 'primary' | 'credit' | 'supporting';
+  lifecycle_status: string;
+  folio?: string;
+  sii_status?: string;
+  issued_at?: string;
+  accepted_at?: string;
+  rejected_at?: string;
+}
+
+export interface FiscalCaseDetail {
+  intent: 'boleta' | 'factura';
+  issue_trigger: 'payment_approved';
+  status: 'awaiting_payment' | 'queued' | 'submitting' | 'issued' | 'accepted' | 'rejected' | 'credited' | 'manual_attention' | 'cancelled';
+  version: number;
+  dispatch_blocked: boolean;
+  tax_profile?: FiscalTaxProfile;
+  documents: FiscalDocumentDetail[];
+  last_error_code?: string;
+  last_error_message?: string;
+}
+
+export interface TaxRateReference {
+  id: number;
+  code: string;
+  rate_bps: number;
+  effective_from: string;
+}
+
+export interface CheckoutTaxBreakdown {
+  tax_inclusive: true;
+  presentation: 'exact' | 'applicable_only';
+  unavailable_reason?: string;
+  tax_rate_version?: TaxRateReference;
+  standard_rate_bps?: number;
+  items_gross: number;
+  shipping_gross: number;
+  discount_gross: number;
+  taxable_gross?: number;
+  taxable_net?: number;
+  exempt_gross?: number;
+  included_tax_amount?: number;
+  total_gross: number;
+  calculation_version: string;
 }
 
 export interface CheckoutValidation {
@@ -399,6 +485,7 @@ export interface CheckoutValidation {
   cart_revision: number;
   valid: boolean;
   summary: Cart;
+  tax?: CheckoutTaxBreakdown;
 }
 
 export interface ChileRegion { id: number; location_code: string; name: string; sort_order: number; is_active: boolean }
@@ -538,6 +625,7 @@ export interface NotificationEmailPreview {
   body_summary: string;
   html: string;
   deep_link: string;
+  reply_to?: string;
 }
 
 export interface InAppNotification {

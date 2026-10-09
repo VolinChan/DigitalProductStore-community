@@ -56,7 +56,7 @@ export default function MiniCart({ open, onClose, item, returnFocusRef }: MiniCa
         <div className="mt-auto space-y-2 pb-[max(0px,env(safe-area-inset-bottom))]">
           <Link href={`/${locale}/cart`} onClick={onClose} className="sf-button-primary w-full"><ShoppingOutlined />{t('cart.viewCart')}</Link>
           <Link href={`/${locale}/checkout?mode=cart`} onClick={onClose} className="sf-button-secondary w-full">{t('cart.proceedToCheckout')}</Link>
-          <button type="button" onClick={onClose} className="flex min-h-12 w-full items-center justify-center text-sm font-bold text-[var(--sf-muted)] hover:text-[var(--sf-accent)]">{t('cart.continueShopping')}</button>
+          <button type="button" onClick={onClose} className="sf-button-quiet w-full">{t('cart.continueShopping')}</button>
         </div>
       </div>
     </Drawer>

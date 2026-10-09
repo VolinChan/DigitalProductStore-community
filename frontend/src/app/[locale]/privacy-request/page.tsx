@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import apiClient from '@/lib/api';
+import { LegalParagraphs } from '@/components/legal/PublishedLegalDocument';
 
 type SubmittedRequest = { public_ref: string; status: string; due_at: string };
 
@@ -21,7 +22,10 @@ export default function PrivacyRequestPage() {
   };
   return <main className="store-container"><div className="mx-auto max-w-2xl rounded-[22px] bg-white p-6 sm:p-9">
     <Link href={`/${locale}/privacy`} className="text-sm font-bold text-[var(--sf-accent)]">← {es ? 'Política de privacidad' : 'Privacy policy'}</Link>
-    <h1 className="mt-5 text-3xl font-black">{es ? 'Solicitud sobre datos personales' : 'Personal data request'}</h1>
+    <h1 className="mt-5 text-3xl font-black">{es ? 'Solicitudes de datos personales' : 'Personal data request'}</h1>
+    {!es && <p className="mt-4 text-sm">The authoritative policy is in Spanish.</p>}
+    <p className="mt-4 text-sm text-[var(--sf-muted)]">Última actualización: 2 de octubre de 2026</p>
+    <LegalParagraphs documentKey="privacy_requests" />
     <p className="mt-3 text-sm leading-6 text-[var(--sf-muted)]">{es ? 'Usa este formulario para solicitar acceso, corrección, eliminación, oposición, portabilidad, bloqueo o retiro de marketing. Verificaremos tu identidad de forma proporcional antes de divulgar o modificar datos.' : 'Use this form to request access, correction, deletion, objection, portability, blocking, or marketing withdrawal. We will proportionately verify identity before disclosing or changing data.'}</p>
     {result ? <div role="status" className="mt-7 rounded-xl bg-[#e8f4ef] p-5 text-sm leading-6"><strong>{es ? 'Solicitud registrada.' : 'Request registered.'}</strong><p>{es ? 'Referencia' : 'Reference'}: <span className="font-mono">{result.public_ref}</span></p><p>{es ? 'Te contactaremos para verificar la identidad. Fecha objetivo inicial' : 'We will contact you to verify identity. Initial target date'}: {new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(new Date(result.due_at))}.</p></div> : <form className="mt-7 space-y-5" onSubmit={submit}>
       <label className="block text-sm font-bold">{es ? 'Tipo de solicitud' : 'Request type'}<select name="request_type" required className="sf-input mt-2 w-full" defaultValue="access"><option value="access">{es ? 'Acceso' : 'Access'}</option><option value="correction">{es ? 'Corrección' : 'Correction'}</option><option value="deletion">{es ? 'Eliminación' : 'Deletion'}</option><option value="marketing_withdrawal">{es ? 'Retiro de consentimiento de marketing' : 'Marketing consent withdrawal'}</option><option value="opposition">{es ? 'Oposición' : 'Objection'}</option><option value="portability">{es ? 'Portabilidad' : 'Portability'}</option><option value="blocking">{es ? 'Bloqueo' : 'Blocking'}</option></select></label>

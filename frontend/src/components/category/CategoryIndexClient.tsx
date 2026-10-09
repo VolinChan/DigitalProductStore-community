@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Category } from '@/types';
 import apiClient from '@/lib/api';
+import { buildPublicCategoryTree } from '@/lib/category-tree';
 import { CategoryIcon, getCategoryAncestorIconKeys, getCategoryAncestorImageURLs } from '@/components/category/CategoryIcon';
 
 export default function CategoryIndexClient({ categories: initialCategories, clientFetch = false }: { categories: Category[]; clientFetch?: boolean }) {
@@ -25,9 +26,9 @@ export default function CategoryIndexClient({ categories: initialCategories, cli
         <p className="mt-3 text-sm leading-6 text-[var(--sf-muted)] sm:text-base">{t('categories.description')}</p>
       </header>
 
-      {categories.length > 0 ? (
+      {buildPublicCategoryTree(categories).length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
-          {categories.map((category) => {
+          {buildPublicCategoryTree(categories).map((category) => {
             return (
               <Link key={category.id} href={`/${locale}/products?category_id=${category.id}`} className="group flex min-h-40 flex-col justify-between rounded-[18px] bg-white p-5 shadow-[0_2px_18px_rgba(21,48,66,0.05)] transition hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(21,48,66,0.1)]">
                 <CategoryIcon imageUrl={category.image_asset?.url} ancestorImageUrls={getCategoryAncestorImageURLs(category, categories)} iconKey={category.icon_key} ancestorKeys={getCategoryAncestorIconKeys(category, categories)} label={`${category.name} category image`} className="flex h-20 w-full items-center justify-center rounded-2xl bg-[var(--sf-soft-blue)] p-2 text-xl text-[var(--sf-accent)] sm:h-24" />

@@ -31,7 +31,7 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-0.5" role="group" aria-label="Language selector">
+    <div className="inline-flex items-center gap-1 rounded-full bg-white p-1 shadow-sm ring-1 ring-inset ring-[var(--sf-line)]" role="group" aria-label="Language selector">
       {locales.map((loc) => {
         const isActive = loc === (pathname || '/').split('/')[1];
 
@@ -43,13 +43,10 @@ export default function LanguageSwitcher() {
             disabled={isActive}
             aria-label={`Switch to ${localeLabels[loc]}`}
             aria-pressed={isActive}
-            className={`
-              px-2 py-1 rounded text-xs font-semibold transition-colors min-h-[32px]
-              ${isActive
-                ? 'bg-accent/10 text-accent cursor-not-allowed opacity-60'
-                : 'text-muted hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer'
-              }
-            `}
+            className={`min-h-9 min-w-10 rounded-full px-2.5 text-xs font-black tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-accent)] ${isActive
+              ? 'cursor-default bg-[var(--sf-brand)] text-white shadow-sm'
+              : 'cursor-pointer text-[var(--sf-subtle)] hover:bg-[var(--sf-soft-blue)] hover:text-[var(--sf-brand)]'
+            }`}
           >
             {localeLabels[loc]}
           </button>

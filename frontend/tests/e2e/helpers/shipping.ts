@@ -19,13 +19,24 @@ export async function mockCartContractRoute(route: Route, items: Array<Record<st
 }
 
 export async function fillStructuredShipping(page: Page, street: string) {
-  await page.getByLabel('Region').click(); await page.locator('.ant-select-item-option[title="Metropolitana"]').click();
+  const communesResponse = page.waitForResponse((response) => {
+    const request = response.request();
+    return request.method() === 'GET' && new URL(response.url()).pathname === '/api/v1/locations/regions/13/communes' && response.ok();
+  });
+  // Keyboard confirmation avoids a popup moving beneath the sticky header
+  // between pointer positioning and selection during concurrent browser tests.
+  await page.getByLabel('Region').fill('Metropolitana');
+  await expect(page.locator('.ant-select-item-option[title="Metropolitana"]')).toBeVisible();
+  await page.getByLabel('Region').press('Enter');
+  await communesResponse;
   await expect(page.getByLabel('Commune')).toBeEnabled();
   const quoteResponse = page.waitForResponse((response) => {
     const request = response.request();
     return request.method() === 'POST' && new URL(response.url()).pathname === '/api/v1/shipping/quote' && response.ok();
   });
-  await page.getByLabel('Commune').click(); await page.locator('.ant-select-item-option[title="Santiago"]').click();
+  await page.getByLabel('Commune').fill('Santiago');
+  await expect(page.locator('.ant-select-item-option[title="Santiago"]')).toBeVisible();
+  await page.getByLabel('Commune').press('Enter');
   await quoteResponse;
   await expect(page.getByLabel('Commune')).toHaveAccessibleName('Commune');
   await page.getByLabel('Street').fill(street); await page.getByLabel('Number').fill('123');
@@ -37,7 +48,7 @@ export async function acceptCheckoutPolicies(page: Page) {
 
 export async function seedNecessaryCookieConsent(page: Page) {
   await page.addInitScript(() => localStorage.setItem('plexoria-cookie-consent:v1', JSON.stringify({
-    policy_version: '0.1-draft', locale: 'en', recorded_at: new Date().toISOString(),
+    policy_version: '2026-10-02', locale: 'en', recorded_at: new Date().toISOString(),
     necessary: true, analytics: false, marketing: false, personalization: false,
   })));
 }

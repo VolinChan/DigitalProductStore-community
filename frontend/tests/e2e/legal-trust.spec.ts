@@ -1,30 +1,40 @@
 import { expect, test } from '@playwright/test';
 import { mockCartContractRoute, mockShippingRoute } from './helpers/shipping';
 
-const supplierAddress = 'Alameda 2963, Santiago, Región Metropolitana, Chile';
+const supplierAddress = 'Sucursal y bodega: Av. Marathón 2499, Bodega 041, Macul, Región Metropolitana, Chile.';
 const product = {
   id: 22, slug: 'compact-usb-c-hub', name: 'Compact USB-C Hub', description: 'Reliable connections.', specifications: '{}',
   status: 'published', is_active: true, created_at: '2026-08-01T09:00:00Z', updated_at: '2026-08-01T09:00:00Z', images: [],
   skus: [{ id: 220, product_id: 22, sku_code: 'HUB-220', price: 15990, inventory: 4, attributes: [], is_active: true }],
 };
 
-test('legal center exposes supplied company facts and clearly labels unapproved drafts', async ({ page }) => {
+test('legal center exposes supplied company facts and current published conditions', async ({ page }) => {
   await page.goto('/es-CL/legal');
   await expect(page.getByRole('heading', { name: 'Información legal' })).toBeVisible();
   for (const label of ['Términos y condiciones', 'Cambios, devoluciones y retracto', 'Garantía legal', 'Información de despacho', 'Política de privacidad', 'Política de cookies', 'Identificación del proveedor']) {
     await expect(page.getByRole('link', { name: new RegExp(label) }).first()).toBeVisible();
   }
-  await expect(page.getByText('Plexoria SpA').first()).toBeVisible();
+  await expect(page.getByText('PLEXORIA SpA', { exact: false }).first()).toBeVisible();
   await expect(page.getByText(/78\.236\.393-K/).first()).toBeVisible();
   await expect(page.getByText(supplierAddress).first()).toBeVisible();
-  await expect(page.getByText('support@plexoria.cl').first()).toBeVisible();
+  await expect(page.getByText('soporte@plexoria.cl').first()).toBeVisible();
   await expect(page.getByText('+56 9 9509 6835').first()).toBeVisible();
 
   await page.goto('/es-CL/legal/terms');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
-  await expect(page.getByRole('note')).toContainText('Borrador para revisión profesional');
-  await expect(page.getByText(/Versión 0\.1-draft/)).toBeVisible();
+  await expect(page.locator('#main-content')).toContainText('Última actualización: 9 de octubre de 2026');
+  await expect(page.locator('#main-content').getByText(/Versión 2026-10-09/)).toBeVisible();
+  await expect(page.locator('#main-content')).not.toContainText('Borrador para revisión profesional');
 });
+
+for (const locale of ['en', 'es-CL']) {
+  test(`terms show the authoritative owner-supplied Spanish text in ${locale}`, async ({ page }) => {
+    await page.goto(`/${locale}/legal/terms`);
+    await expect(page.locator('#main-content')).toContainText('PLEXORIA');
+    await expect(page.locator('#main-content')).toContainText('Versión 2026-10-09');
+    if (locale === 'en') await expect(page.locator('#main-content')).toContainText('The authoritative version is in Spanish');
+  });
+}
 
 test('checkout defaults to bank transfer, hides online payment, and requires explicit legal acceptance', async ({ page, context }) => {
   await page.addInitScript(() => localStorage.setItem('cart-storage', JSON.stringify({ state: { items: [{ id: 1, sku_id: 220, sku_code: 'HUB-220', sku_name: 'Compact USB-C Hub', quantity: 1, unit_price: 15990, subtotal: 15990 }], totalPrice: 15990, totalItems: 1 }, version: 0 })));
@@ -40,7 +50,7 @@ test('checkout defaults to bank transfer, hides online payment, and requires exp
   await page.getByRole('button', { name: 'Rechazar no necesarias' }).click();
   await expect(page.getByRole('radio', { name: /Transferencia bancaria/ })).toBeChecked();
   await expect(page.getByRole('radio', { name: /Pago en línea/ })).toHaveCount(0);
-  await expect(page.getByText('Plexoria SpA').first()).toBeVisible();
+  await expect(page.getByText('PLEXORIA SpA', { exact: false }).first()).toBeVisible();
   await expect(page.getByText(/78\.236\.393-K/).first()).toBeVisible();
   const acceptance = page.getByRole('checkbox', { name: /Acepto los términos y condiciones/ });
   await expect(acceptance).not.toBeChecked();
@@ -75,6 +85,9 @@ test('cookie choices are usable at 320px, reopenable, and block analytics until 
   await expect.poll(() => analyticsRequests).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'Cookie preferences' }).click();
   await expect(page.getByRole('dialog', { name: 'Your privacy preferences' })).toBeVisible();
+  const closeWithoutChanges = page.getByRole('button', { name: 'Close without changes' });
+  await expect(closeWithoutChanges).toHaveClass(/sf-button-secondary/);
+  await expect(closeWithoutChanges).toHaveCSS('min-height', '48px');
   await analytics.uncheck();
   await page.getByRole('button', { name: 'Save preferences' }).click();
   await expect.poll(() => consentRequests).toBe(2);

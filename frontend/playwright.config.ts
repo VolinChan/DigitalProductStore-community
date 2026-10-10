@@ -19,7 +19,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
-      NEXT_PUBLIC_APP_VERSION: 'v1.2.2',
+      NEXT_PUBLIC_APP_VERSION: 'v1.2.3',
       SEO_E2E_CLIENT_CATALOG: 'true',
       NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED: 'true',
       NEXT_PUBLIC_TRANSFER_BANK_NAME: 'Banco de Prueba',

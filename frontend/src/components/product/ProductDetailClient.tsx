@@ -9,13 +9,14 @@ import { useLocale, useTranslations } from 'next-intl';
 import apiClient from '@/lib/api';
 import ImageGallery from '@/components/product/ImageGallery';
 import SKUSelector from '@/components/product/SKUSelector';
+import SpecificationsTable from '@/components/product/SpecificationsTable';
 import MiniCart from '@/components/cart/MiniCart';
 import { useCartStore } from '@/store/useCartStore';
 import { useCheckoutIntentStore } from '@/store/useCheckoutIntentStore';
 import { getSKUImage } from '@/lib/catalog';
 import { catalogStorefrontEnabled } from '@/lib/catalog-flags';
 import { formatCLP } from '@/lib/utils';
-import type { CartItem, Product, ProductSpecification, SKU } from '@/types';
+import type { CartItem, Product, SKU } from '@/types';
 import { trackStorefrontEvent } from '@/lib/legal/consent';
 import { useWhatsAppProduct } from '@/components/layout/WhatsAppContact';
 
@@ -217,6 +218,7 @@ export default function ProductDetailClient({ initialProduct, productRef, previe
           {product.category && <p className="text-xs font-extrabold uppercase text-[var(--sf-accent)]">{product.category.name}</p>}
           {product.brand && <p className="mt-3 text-xs font-bold uppercase text-[var(--sf-muted)]">{product.brand}</p>}
           <h1 className="mt-2 text-2xl font-black leading-tight text-[var(--sf-ink)] sm:text-3xl lg:text-4xl">{product.name}</h1>
+          {product.model && <p className="mt-2 text-sm text-[var(--sf-muted)]">{t('products.modelLabel')}: {product.model}</p>}
 
           <div className="mt-6 border-y border-[var(--sf-line)] py-5">
             <p className="text-xs font-bold uppercase text-[var(--sf-muted)]">{t('products.price')}</p>
@@ -281,26 +283,6 @@ function QuantityControl({ quantity, max, disabled, onChange, quantityLabel, dec
   </div>;
 }
 
-function SpecificationsTable({ structured = [], specifications, title }: { structured?: ProductSpecification[]; specifications?: string; title: string }) {
-  const populated = structured.filter((item) => item.value_text?.trim() || item.value_number !== undefined);
-  if (populated.length > 0) {
-    const groups = new Map<string, ProductSpecification[]>();
-    populated.sort((a, b) => a.group_name.localeCompare(b.group_name) || a.sort_order - b.sort_order).forEach((item) => {
-      const group = item.group_name || 'General';
-      groups.set(group, [...(groups.get(group) || []), item]);
-    });
-    return <div className="max-w-4xl"><h2 className="text-2xl font-black text-[var(--sf-ink)]">{title}</h2><div className="mt-5 space-y-7">{[...groups.entries()].map(([group, rows]) => <section key={group}><h3 className="mb-2 text-sm font-black text-[var(--sf-subtle)]">{group}</h3><dl className="overflow-hidden rounded-[18px] border border-[var(--sf-line)] text-sm">{rows.map((item, index) => <div key={`${group}-${item.spec_key}`} className={`grid grid-cols-[minmax(0,42%)_minmax(0,58%)] ${index % 2 === 0 ? 'bg-[#f7f8f6]' : 'bg-white'}`}><dt className="break-words border-r border-[var(--sf-line)] px-3 py-3 font-bold text-[var(--sf-ink)] sm:px-4">{item.label}</dt><dd className="min-w-0 break-words px-3 py-3 text-[var(--sf-subtle)] sm:px-4">{item.value_text ?? item.value_number}{item.unit ? ` ${item.unit}` : ''}</dd></div>)}</dl></section>)}</div></div>;
-  }
-  if (!specifications) return null;
-  try {
-    const parsed = JSON.parse(specifications);
-    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      const entries = Object.entries(parsed);
-      return entries.length ? <div className="max-w-4xl"><h2 className="text-2xl font-black text-[var(--sf-ink)]">{title}</h2><dl className="mt-5 overflow-hidden rounded-[18px] border border-[var(--sf-line)] text-sm">{entries.map(([key, value], index) => <div key={key} className={`grid grid-cols-[minmax(0,42%)_minmax(0,58%)] ${index % 2 === 0 ? 'bg-[#f7f8f6]' : 'bg-white'}`}><dt className="break-words border-r border-[var(--sf-line)] px-3 py-3 font-bold text-[var(--sf-ink)] sm:px-4">{key}</dt><dd className="break-words px-3 py-3 text-[var(--sf-subtle)] sm:px-4">{String(value)}</dd></div>)}</dl></div> : null;
-    }
-  } catch { /* render plain text below */ }
-  return <div className="max-w-4xl"><h2 className="text-2xl font-black text-[var(--sf-ink)]">{title}</h2><p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[var(--sf-subtle)]">{specifications}</p></div>;
-}
 
 function ProductDetailSkeleton() {
   return <main className="store-container"><div className="grid animate-pulse gap-8 lg:grid-cols-2 lg:gap-12"><div className="aspect-square rounded-[28px] bg-[#edf0ee]" /><div className="space-y-5 pt-4"><div className="h-4 w-1/4 rounded bg-[#edf0ee]" /><div className="h-10 w-4/5 rounded bg-[#edf0ee]" /><div className="h-16 w-1/2 rounded bg-[#edf0ee]" /><div className="h-36 rounded bg-[#edf0ee]" /></div></div></main>;

@@ -21,15 +21,18 @@ export const SORT_OPTIONS = [
   { value: 'name_asc', sort_by: 'name', sort_order: 'asc' as const },
 ];
 
+export const RECOMMENDED_SORT = { value: 'recommended', sort_by: 'recommended', sort_order: 'desc' as const };
+
 interface ProductSortProps {
   value: string;
   onChange: (value: string) => void;
+  recommendedOnly?: boolean;
 }
 
 /**
  * Product sort dropdown component.
  */
-export default function ProductSort({ value, onChange }: ProductSortProps) {
+export default function ProductSort({ value, onChange, recommendedOnly = false }: ProductSortProps) {
   const t = useTranslations();
 
   return (
@@ -39,6 +42,7 @@ export default function ProductSort({ value, onChange }: ProductSortProps) {
         value={value}
         onChange={onChange}
         options={[
+          ...(recommendedOnly ? [{ value: 'recommended', label: t('products.sortByRecommendation') }] : []),
           { value: 'newest', label: t('products.sortByNewest') },
           { value: 'price_asc', label: t('products.sortByPriceLow') },
           { value: 'price_desc', label: t('products.sortByPriceHigh') },

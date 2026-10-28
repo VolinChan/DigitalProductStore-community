@@ -10,13 +10,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   if (process.env.SEO_E2E_CLIENT_CATALOG === 'true') {
     return <div className="seo-interactive-content"><HomeClient sections={[]} categories={[]} banners={[]} announcements={[]} clientFetch /></div>;
   }
-  const [categories, banners, announcements] = await Promise.all([
+  const [categories, banners, announcements, recommended] = await Promise.all([
     getPublicCategories(),
     getActiveBanners().catch(() => []),
     getActiveAnnouncements().catch(() => []),
+    getPublicProducts({ pageSize: 12, sortBy: 'recommended' }).catch(() => ({ products: [] })),
   ]);
   const sections = await loadHomeSections(categories, getPublicProducts);
   return <>
-    <div className="seo-interactive-content"><HomeClient sections={sections} categories={categories} banners={banners} announcements={announcements} /></div>
+    <div className="seo-interactive-content"><HomeClient sections={sections} recommendedProducts={recommended.products} categories={categories} banners={banners} announcements={announcements} /></div>
   </>;
 }

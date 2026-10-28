@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { CategoryIcon } from '@/components/category/CategoryIcon';
+import CategoryTile from '@/components/category/CategoryTile';
 import { buildPublicCategoryTree } from '@/lib/category-tree';
 import { HOME_CATEGORY_LIMIT } from '@/lib/home';
 import type { Category } from '@/types';
@@ -61,7 +60,8 @@ export default function CategoryRail({ categories }: { categories: Category[] })
     const viewport = viewportRef.current;
     if (!viewport) return;
     anchorIndex.current = page * pageSize;
-    viewport.scrollTo({ left: page * viewport.clientWidth, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.accessibilityMotion === 'reduce';
+    viewport.scrollTo({ left: page * viewport.clientWidth, behavior: reduceMotion ? 'instant' : 'smooth' });
   };
 
   return (
@@ -80,18 +80,17 @@ export default function CategoryRail({ categories }: { categories: Category[] })
         {pages.map((page, pageIndex) => (
           <div key={pageIndex} className={styles.page}>
             {page.map((category, categoryIndex) => (
-              <Link
+              <CategoryTile
                 key={category?.id ?? 'all-categories'}
                 href={category ? `/${locale}/products?category_id=${category.id}` : `/${locale}/categories`}
-                className={styles.item}
+                label={category?.name ?? t('home.allCategories')}
+                imageUrl={category?.image_asset?.url}
+                iconKey={category?.icon_key ?? 'general'}
                 onFocus={() => {
                   anchorIndex.current = pageIndex * pageSize + categoryIndex;
                   if (layout.paged && pageIndex !== currentPage) goToPage(pageIndex);
                 }}
-              >
-                <CategoryIcon imageUrl={category?.image_asset?.url} iconKey={category?.icon_key ?? 'general'} label={category?.name ?? t('home.allCategories')} className={styles.icon} />
-                <span className={styles.label}>{category?.name ?? t('home.allCategories')}</span>
-              </Link>
+              />
             ))}
           </div>
         ))}

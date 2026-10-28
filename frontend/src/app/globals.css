@@ -5,6 +5,7 @@
 .seo-interactive-content { display: none; }
 .js .seo-server-content { display: none; }
 .js .seo-interactive-content { display: block; }
+html:not(.js) .sf-page-transition { opacity: 1 !important; transform: none !important; }
 
 @layer base {
   :root {
@@ -64,12 +65,13 @@
     --sf-bg: #fbfaf7;
     --sf-header-surface: rgba(251, 250, 247, 0.96);
     --sf-surface: #ffffff;
+    --sf-catalog-bg: #f0f3f5;
     --sf-ink: #1c2733;
     --sf-subtle: #425466;
-    --sf-muted: #65727d;
+    --sf-muted: #5c6974;
     --sf-brand: #173f67;
     --sf-brand-hover: #0f3151;
-    --sf-accent: #1677b8;
+    --sf-accent: #126da5;
     --sf-warm: #c54833;
     --sf-aqua: #80d4dc;
     --sf-success: #25806b;
@@ -131,6 +133,10 @@
      sections without giving the logo its own background tile. */
   .storefront .sf-header {
     background-color: var(--sf-header-surface);
+  }
+
+  .storefront .sf-header .sf-icon-button {
+    border-radius: 12px;
   }
 
   /* Header already provides a translated, keyboard-accessible clear button. */
@@ -577,7 +583,7 @@
 }
 
 /* Existing overlays own focus; the contact link must not compete with them. */
-body:has(.ant-drawer-open, .ant-modal-wrap:not([style*="display: none"]), .storefront [aria-modal="true"]:not(.ant-drawer-section)) .sf-whatsapp-widget {
+body:has(.ant-drawer-open, .ant-modal-wrap:not([style*="display: none"]), .storefront [aria-modal="true"]:not(.ant-drawer-section), [data-cookie-consent]) .sf-whatsapp-widget {
   display: none;
 }
 

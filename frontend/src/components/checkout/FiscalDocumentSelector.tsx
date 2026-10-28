@@ -32,11 +32,16 @@ function shippingFiscalAddress(values: CheckoutFiscalForm): string {
   return [street, values.complement?.trim()].filter(Boolean).join(', ');
 }
 
-export default function FiscalDocumentSelector({ form, value, onChange }: { form: FormInstance; value: FiscalDocumentIntent; onChange: (value: FiscalDocumentIntent) => void }) {
+export default function FiscalDocumentSelector({ form, value, onChange, shippingAddressAvailable = true }: { form: FormInstance; value: FiscalDocumentIntent; onChange: (value: FiscalDocumentIntent) => void; shippingAddressAvailable?: boolean }) {
   const t = useTranslations('checkout.fiscal');
   const [regions, setRegions] = useState<ChileRegion[]>([]);
   const [communes, setCommunes] = useState<ChileCommune[]>([]);
-  const sameAsShipping = Form.useWatch('tax_address_same_as_shipping', form) !== false;
+  const sharedAddressSelected = Form.useWatch('tax_address_same_as_shipping', form) !== false;
+  const sameAsShipping = shippingAddressAvailable && sharedAddressSelected;
+
+  useEffect(() => {
+    if (!shippingAddressAvailable) form.setFieldValue('tax_address_same_as_shipping', false);
+  }, [form, shippingAddressAvailable, value]);
   const shippingRegionID = Form.useWatch('region_id', form) as number | undefined;
   const shippingCommuneID = Form.useWatch('commune_id', form) as number | undefined;
   const taxRegionID = Form.useWatch('tax_region_id', form) as number | undefined;
@@ -98,7 +103,7 @@ export default function FiscalDocumentSelector({ form, value, onChange }: { form
       <Form.Item name="tax_legal_name" preserve={false} label={t('legalName')} rules={[{ required: true, message: t('required') }, { max: 200, message: t('tooLong') }]}><Input autoComplete="organization" /></Form.Item>
       <Form.Item name="tax_business_activity" preserve={false} label={t('businessActivity')} rules={[{ required: true, message: t('required') }, { max: 200, message: t('tooLong') }]}><Input /></Form.Item>
       <Form.Item name="tax_email" preserve={false} label={t('taxEmail')} rules={[{ required: true, message: t('required') }, { type: 'email', message: t('invalidEmail') }, { max: 254, message: t('tooLong') }]}><Input autoComplete="email" inputMode="email" /></Form.Item>
-      <Form.Item name="tax_address_same_as_shipping" preserve={false} initialValue={true} valuePropName="checked" className="sm:col-span-2">
+      <Form.Item name="tax_address_same_as_shipping" preserve={false} initialValue={shippingAddressAvailable} valuePropName="checked" className="sm:col-span-2" hidden={!shippingAddressAvailable}>
         <Checkbox onChange={(event) => {
           if (!event.target.checked) form.setFieldsValue({ tax_fiscal_address: undefined, tax_region_id: undefined, tax_commune_id: undefined });
         }}>{t('sameAsShipping')}</Checkbox>

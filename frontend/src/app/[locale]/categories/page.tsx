@@ -3,7 +3,7 @@ import CategoryIndexClient from '@/components/category/CategoryIndexClient';
 import { getPublicCategories } from '@/lib/server/catalog';
 import { canonicalUrl, localeAlternates } from '@/lib/seo/urls';
 import { getSiteConfig } from '@/lib/seo/site-config';
-import { isStorefrontLocale, NOINDEX_ROBOTS } from '@/lib/seo/policy';
+import { INDEX_ROBOTS, isStorefrontLocale, NOINDEX_ROBOTS } from '@/lib/seo/policy';
 import { notFound } from 'next/navigation';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title, description,
     alternates: { canonical, languages: localeAlternates('categories') },
-    openGraph: { type: 'website', url: canonical, title, description },
-    robots: getSiteConfig().indexingEnabled ? { index: true, follow: true } : NOINDEX_ROBOTS,
+    openGraph: { type: 'website', siteName: getSiteConfig().brandName, url: canonical, title, description, images: [{ url: getSiteConfig().brandShareImage, alt: getSiteConfig().brandName }] },
+    robots: getSiteConfig().indexingEnabled ? INDEX_ROBOTS : NOINDEX_ROBOTS,
   };
 }
 

@@ -1,12 +1,13 @@
 'use client';
 
-import Image from 'next/image';
+import BrandWordmark from '@/components/brand/BrandWordmark';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { supplierProfile } from '@/lib/legal/supplier';
 import { openConsentCenterEvent } from '@/lib/legal/consent';
 import FooterPaymentMarks from '@/components/layout/FooterPaymentMarks';
 import MarketplaceLinks from '@/components/layout/MarketplaceLinks';
+import AccessibilityPreferences from '@/components/accessibility/AccessibilityPreferences';
 import './footer-brands.css';
 
 interface FooterLink {
@@ -23,8 +24,10 @@ export default function Footer() {
     { label: t('layout.allProductsLink'), href: '/products' },
     { label: t('layout.categoryLink'), href: '/categories' },
     { label: t('layout.newArrivals'), href: '/products?sort=newest' },
+    { label: t('products.recommendedTitle'), href: '/recommended' },
   ];
   const helpLinks: FooterLink[] = [
+    { label: t('orders.tracking'), href: '/orders/track' },
     { label: t('layout.returnPolicy'), href: '/help/returns' },
     { label: t('layout.shippingInfo'), href: '/help/shipping' },
     { label: t('layout.contactUs'), href: '/contact' },
@@ -35,8 +38,8 @@ export default function Footer() {
       <div className="sf-shell py-10 sm:py-12 lg:py-14">
         <div className="sf-footer-grid grid grid-cols-2 gap-x-6 gap-y-8 sm:gap-x-8 sm:gap-y-10 lg:grid-cols-4">
           <section aria-labelledby="footer-brand-title" className="col-span-2 min-w-0 lg:col-span-1">
-            <Link href={`/${locale}`} className="inline-flex w-fit items-center" aria-label={t('layout.logo')}>
-              <Image src="/plexoria-logo-footer.png" alt="Plexoria" width={240} height={80} className="h-8 w-auto rounded-lg" />
+            <Link href={`/${locale}`} className="sf-footer-logo-link" aria-label={t('layout.logo')}>
+              <BrandWordmark alt="Plexoria" className="sf-footer-logo" />
             </Link>
             <h2 id="footer-brand-title" className="sr-only">PLEXORIA</h2>
             <MarketplaceLinks />
@@ -65,6 +68,7 @@ export default function Footer() {
               <Link href={`/${locale}/privacy`} className="transition hover:text-white">{t('layout.privacyPolicy')}</Link>
               <Link href={`/${locale}/legal`} className="transition hover:text-white">{isSpanish ? 'Información legal' : 'Legal information'}</Link>
               <button type="button" className="border-0 bg-transparent p-0 text-inherit transition hover:text-white" onClick={() => window.dispatchEvent(new Event(openConsentCenterEvent))}>{isSpanish ? 'Preferencias de cookies' : 'Cookie preferences'}</button>
+              <AccessibilityPreferences />
             </nav>
           </div>
 

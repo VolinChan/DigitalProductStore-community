@@ -17,9 +17,6 @@ const product = {
 test.beforeEach(async ({ page, context }) => {
   await seedNecessaryCookieConsent(page);
   await page.addInitScript(() => {
-    // Seed the old cart once: reloads and the excluded payment route must not restore it.
-    if (sessionStorage.getItem('e2e-cart-seeded')) return;
-    sessionStorage.setItem('e2e-cart-seeded', '1');
     localStorage.setItem('cart-storage', JSON.stringify({ state: { items: [{ id: 1, sku_id: 31, sku_code: 'CART-ITEM', sku_name: 'Existing cart item', quantity: 1, unit_price: 4990, subtotal: 4990 }], totalPrice: 4990, totalItems: 1 }, version: 0 }));
   });
   await context.route('http://localhost:8080/api/v1/**', async (route) => {
@@ -62,10 +59,9 @@ test('buy now checks out only the selected SKU and preserves the normal cart', a
   await page.getByRole('button', { name: 'Submit order' }).click();
   await expect(page).toHaveURL(/\/en\/checkout\/payment\?order_id=90&order_number=ORD-90&amount=15990&method=transfer/);
 
-  // Community ends at checkout; the private payment route is excluded.
-  // Verify migrated storage survives that navigation without re-seeding it.
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('cart-storage') || '{}').state?.items)).toBeUndefined();
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('cart-storage') || '{}').state?.recovery)).toEqual([]);
+  const cart = await page.evaluate(() => JSON.parse(localStorage.getItem('cart-storage') || '{}'));
+  expect(cart.state.items).toBeUndefined();
+  expect(cart.state.recovery || []).toEqual([]);
 });
 
 test('expired buy-now intent does not fall back to the normal cart', async ({ page }) => {

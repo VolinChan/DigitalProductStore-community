@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import Image from 'next/image';
+import BrandWordmark from '@/components/brand/BrandWordmark';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Dropdown } from 'antd';
@@ -92,15 +92,18 @@ export default function Header() {
 
   return (
     <>
-      <div role="region" aria-label={t('layout.announcement')} className="bg-[var(--sf-brand)] px-4 py-2.5 text-center text-xs font-black tracking-wide text-white sm:text-sm">
-        <span className="inline-flex items-center gap-2"><GiftOutlined aria-hidden />{t('layout.announcement')}</span>
+      <div role="region" aria-label={`${t('layout.announcement')} · ${t('layout.pickupAnnouncement')}`} className="bg-[var(--sf-brand)] px-4 py-2 text-center text-white">
+        <Link href={`/${locale}/help/shipping`} className="inline-flex min-h-11 flex-wrap items-center justify-center gap-x-4 gap-y-0.5 rounded-lg px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+          <span className="text-sm font-extrabold sm:text-base"><span className="inline-block"><GiftOutlined aria-hidden className="mr-2" />{t('layout.announcement')}</span>{' · '}<span className="inline-block">{t('layout.pickupAnnouncement')}</span></span>{' '}
+          <span className="text-xs underline decoration-white/50 underline-offset-4">{t('layout.shippingConditions')}</span>
+        </Link>
       </div>
 
       <header className="sf-header sticky top-0 z-50 border-b border-[var(--sf-line)] backdrop-blur-xl">
         <div className="sf-shell">
           <div className="flex h-[68px] items-center gap-3 lg:h-[76px]">
             <Link href={`/${locale}`} className="flex min-h-11 shrink-0 items-center rounded-lg px-2 py-2 sm:px-2.5" aria-label={t('layout.logo')}>
-              <Image src="/plexoria-logo.png" alt="Plexoria Logo" width={240} height={80} className="h-7 w-auto sm:h-8" priority />
+              <BrandWordmark alt="Plexoria Logo" className="sf-header-logo" priority />
             </Link>
 
             <nav className="ml-5 hidden items-center gap-5 xl:flex" aria-label={t('layout.home')}>
@@ -114,7 +117,7 @@ export default function Header() {
             </nav>
 
             <form role="search" onSubmit={submitSearch} className="ml-auto hidden min-w-0 flex-1 lg:block lg:max-w-[390px] xl:max-w-[440px]">
-              <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('layout.closeSearch')} />
+              <SearchField value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('products.clearSearch')} />
             </form>
 
             <div className="ml-auto flex items-center gap-1 lg:ml-2">
@@ -135,7 +138,7 @@ export default function Header() {
                   <UserOutlined className="text-[19px]" />
                 </button>
               </Dropdown>
-			  {showAuthed && <Link href={`/${locale}/notifications`} className="sf-icon-button relative" aria-label={t('layout.notifications')}><BellOutlined className="text-[20px]" />{unreadNotifications > 0 && <span className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--sf-warm)] px-1 text-[10px] font-bold text-white">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}</Link>}
+			  {showAuthed && <Link href={`/${locale}/notifications`} className="sf-icon-button relative hidden sm:flex" aria-label={t('layout.notifications')}><BellOutlined className="text-[20px]" />{unreadNotifications > 0 && <span className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--sf-warm)] px-1 text-[10px] font-bold text-white">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}</Link>}
               <Link
                 id="cart-icon-header"
                 href={`/${locale}/cart`}
@@ -149,9 +152,11 @@ export default function Header() {
                   </span>
                 )}
               </Link>
-              <button type="button" className="sf-icon-button lg:hidden" onClick={() => { setMobileSearchOpen(false); setMobileMenuOpen(true); }} aria-label={t('layout.menu')}>
+              <button type="button" className="sf-icon-button relative lg:hidden" onClick={() => { setMobileSearchOpen(false); setMobileMenuOpen(true); }} aria-label={t('layout.menu')} aria-describedby={unreadNotifications > 0 ? 'storefront-menu-notification-summary' : undefined}>
                 <MenuOutlined className="text-xl" />
+                {unreadNotifications > 0 && <span aria-hidden className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[var(--sf-warm)] sm:hidden" />}
               </button>
+              {unreadNotifications > 0 && <span id="storefront-menu-notification-summary" className="sr-only">{unreadNotifications} {t('layout.notifications')}</span>}
             </div>
           </div>
 
@@ -167,20 +172,19 @@ export default function Header() {
               mobileSearchButtonRef.current?.focus();
             }}
           >
-            <SearchField inputRef={mobileSearchInputRef} value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('layout.closeSearch')} />
+            <SearchField inputRef={mobileSearchInputRef} value={searchQuery} onChange={setSearchQuery} placeholder={t('layout.searchPlaceholder')} searchLabel={t('layout.searchAria')} clearLabel={t('products.clearSearch')} />
           </form>
         </div>
       </header>
 
-      <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} unreadNotifications={unreadNotifications} />
     </>
   );
 }
 
 function SearchField({ value, onChange, placeholder, searchLabel, clearLabel, inputRef }: { value: string; onChange: (value: string) => void; placeholder: string; searchLabel: string; clearLabel: string; inputRef?: RefObject<HTMLInputElement | null> }) {
   return (
-    <div className="flex h-12 items-center gap-1 rounded-xl border border-[var(--sf-line)] bg-white p-1 pl-3 transition focus-within:border-[var(--sf-accent)] focus-within:ring-4 focus-within:ring-[var(--sf-accent)]/12">
-      <SearchOutlined className="mr-1 shrink-0 text-[17px] text-[var(--sf-muted)]" aria-hidden />
+    <div className="sf-header-search-field flex h-12 items-center gap-1 rounded-lg border border-[var(--sf-line)] bg-white p-px pl-3 transition focus-within:border-[var(--sf-accent)] focus-within:ring-4 focus-within:ring-[var(--sf-accent)]/12">
       <input
         ref={inputRef}
         type="search"
@@ -190,8 +194,8 @@ function SearchField({ value, onChange, placeholder, searchLabel, clearLabel, in
         aria-label={searchLabel}
         className="sf-header-search-input min-w-0 flex-1 appearance-none border-0 bg-transparent px-1 text-sm text-[var(--sf-ink)] outline-none placeholder:text-[var(--sf-muted)]"
       />
-      {value && <button type="button" onClick={() => onChange('')} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-transparent text-[var(--sf-muted)] transition hover:bg-[var(--sf-soft)] hover:text-[var(--sf-ink)]" aria-label={clearLabel}><CloseCircleFilled /></button>}
-      <button type="submit" disabled={!value.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-[var(--sf-brand)] text-white transition hover:bg-[var(--sf-brand-hover)] disabled:cursor-not-allowed disabled:opacity-40" aria-label={searchLabel}><SearchOutlined className="text-[17px]" /></button>
+      {value && <button type="button" onClick={() => onChange('')} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-[var(--sf-muted)] transition hover:bg-[var(--sf-soft)] hover:text-[var(--sf-ink)]" aria-label={clearLabel}><CloseCircleFilled /></button>}
+      <button type="submit" disabled={!value.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-[var(--sf-brand)] transition hover:bg-[var(--sf-soft-blue)] disabled:cursor-not-allowed disabled:opacity-40" aria-label={searchLabel}><SearchOutlined className="text-[17px]" /></button>
     </div>
   );
 }

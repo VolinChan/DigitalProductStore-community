@@ -3,6 +3,12 @@ export const supplierProfile = {
   legalName: 'PLEXORIA SpA',
   rut: '78.236.393-K',
   principalAddress: 'Av. Marathón 2499, Macul, Región Metropolitana, Chile.',
+  postalAddress: {
+    streetAddress: 'Av. Marathón 2499',
+    addressLocality: 'Macul',
+    addressRegion: 'Región Metropolitana',
+    addressCountry: 'CL',
+  },
   legalAddress: 'Santiago, Chile',
   operationalAddress: 'Av. Marathón 2499, Bodega 041, Macul, Región Metropolitana, Chile',
   supportEmail: 'soporte@plexoria.cl',

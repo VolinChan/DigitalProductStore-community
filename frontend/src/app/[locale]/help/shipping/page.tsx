@@ -2,5 +2,5 @@ import PublishedLegalDocument from '@/components/legal/PublishedLegalDocument';
 
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  return <PublishedLegalDocument locale={locale} documentKey="shipping" />;
+  return <div className="seo-interactive-content"><PublishedLegalDocument locale={locale} documentKey="shipping" /></div>;
 }

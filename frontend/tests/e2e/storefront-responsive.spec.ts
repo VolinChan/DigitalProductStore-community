@@ -9,6 +9,13 @@ const product = {
 
 const viewports = [320, 360, 390, 768, 1024, 1440];
 const corePaths = ['/en', '/en/products', '/en/products/22', '/en/cart', '/en/checkout'];
+const orderPaths = ['/en/orders', '/en/orders/91'];
+const order = {
+  id: 91, order_number: 'ORD-2026-VERY-LONG-000091', shipping_address: '123 Long Test Street, Apartment 45, Santiago, Región Metropolitana',
+  status: 'pending_payment', payment_method: 'online', subtotal: 15990, shipping_fee: 0, total_amount: 15990,
+  created_at: '2026-07-30T09:00:00Z', updated_at: '2026-07-30T09:00:00Z',
+  items: [{ id: 1, order_id: 91, sku_id: 220, sku_name: 'Compact USB-C Hub with a long everyday product name', sku_code: 'HUB-220-LONG-CODE', attributes: 'Color: Space gray · Connection: USB-C', quantity: 1, unit_price: 15990, subtotal: 15990 }],
+};
 
 for (const width of viewports) {
   test(`storefront pages and overlays do not overflow at ${width}px`, async ({ page, context }, testInfo) => {
@@ -31,17 +38,22 @@ for (const width of viewports) {
       if (path === '/api/v1/banners') return route.fulfill({ json: { data: { banners: [] } } });
       if (path === '/api/v1/announcements') return route.fulfill({ json: { data: { announcements: [] } } });
       if (path === '/api/v1/auth/profile') return route.fulfill({ json: { data: { id: 9, email: 'buyer@example.com', full_name: 'Test Buyer', role: 'customer' } } });
+      if (path === '/api/v1/orders/91') return route.fulfill({ json: { data: order } });
+      if (path === '/api/v1/orders') return route.fulfill({ json: { data: { orders: [order], total: 1 } } });
       return route.fulfill({ json: { data: {} } });
     });
 
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
-    for (const path of corePaths) {
+    for (const path of [...corePaths, ...orderPaths]) {
       await page.goto(path);
       await expect(page.locator('main').first()).toBeVisible();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       if ((width === 320 || width === 1440) && ['/en', '/en/products/22', '/en/checkout'].includes(path)) {
         const name = `${width}-${path === '/en' ? 'home' : path.endsWith('22') ? 'product' : 'checkout'}.png`;
         await page.screenshot({ path: testInfo.outputPath(name), fullPage: true });
+      }
+      if ((width === 320 || width === 1440) && path === '/en/orders/91') {
+        await page.screenshot({ path: testInfo.outputPath(`${width}-order-detail.png`), fullPage: true });
       }
     }
 

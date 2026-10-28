@@ -109,7 +109,7 @@ test('mobile product discovery persists filters, sorting and pagination in the U
   await expect(page).toHaveURL(/category_id=7/);
   await expect(page).toHaveURL(/min_price=1000/);
   await expect(page).toHaveURL(/max_price=20000/);
-  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('link', { name: 'Next' }).click();
   await expect(page).toHaveURL(/page=2/);
 
   await expect.poll(() => productRequests.some(url => url.searchParams.get('category_id') === '7' && url.searchParams.get('min_price') === '1000' && url.searchParams.get('max_price') === '20000' && url.searchParams.get('sort_by') === 'price' && url.searchParams.get('sort_order') === 'asc')).toBe(true);

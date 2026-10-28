@@ -28,6 +28,16 @@
     "new": "Nuevo",
     "offer": "Oferta"
   },
+  "accessibility": {
+    "label": "Opciones de accesibilidad",
+    "description": "Elige la visualización que te resulte más cómoda. Tus preferencias se guardan en este navegador.",
+    "highContrast": "Alto contraste",
+    "highContrastHint": "Texto, bordes y controles más definidos.",
+    "reduceMotion": "Reducir movimiento",
+    "reduceMotionHint": "Reduce las animaciones y las vistas previas automáticas de video.",
+    "systemHint": "La navegación con teclado, las etiquetas para lectores de pantalla y el zoom del navegador funcionan en ambas opciones. También se respetan las preferencias de accesibilidad del sistema.",
+    "reset": "Usar ajustes del sistema"
+  },
   "layout": {
     "skipNav": "Saltar al contenido principal",
     "logo": "PLEXORIA",
@@ -40,6 +50,8 @@
     "cart": "Carrito",
     "cartItems": "{count} productos en el carrito",
     "announcement": "Envío gratis desde $19.900",
+    "pickupAnnouncement": "Retiro gratis en bodega",
+    "shippingConditions": "Destinos habilitados · Confirma al pagar",
     "home": "Inicio",
     "allProducts": "Todos los productos",
     "categories": "Categorías",
@@ -75,10 +87,15 @@
     "productsLoadError": "No pudimos cargar los productos.",
     "heroCompactTitle": "Encuentra lo que necesitas",
     "heroCompactDescription": "Explora nuestros productos. Te ayudamos a elegir.",
+    "viewProduct": "Ver producto",
+    "latestRecommendation": "Último recomendado",
+    "pickupBenefit": "Retiro gratis en bodega de Macul",
+    "pickupCoordination": "Elige al pagar · Coordina antes de acudir",
     "pageTitle": "PLEXORIA · Tecnología y accesorios",
     "categoriesTitle": "Categorías",
     "allCategories": "Todas las categorías",
     "productsTitle": "Productos para ti",
+    "moreDiscoveries": "Más por descubrir",
     "categoryPagination": "Páginas de categorías",
     "categoryPage": "Página {page} de {total}",
     "tagline": "CONECTAR · INTEGRAR · AVANZAR",
@@ -251,6 +268,15 @@
     "step4": "Un administrador confirmará tu pago dentro de 7 días hábiles"
   },
   "shipping": {
+    "preparingPickup": "Preparando retiro",
+    "deliveryMethod": "Forma de entrega",
+    "pickup": "Retiro en bodega",
+    "homeDelivery": "Despacho a domicilio",
+    "pickupDescription": "Retira gratis en nuestra bodega.",
+    "homeDeliveryDescription": "El despacho se calcula según tu dirección.",
+    "pickupAddress": "Dirección de retiro",
+    "pickupCoordination": "Coordina tu retiro con nosotros antes de visitar la bodega.",
+    "contactInfo": "Datos de contacto",
     "title": "Información de despacho",
     "fullName": "Nombre completo",
     "fullNameRequired": "Ingresa el nombre del destinatario",
@@ -425,6 +451,12 @@
     "priceRangeInvalid": "El precio mínimo no puede ser mayor que el máximo.",
     "sort": "Ordenar",
     "sortByNewest": "Más recientes",
+    "recommendedTitle": "Productos recomendados",
+    "modelLabel": "Modelo",
+    "recommendedDescription": "Descubre nuestra selección para el trabajo, el hogar y tu día a día.",
+    "sortByRecommendation": "Últimos recomendados",
+    "noRecommendations": "Aún no hay productos recomendados",
+    "recommendedEmptyDescription": "Explora el catálogo completo para encontrar lo que necesitas.",
     "sortByPriceLow": "Menor precio",
     "sortByPriceHigh": "Mayor precio",
     "sortByName": "Nombre: A a Z",
@@ -661,7 +693,7 @@
   },
   "contact": {
     "welcomeTitle": "¿En qué podemos ayudarte?",
-    "desc": "Escríbenos por WhatsApp y cuéntanos qué necesitas. Es nuestro principal canal de atención. Si lo prefieres, también puedes contactarnos por correo electrónico.",
+    "desc": "El correo electrónico es nuestro canal preferente de atención. También puedes escribirnos por WhatsApp y contarnos qué necesitas.",
     "email": "Email de atención",
     "whatsApp": "Escríbenos por WhatsApp",
     "whatsAppLabel": "WhatsApp",
@@ -673,7 +705,7 @@
     "title": "Categorías de productos",
     "empty": "No hay categorías disponibles",
     "description": "Encuentra cables, cargadores, redes y accesorios según lo que necesitas conectar.",
-    "productCount": "{count} productos"
+    "productCount": "{count, plural, one {# producto} other {# productos}}"
   },
   "orderTracking": {
     "title": "Seguimiento de pedido", "description": "Ingresa tu número de pedido y el correo usado en la compra.", "orderNumber": "Número de pedido", "orderNumberRequired": "Ingresa el número de pedido", "orderNumberPlaceholder": "Ingresa tu número de pedido", "email": "Correo de compra", "emailRequired": "Ingresa el correo de compra", "emailInvalid": "Ingresa un correo válido", "emailPlaceholder": "Ingresa el correo usado en la compra", "submit": "Consultar pedido", "notFound": "No encontramos un pedido que coincida con esos datos.", "searchFailed": "No se pudo consultar el pedido. Inténtalo de nuevo.", "statusTitle": "Estado del pedido", "created": "Pedido creado", "infoTitle": "Información del pedido", "date": "Fecha de compra", "paymentMethod": "Medio de pago", "onlinePayment": "Pago en línea", "bankTransfer": "Transferencia bancaria", "amount": "Total del pedido", "carrier": "Empresa de despacho", "trackingNumber": "Número de seguimiento", "itemsTitle": "Productos", "product": "Producto", "unitPrice": "Precio unitario", "quantity": "Cantidad", "subtotal": "Subtotal", "backHome": "Volver al inicio", "continueTransfer": "Continuar transferencia",

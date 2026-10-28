@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useAccessibilityPreferences } from '@/lib/accessibility/useAccessibilityPreferences';
 
 type PreviewProps = {
   src: string;
@@ -15,6 +16,7 @@ type PreviewProps = {
 // product card must not fetch a video (some merchant uploads exceed 30 MB).
 export default function MutedVideoPreview({ src, active, hoverOnly = false, controls = false, onPlayingChange }: PreviewProps) {
   const t = useTranslations('gallery');
+  const { preferences } = useAccessibilityPreferences();
   const container = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const [allowed, setAllowed] = useState(false);
@@ -29,7 +31,7 @@ export default function MutedVideoPreview({ src, active, hoverOnly = false, cont
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const pointer = window.matchMedia('(hover: hover) and (pointer: fine)');
     const connection = (navigator as Navigator & { connection?: EventTarget & { saveData?: boolean } }).connection;
-    const update = () => setAllowed(!motion.matches && !connection?.saveData && (!hoverOnly || pointer.matches));
+    const update = () => setAllowed(!motion.matches && !preferences.reduceMotion && document.documentElement.dataset.accessibilityMotion !== 'reduce' && !connection?.saveData && (!hoverOnly || pointer.matches));
     update();
     motion.addEventListener('change', update);
     pointer.addEventListener('change', update);
@@ -39,7 +41,7 @@ export default function MutedVideoPreview({ src, active, hoverOnly = false, cont
       pointer.removeEventListener('change', update);
       connection?.removeEventListener('change', update);
     };
-  }, [hoverOnly]);
+  }, [hoverOnly, preferences.reduceMotion]);
 
   useEffect(() => {
     const update = () => setPageVisible(document.visibilityState === 'visible');

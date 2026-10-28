@@ -15,6 +15,7 @@ import { isBuyNowIntentValid, useCheckoutIntentStore } from '@/store/useCheckout
 import { useAuthStore } from '@/store/useAuthStore';
 import apiClient from '@/lib/api';
 import SupplierDisclosure from '@/components/legal/SupplierDisclosure';
+import { supplierProfile } from '@/lib/legal/supplier';
 import legalDocuments from '@/lib/legal/documents.json';
 import { getSKUImage } from '@/lib/catalog';
 import type { Cart, CartItem, CheckoutValidation, Order, PaymentMethod, Product, ShippingQuote, TransferPaymentConfig } from '@/types';
@@ -41,6 +42,8 @@ export default function CheckoutPage() {
   const { cart, items: cartItems, clearCart, hydrationStatus } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { buyNow, hydrated, clearBuyNow } = useCheckoutIntentStore();
+  const [deliveryMethod, setDeliveryMethod] = useState<'shipping' | 'pickup'>('shipping');
+  const isPickup = deliveryMethod === 'pickup';
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(legacyOnlinePaymentAvailable ? 'online' : 'transfer');
   const [fiscalDocumentIntent, setFiscalDocumentIntent] = useState<FiscalDocumentIntent>('boleta');
   const [onlinePaymentAvailable, setOnlinePaymentAvailable] = useState(legacyOnlinePaymentAvailable);
@@ -171,7 +174,7 @@ export default function CheckoutPage() {
 	const quoteItemsKey = useMemo(() => checkoutItems.map((item) => `${item.sku_id}:${item.quantity}`).sort().join('|'), [checkoutItems]);
 
 	useEffect(() => {
-	  if (!regionID || !communeID || checkoutItems.length === 0) { setShippingQuote(null); setShippingRestriction(''); return; }
+	  if ((!isPickup && (!regionID || !communeID)) || checkoutItems.length === 0) { setShippingQuote(null); setShippingRestriction(''); setShippingQuoteLoading(false); return; }
 	  let active = true;
 	  // A quote and its tax split are authoritative only for the exact current
 	  // location and cart. Clear both immediately while the replacement quote
@@ -181,17 +184,17 @@ export default function CheckoutPage() {
 	  setShippingQuoteLoading(true);
 	  const timer = window.setTimeout(() => {
 	    setShippingRestriction('');
-	    void apiClient.post('/shipping/quote', { region_id: regionID, commune_id: communeID, subtotal: Math.round(totalPrice), items: checkoutItems.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })) })
+	    void apiClient.post('/shipping/quote', { delivery_method: deliveryMethod, region_id: isPickup ? undefined : regionID, commune_id: isPickup ? undefined : communeID, subtotal: Math.round(totalPrice), items: checkoutItems.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })) })
 	      .then((response) => { const quote = response.data.data as ShippingQuote; if (active) setShippingQuote(quote?.quote_version ? quote : null); })
 	      .catch((error) => { if (active) { setShippingQuote(null); setShippingRestriction(error?.response?.data?.error?.message || t('shipping.undeliverable')); } })
 	      .finally(() => { if (active) setShippingQuoteLoading(false); });
 	  }, 250);
 	  return () => { active = false; window.clearTimeout(timer); };
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [regionID, communeID, quoteItemsKey, totalPrice]);
+	}, [deliveryMethod, regionID, communeID, quoteItemsKey, totalPrice]);
 
 	useEffect(() => {
-	  if (!shippingQuote || !regionID || !communeID || inputItems.length === 0) return;
+	  if (!shippingQuote || (!isPickup && (!regionID || !communeID)) || inputItems.length === 0) return;
 	  let active = true;
 	  setValidation((current) => current ? { ...current, tax: undefined } : current);
 	  void apiClient.post<{ data: CheckoutValidation }>('/checkout/validate', {
@@ -200,8 +203,9 @@ export default function CheckoutPage() {
 		cart_revision: mode === 'cart' ? cart?.revision : undefined,
 		items: mode === 'buy_now' ? inputItems.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })) : undefined,
 		fiscal_document_intent: 'boleta',
-		shipping_region_id: Number(regionID),
-		shipping_commune_id: Number(communeID),
+		delivery_method: deliveryMethod,
+		shipping_region_id: isPickup ? undefined : Number(regionID),
+		shipping_commune_id: isPickup ? undefined : Number(communeID),
 		shipping_quote_version: shippingQuote.quote_version,
 		shipping_payable_amount: shippingQuote.payable_shipping,
 	  }).then((response) => {
@@ -211,7 +215,7 @@ export default function CheckoutPage() {
 		// succeeds; the summary renders the conservative non-numeric tax copy.
 	  });
 	  return () => { active = false; };
-	}, [cart?.revision, communeID, inputItems, locale, mode, regionID, shippingQuote]);
+	}, [cart?.revision, communeID, deliveryMethod, inputItems, isPickup, locale, mode, regionID, shippingQuote]);
 
   useEffect(() => {
     if (checkoutItems.length === 0 || trackedMode.current === mode) return;
@@ -249,8 +253,9 @@ export default function CheckoutPage() {
 		items: mode === 'buy_now' ? inputItems.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })) : undefined,
 		fiscal_document_intent: fiscalDocumentIntent,
 		tax_profile: taxProfile,
-		shipping_region_id: Number(shippingInfo.region_id),
-		shipping_commune_id: Number(shippingInfo.commune_id),
+		delivery_method: deliveryMethod,
+		shipping_region_id: isPickup ? undefined : Number(shippingInfo.region_id),
+		shipping_commune_id: isPickup ? undefined : Number(shippingInfo.commune_id),
 		shipping_quote_version: shippingQuote.quote_version,
 		shipping_payable_amount: shippingQuote.payable_shipping,
 	  });
@@ -269,13 +274,14 @@ export default function CheckoutPage() {
         guest_name: shippingInfo.full_name,
         guest_email: shippingInfo.email,
         guest_phone: shippingInfo.phone,
-		address_source: shippingInfo.address_source || 'new',
-		address_id: shippingInfo.address_source === 'existing' ? shippingInfo.address_id : undefined,
-		address: shippingInfo.address_source === 'existing' ? undefined : { recipient: shippingInfo.full_name, phone: shippingInfo.phone, region_id: shippingInfo.region_id, commune_id: shippingInfo.commune_id, street: shippingInfo.street, street_number: shippingInfo.street_number, complement: shippingInfo.complement || '', reference: shippingInfo.reference || '' },
+		address_source: isPickup ? undefined : shippingInfo.address_source || 'new',
+		address_id: !isPickup && shippingInfo.address_source === 'existing' ? shippingInfo.address_id : undefined,
+		address: isPickup || shippingInfo.address_source === 'existing' ? undefined : { recipient: shippingInfo.full_name, phone: shippingInfo.phone, region_id: shippingInfo.region_id, commune_id: shippingInfo.commune_id, street: shippingInfo.street, street_number: shippingInfo.street_number, complement: shippingInfo.complement || '', reference: shippingInfo.reference || '' },
 		shipping_quote_version: shippingQuote.quote_version,
 		shipping_payable_amount: shippingQuote.payable_shipping,
-		shipping_region_id: Number(shippingInfo.region_id),
-		shipping_commune_id: Number(shippingInfo.commune_id),
+		delivery_method: deliveryMethod,
+		shipping_region_id: isPickup ? undefined : Number(shippingInfo.region_id),
+		shipping_commune_id: isPickup ? undefined : Number(shippingInfo.commune_id),
         payment_method: paymentMethod,
         payment_provider: paymentMethod === 'online' ? onlinePaymentProvider : undefined,
         fiscal_document_intent: fiscalDocumentIntent,
@@ -287,7 +293,7 @@ export default function CheckoutPage() {
 	  if (order.payment_access_token) {
 		sessionStorage.setItem(`payment-access:${order.id}`, order.payment_access_token);
 	  }
-	  if (!isAuthenticated) persistGuestAddress(shippingInfo);
+	  if (!isAuthenticated && !isPickup) persistGuestAddress(shippingInfo);
 
       if (paymentMethod === 'transfer') {
         sessionStorage.setItem(`transfer-accounts:${order.id}`, JSON.stringify(order.transfer_account_snapshot || []));
@@ -353,9 +359,18 @@ export default function CheckoutPage() {
 
       <Form form={form} layout="vertical" initialValues={{ address_source: 'new', tax_address_same_as_shipping: true }} requiredMark={false} className="sf-checkout-form mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-9">
-          <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.shippingInfo')}</h2><div className="mt-5"><ShippingForm form={form} authenticated={isAuthenticated} /></div>{shippingQuoteLoading && <p className="text-sm text-[var(--sf-muted)]">{t('shipping.quoting')}</p>}{shippingRestriction && <p role="alert" className="text-sm font-bold text-[#a33a32]">{shippingRestriction}</p>}</section>
+          <section><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('shipping.deliveryMethod')}</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {(['shipping', 'pickup'] as const).map((method) => <label key={method} className={`flex cursor-pointer items-start gap-3 rounded-[18px] border p-4 ${deliveryMethod === method ? 'border-[var(--sf-accent)] bg-[var(--sf-soft-blue)]' : 'border-[var(--sf-line)] bg-white'}`}>
+                <input type="radio" name="delivery_method" value={method} checked={deliveryMethod === method} onChange={() => { setShippingQuote(null); setShippingRestriction(''); setValidation((current) => current ? { ...current, tax: undefined } : current); setDeliveryMethod(method); }} className="mt-1" />
+                <span><span className="block text-sm font-black">{t(`shipping.${method === 'pickup' ? 'pickup' : 'homeDelivery'}`)}</span><span className="mt-1 block text-xs leading-5 text-[var(--sf-muted)]">{t(`shipping.${method === 'pickup' ? 'pickupDescription' : 'homeDeliveryDescription'}`)}</span></span>
+              </label>)}
+            </div>
+            {isPickup && <div className="mt-4 rounded-xl bg-[var(--sf-soft)] p-4 text-sm"><p className="font-bold">{t('shipping.pickupAddress')}</p><p className="mt-1">{shippingQuote?.pickup_address || supplierProfile.operationalAddress}</p><p className="mt-2 text-xs text-[var(--sf-muted)]">{t('shipping.pickupCoordination')}</p></div>}
+            <h3 className="mt-6 text-lg font-bold">{t(isPickup ? 'shipping.contactInfo' : 'checkout.shippingInfo')}</h3>
+            <div className="mt-5"><ShippingForm form={form} authenticated={isAuthenticated} pickup={isPickup} /></div>{shippingQuoteLoading && <p className="text-sm text-[var(--sf-muted)]">{t('shipping.quoting')}</p>}{shippingRestriction && <p role="alert" className="text-sm font-bold text-[#a33a32]">{shippingRestriction}</p>}</section>
           <section className="border-t border-[var(--sf-line)] pt-8"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.paymentMethod')}</h2><div className="mt-5"><PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} transferAvailable={transferAvailable} transferEnabled={transferEnabled} paymentOptionOrder={paymentOptionOrder} transferLoading={transferLoading} onlineAvailable={onlinePaymentAvailable} onlineProvider={onlinePaymentProvider} onlineProviders={onlinePaymentProviders} defaultPaymentOption={defaultPaymentOption} onOnlineProviderChange={setOnlinePaymentProvider} /></div></section>
-          <section className="border-t border-[var(--sf-line)] pt-8"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.fiscal.title')}</h2><div className="mt-5"><FiscalDocumentSelector form={form} value={fiscalDocumentIntent} onChange={(next) => { setFiscalDocumentIntent(next); if (next === 'factura' && form.getFieldValue('tax_address_same_as_shipping') === undefined) form.setFieldValue('tax_address_same_as_shipping', true); }} /></div></section>
+          <section className="border-t border-[var(--sf-line)] pt-8"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.fiscal.title')}</h2><div className="mt-5"><FiscalDocumentSelector form={form} shippingAddressAvailable={!isPickup} value={fiscalDocumentIntent} onChange={(next) => { setFiscalDocumentIntent(next); if (!isPickup && next === 'factura' && form.getFieldValue('tax_address_same_as_shipping') === undefined) form.setFieldValue('tax_address_same_as_shipping', true); }} /></div></section>
           <section className="border-t border-[var(--sf-line)] pt-8"><SupplierDisclosure locale={locale} /><label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--sf-line)] bg-white p-4 text-sm leading-6"><input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} className="mt-1 h-4 w-4" /><span>{t.rich('checkout.legalAcceptance', { terms: (chunks) => <Link className="font-bold underline" href={`/${locale}/legal/terms`} target="_blank">{chunks}</Link>, returns: (chunks) => <Link className="font-bold underline" href={`/${locale}/legal/returns-withdrawal`} target="_blank">{chunks}</Link> })}</span></label></section>
         </div>
         <aside className="lg:sticky lg:top-28 lg:h-fit"><div className="rounded-[22px] bg-white p-5 sm:p-6"><h2 className="text-xl font-black text-[var(--sf-ink)]">{t('checkout.orderSummary')}</h2><div className="mt-5"><OrderSummary items={checkoutItems} totalPrice={totalPrice} shippingQuote={shippingQuote} tax={validation?.tax} /></div><button type="button" onClick={handleSubmitOrder} disabled={submitting || shippingQuoteLoading || !shippingQuote || !legalAccepted || !(paymentMethod === 'transfer' ? transferAvailable : onlinePaymentAvailable)} className="sf-button-primary mt-6 w-full">{submitting ? t('checkout.submitting') : paymentMethod === 'online' ? t('checkout.submitAndPay') : t('checkout.submitOrder')}</button><p className="mt-3 text-center text-xs leading-5 text-[var(--sf-muted)]">{paymentMethod === 'online' ? t('checkout.submitOnline') : t('checkout.submitTransfer')}</p></div></aside>

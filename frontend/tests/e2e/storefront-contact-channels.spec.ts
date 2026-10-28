@@ -11,8 +11,8 @@ for (const locale of ['es-CL', 'en']) {
       const main = page.locator('#main-content');
       await expect(main.getByRole('heading', { name: locale === 'en' ? 'How can we help?' : '¿En qué podemos ayudarte?', exact: true })).toBeVisible();
       await expect(main).toContainText(locale === 'en'
-        ? 'Message us on WhatsApp and tell us what you need. It is our main support channel. If you prefer, you can also contact us by email.'
-        : 'Escríbenos por WhatsApp y cuéntanos qué necesitas. Es nuestro principal canal de atención. Si lo prefieres, también puedes contactarnos por correo electrónico.');
+        ? 'Email is our preferred support channel. You can also message us on WhatsApp and tell us what you need.'
+        : 'El correo electrónico es nuestro canal preferente de atención. También puedes escribirnos por WhatsApp y contarnos qué necesitas.');
       await expect(main).not.toContainText('+56 9 9509 6835');
       await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
       const channels = page.getByTestId('contact-channels');

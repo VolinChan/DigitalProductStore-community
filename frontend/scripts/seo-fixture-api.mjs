@@ -9,10 +9,14 @@ const product = {
   description: 'Connect displays, storage, and power through one compact hub.',
   description_html: '<p>Connect displays, storage, and power through one compact hub.</p>',
   brand: 'Plexoria Select',
+  model: 'HUB-7',
+  structured_specifications: [{ id: 1, group_name: 'Connectivity', spec_key: 'power', label: 'USB-C Power Delivery', value_number: '100', unit: 'W', sort_order: 0 }],
   condition: 'new',
   specifications: '{}',
   status: 'published',
   is_active: true,
+  is_recommended: true,
+  recommended_at: '2026-10-20T10:00:00Z',
   created_at: '2026-07-30T09:00:00Z',
   updated_at: '2026-08-02T11:30:00Z',
   images: [{ id: 1, product_id: 22, image_url: '/placeholder-product.svg', sort_order: 0, is_primary: true }],
@@ -25,6 +29,7 @@ const product = {
 const simpleProduct = {
   ...product,
   id: 23,
+  is_recommended: false,
   name: 'Simple USB-C Cable',
   slug: 'simple-usb-c-cable',
   short_description: 'A straightforward USB-C cable.',
@@ -44,7 +49,10 @@ const server = http.createServer((request, response) => {
   const url = new URL(request.url || '/', `http://127.0.0.1:${port}`);
   const path = url.pathname;
   if (path === '/health') return json(response, 200, { status: 'ok' });
-  if (path === '/api/v1/products') return json(response, 200, { products: [product, simpleProduct], total: 2, page: Number(url.searchParams.get('page') || 1), page_size: Number(url.searchParams.get('page_size') || 12) });
+  if (path === '/api/v1/products') {
+    const products = url.searchParams.get('is_recommended') === 'true' ? [product] : [product, simpleProduct];
+    return json(response, 200, { products, total: products.length, page: Number(url.searchParams.get('page') || 1), page_size: Number(url.searchParams.get('page_size') || 12) });
+  }
   if (path === '/api/v1/products/slug/seo-usb-c-hub') return json(response, 200, product);
   if (path === '/api/v1/products/slug/simple-usb-c-cable') return json(response, 200, simpleProduct);
   if (path.startsWith('/api/v1/products/slug/')) return json(response, 404, 'Product not found');

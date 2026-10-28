@@ -4,9 +4,9 @@ import ProductDetailClient from '@/components/product/ProductDetailClient';
 import { CatalogNotFoundError, getPublicProductBySlug, resolvePublicProductReference } from '@/lib/server/catalog';
 import { cleanText } from '@/lib/seo/metadata';
 import { getSiteConfig, publicAssetUrl } from '@/lib/seo/site-config';
-import { isStorefrontLocale, NOINDEX_ROBOTS, type StorefrontLocale } from '@/lib/seo/policy';
+import { INDEX_ROBOTS, isStorefrontLocale, NOINDEX_ROBOTS, type StorefrontLocale } from '@/lib/seo/policy';
 import { productCanonicalUrl, productPath } from '@/lib/seo/urls';
-import { buildProductJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
+import { buildBreadcrumbJsonLd, buildProductJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 import { getProductPrimaryImage } from '@/lib/catalog';
 
 type RouteParams = Promise<{ locale: string; id: string }>;
@@ -67,7 +67,7 @@ export async function generateMetadata({ params, searchParams }: { params: Route
       locale: locale === 'es-CL' ? 'es_CL' : 'en_US',
       images: [{ url: image, alt: product.name }],
     },
-    robots: indexable ? { index: true, follow: true } : NOINDEX_ROBOTS,
+    robots: indexable ? INDEX_ROBOTS : NOINDEX_ROBOTS,
   };
 }
 
@@ -88,6 +88,7 @@ export default async function ProductPage({ params, searchParams }: { params: Ro
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildBreadcrumbJsonLd(locale, `products/${product.slug || id}`, product.name)) }} />
       <div className="seo-interactive-content"><ProductDetailClient initialProduct={product} productRef={id} /></div>
     </>
   );

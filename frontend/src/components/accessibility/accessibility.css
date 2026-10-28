@@ -1,0 +1,79 @@
+/* Give password visibility controls a usable hit area inside the field. */
+.ant-input-password .ant-input-password-icon {
+  display: inline-flex;
+  min-width: 28px;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+}
+
+html[data-accessibility-contrast='high'] .storefront {
+  --sf-bg: #fff;
+  --sf-header-surface: #fff;
+  --sf-surface: #fff;
+  --sf-catalog-bg: #fff;
+  --sf-ink: #101828;
+  --sf-subtle: #243746;
+  --sf-muted: #334e68;
+  --sf-accent: #004b91;
+  --sf-brand: #102a43;
+  --sf-brand-hover: #061b2e;
+  --sf-soft: #f2f5f8;
+  --sf-soft-blue: #e6f0f8;
+  --sf-line: #526779;
+}
+
+html[data-accessibility-contrast='high'] .sf-footer {
+  --footer-bg: #071b2e;
+  --footer-muted: #fff;
+  --footer-line: #b9c9d8;
+}
+
+html[data-accessibility-contrast='high'] .sf-footer [class*='text-white/'] {
+  color: #fff;
+}
+
+html[data-accessibility-contrast='high'] .sf-footer .sf-footer-brand-card .sf-footer-brand-image {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+html[data-accessibility-motion='reduce'],
+html[data-accessibility-motion='reduce'] *,
+html[data-accessibility-motion='reduce'] *::before,
+html[data-accessibility-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-accessibility-motion='reduce'] .sf-page-transition {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-page-transition {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .sf-footer .sf-footer-logo { filter: none; }
+  .sf-footer .sf-footer-brand-card .sf-footer-brand-image {
+    filter: none !important;
+    opacity: 1 !important;
+  }
+  .sf-footer .sf-footer-mark--visa,
+  .sf-footer .sf-footer-mark--amex {
+    background: #fff;
+    forced-color-adjust: none;
+  }
+  .sf-header-search-field:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  [aria-pressed='true'] { outline: 1px solid ButtonText; }
+}

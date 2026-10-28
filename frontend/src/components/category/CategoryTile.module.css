@@ -1,0 +1,164 @@
+.tile {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 4px 10px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--sf-ink);
+  text-align: center;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--sf-accent);
+  font-size: 27px;
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+.label {
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--sf-accent);
+  outline-offset: -2px;
+  background: var(--sf-surface);
+}
+
+.tile:active {
+  background: #e2eef2;
+}
+
+.directory {
+  gap: 8px;
+  padding: 12px 8px 16px;
+  border-radius: 18px;
+}
+
+.directory .icon {
+  height: 88px;
+  font-size: 32px;
+}
+
+.details {
+  width: 100%;
+  min-width: 0;
+}
+
+.directory .label {
+  min-height: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.count {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--sf-subtle);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover {
+    background: var(--sf-surface);
+    box-shadow: 0 4px 16px rgba(23, 63, 103, 0.07);
+  }
+
+  .tile:hover .icon {
+    filter: brightness(0.98);
+    transform: translateY(-2px);
+  }
+
+  .tile:hover .label {
+    color: var(--sf-accent);
+  }
+}
+
+@media (min-width: 640px) {
+  .tile {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .icon {
+    width: 72px;
+    height: 72px;
+  }
+
+  .label {
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .directory {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .directory .icon {
+    width: 100px;
+    height: 100px;
+  }
+
+  .directory .label {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tile {
+    gap: 12px;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .icon {
+    width: 100%;
+    height: 88px;
+    font-size: 28px;
+  }
+
+  .label {
+    min-height: 40px;
+    padding: 0 2px;
+    font-size: 14px;
+  }
+
+  .directory {
+    padding: 20px;
+  }
+
+  .directory .icon {
+    width: 112px;
+    height: 112px;
+  }
+
+  .directory .label {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .icon {
+    transition: none;
+  }
+}

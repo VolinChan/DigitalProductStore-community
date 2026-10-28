@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import BrandWordmark from '@/components/brand/BrandWordmark';
 import { usePathname } from 'next/navigation';
 import { Drawer } from 'antd';
-import { AppstoreOutlined, HomeOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, BellOutlined, HomeOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -13,9 +13,10 @@ import { trapFocusWithin } from '@/lib/focus';
 interface MobileMenuProps {
   open: boolean;
   onClose: () => void;
+  unreadNotifications?: number;
 }
 
-export default function MobileMenu({ open, onClose }: MobileMenuProps) {
+export default function MobileMenu({ open, onClose, unreadNotifications = 0 }: MobileMenuProps) {
   const t = useTranslations();
   const pathname = usePathname();
   const locale = pathname?.split('/').filter(Boolean)[0] || 'es-CL';
@@ -25,6 +26,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
     { href: `/${locale}`, label: t('layout.home'), icon: <HomeOutlined /> },
     { href: `/${locale}/products`, label: t('layout.allProducts'), icon: <ShoppingOutlined /> },
     { href: `/${locale}/categories`, label: t('layout.categories'), icon: <AppstoreOutlined /> },
+    ...(isAuthenticated ? [{ href: `/${locale}/notifications`, label: t('layout.notifications'), icon: <BellOutlined /> }] : []),
     { href: `/${locale}/${isAuthenticated ? 'profile' : 'login'}`, label: isAuthenticated ? t('layout.profile') : t('layout.login'), icon: <UserOutlined /> },
   ];
 
@@ -38,7 +40,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
       width="min(88vw, 360px)"
       title={
         <Link href={`/${locale}`} onClick={onClose} className="flex min-h-11 w-fit max-w-full items-center" aria-label={t('layout.logo')}>
-          <Image src="/plexoria-logo.png" alt="PLEXORIA" width={240} height={80} className="h-8 w-auto max-w-full object-contain" />
+          <BrandWordmark className="h-auto w-[168px] max-w-full" />
         </Link>
       }
       styles={{ body: { padding: 0 }, header: { borderBottom: '1px solid var(--sf-line)' } }}
@@ -57,6 +59,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
                 }`}
               >
                 <span className="text-lg">{link.icon}</span>{link.label}
+                {link.href === `/${locale}/notifications` && unreadNotifications > 0 && <span className="ml-auto rounded-full bg-[var(--sf-soft-blue)] px-2 text-xs font-bold text-[var(--sf-brand)]">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}
               </Link>
             );
           })}

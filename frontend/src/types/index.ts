@@ -67,6 +67,7 @@ export interface RegisterRequest {
 
 export interface Product {
   is_recommended?: boolean;
+  recommended_at?: string;
   id: number;
   name: string;
   description: string;
@@ -338,6 +339,7 @@ export interface Order {
   guest_email?: string;
   guest_name?: string;
   guest_phone?: string;
+  delivery_method?: 'shipping' | 'pickup';
   shipping_address: string;
   status: OrderStatus;
   payment_method: PaymentMethod;
@@ -493,7 +495,7 @@ export interface ChileCommune { id: number; region_id: number; location_code: st
 export interface UserAddress { id: number; user_id: number; label: string; recipient: string; phone: string; region_id: number; commune_id: number; street: string; street_number: string; complement: string; reference: string; is_default: boolean; last_used_at?: string; region?: ChileRegion; commune?: ChileCommune }
 export interface AddressSnapshot { version: number; recipient: string; phone: string; region_id: number; region_location_code: string; region_name: string; commune_id: number; commune_location_code: string; commune_name: string; street: string; street_number: string; complement: string; reference: string }
 export interface ShippingRateComponent { template_id: number; template_name: string; quantity_mode: 'per_order' | 'per_unit' | 'per_distinct_sku'; rule_id: number; rule_scope: string; product_ids: number[]; sku_ids: number[]; quantity_factor: number; unit_base_amount: number; raw_base_amount: number; remote_surcharge: number }
-export interface ShippingQuote { formula_version: string; quote_version: string; region_id: number; commune_id: number; shipping_rate_components: ShippingRateComponent[]; raw_base_amount: number; rounded_base_amount: number; rounding_unit: number; subsidy_id?: number; subsidy_amount: number; remote_surcharge: number; payable_shipping: number; remote_assessment_required: boolean }
+export interface ShippingQuote { delivery_method?: 'shipping' | 'pickup'; pickup_address?: string; formula_version: string; quote_version: string; region_id: number; commune_id: number; shipping_rate_components: ShippingRateComponent[]; raw_base_amount: number; rounded_base_amount: number; rounding_unit: number; subsidy_id?: number; subsidy_amount: number; remote_surcharge: number; payable_shipping: number; remote_assessment_required: boolean }
 export interface ShippingTemplate { id: number; name: string; quantity_mode: 'per_order' | 'per_unit' | 'per_distinct_sku'; is_default: boolean; is_active: boolean }
 export interface ShippingAdjustment { id: number; order_id: number; status: 'pending_assessment' | 'awaiting_customer_payment' | 'customer_paid' | 'confirmed' | 'cancelled'; difference_amount?: number; reason?: string; payment_obligation_id?: number; assessed_at?: string; customer_declared_at?: string; confirmed_at?: string }
 

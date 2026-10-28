@@ -17,6 +17,7 @@ export interface RoutePolicy {
 export const ROUTE_INDEX_POLICY: readonly RoutePolicy[] = [
   { route: '/{locale}', policy: 'index', canonical: 'self', sitemap: true },
   { route: '/{locale}/products', policy: 'index', canonical: 'self', sitemap: true },
+  { route: '/{locale}/recommended', policy: 'index', canonical: 'self', sitemap: true },
   { route: '/{locale}/products?page=N', policy: 'index', canonical: 'self', sitemap: false },
   { route: '/{locale}/products/{slug}', policy: 'index', canonical: 'self', sitemap: true },
   { route: '/{locale}/products/{numericId|historicalSlug}', policy: 'redirect', canonical: 'current-product', sitemap: false },
@@ -26,6 +27,14 @@ export const ROUTE_INDEX_POLICY: readonly RoutePolicy[] = [
   { route: '/{locale}/cart|checkout|auth|profile|orders|tracking|preview', policy: 'noindex', canonical: 'none', sitemap: false },
   { route: '/admin|api/private', policy: 'protected', canonical: 'none', sitemap: false },
 ] as const;
+
+export const INDEX_ROBOTS: Metadata['robots'] = {
+  index: true,
+  follow: true,
+  'max-snippet': -1,
+  'max-image-preview': 'large',
+  'max-video-preview': -1,
+};
 
 export const NOINDEX_ROBOTS: Metadata['robots'] = {
   index: false,

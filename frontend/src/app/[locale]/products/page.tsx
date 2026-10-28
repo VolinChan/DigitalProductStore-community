@@ -3,7 +3,7 @@ import ProductListClient from '@/components/product/ProductListClient';
 import { getPublicCategories, getPublicProducts } from '@/lib/server/catalog';
 import { canonicalUrl, localeAlternates } from '@/lib/seo/urls';
 import { getSiteConfig } from '@/lib/seo/site-config';
-import { hasNonIndexableListingParameters, isStorefrontLocale, NOINDEX_ROBOTS } from '@/lib/seo/policy';
+import { hasNonIndexableListingParameters, INDEX_ROBOTS, isStorefrontLocale, NOINDEX_ROBOTS } from '@/lib/seo/policy';
 import { notFound } from 'next/navigation';
 
 const PAGE_SIZE = 12;
@@ -20,16 +20,16 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function positiveNumber(value: string | undefined): number | undefined {
+function positiveNumber(value: string | undefined, minimum = 1): number | undefined {
   if (!value) return undefined;
   const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : undefined;
+  return Number.isFinite(number) && number >= minimum ? number : undefined;
 }
 
 export async function generateMetadata({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<SearchParams> }): Promise<Metadata> {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   if (!isStorefrontLocale(locale)) return {};
-  const page = positiveNumber(first(query.page)) || 1;
+  const page = Math.floor(positiveNumber(first(query.page)) || 1);
   const filtered = hasNonIndexableListingParameters(query) || Object.keys(query).some((key) => key !== 'page');
   const cleanPath = page > 1 && !filtered ? `products?page=${page}` : 'products';
   const canonical = canonicalUrl(locale, cleanPath);
@@ -42,7 +42,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
     description,
     alternates: { canonical, languages: page === 1 && !filtered ? localeAlternates('products') : undefined },
     openGraph: { type: 'website', url: canonical, title, description, images: [{ url: getSiteConfig().brandShareImage, alt: 'Plexoria' }] },
-    robots: !getSiteConfig().indexingEnabled || filtered ? NOINDEX_ROBOTS : { index: true, follow: true },
+    robots: !getSiteConfig().indexingEnabled || filtered ? NOINDEX_ROBOTS : INDEX_ROBOTS,
   };
 }
 
@@ -52,7 +52,7 @@ export default async function ProductListPage({ params, searchParams }: { params
   if (process.env.SEO_E2E_CLIENT_CATALOG === 'true') {
     return <div className="seo-interactive-content"><ProductListClient initialProducts={[]} initialCategories={[]} initialTotal={0} clientFetch /></div>;
   }
-  const page = positiveNumber(first(query.page)) || 1;
+  const page = Math.floor(positiveNumber(first(query.page)) || 1);
   const selectedSort = sortOptions[first(query.sort) || 'newest'] || sortOptions.newest;
   const [catalog, categories] = await Promise.all([
     getPublicProducts({
@@ -61,8 +61,8 @@ export default async function ProductListPage({ params, searchParams }: { params
       sortBy: selectedSort.sortBy,
       sortOrder: selectedSort.sortOrder,
       categoryId: positiveNumber(first(query.category_id)),
-      minPrice: positiveNumber(first(query.min_price)),
-      maxPrice: positiveNumber(first(query.max_price)),
+      minPrice: positiveNumber(first(query.min_price), 0),
+      maxPrice: positiveNumber(first(query.max_price), 0),
     }),
     getPublicCategories(),
   ]);

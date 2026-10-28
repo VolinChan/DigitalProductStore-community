@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { getSiteConfig } from '@/lib/seo/site-config';
 import { NOINDEX_ROBOTS, isStorefrontLocale } from '@/lib/seo/policy';
+import { accessibilityBootstrapScript } from '@/lib/accessibility/preferences';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -31,7 +32,7 @@ export default async function RootLayout({
   const lang = isStorefrontLocale(localeHeader) ? localeHeader : 'es-CL';
   return (
     <html lang={lang} suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} /></head>
+      <head><script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add('js');${accessibilityBootstrapScript}` }} /></head>
       <body className="bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AntdRegistry>

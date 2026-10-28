@@ -78,6 +78,7 @@ export interface ProductListQuery {
   categoryId?: number;
   minPrice?: number;
   maxPrice?: number;
+  isRecommended?: boolean;
 }
 
 export const getPublicProducts = cache(async (query: ProductListQuery = {}): Promise<PublicProductList> => {
@@ -90,6 +91,7 @@ export const getPublicProducts = cache(async (query: ProductListQuery = {}): Pro
   if (query.categoryId) params.set('category_id', String(query.categoryId));
   if (query.minPrice !== undefined) params.set('min_price', String(query.minPrice));
   if (query.maxPrice !== undefined) params.set('max_price', String(query.maxPrice));
+  if (query.isRecommended !== undefined) params.set('is_recommended', String(query.isRecommended));
   const result = await fetchCatalog<PublicProductList>(`/products?${params}`, ['catalog-products']);
   return { ...result, products: (result.products || []).map(normalizeProduct) };
 });

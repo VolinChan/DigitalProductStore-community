@@ -5,6 +5,9 @@ import type { StorefrontLocale } from '@/lib/seo/policy';
 import { buildPublicCategoryTree } from '@/lib/category-tree';
 import { HOME_CATEGORY_LIMIT, HOME_COMPACT_PRODUCTS_PER_SECTION, type HomeProductSection } from '@/lib/home';
 import { getProductPrimaryImage } from '@/lib/catalog';
+import { getTranslations } from 'next-intl/server';
+import SpecificationsTable from '@/components/product/SpecificationsTable';
+import { catalogStorefrontEnabled } from '@/lib/catalog-flags';
 
 function productHref(locale: StorefrontLocale, product: Product): string {
   return `/${locale}/products/${encodeURIComponent(product.slug || String(product.id))}`;
@@ -27,7 +30,7 @@ export function ServerProductGrid({ products, locale, home = false }: { products
       {products.map((product, index) => {
         const image = getProductPrimaryImage(product);
         const startingPrice = price(product, locale);
-        const soldOut = Boolean(product.skus?.length) && product.skus!.every((sku) => sku.inventory <= 0);
+        const soldOut = !product.skus?.some(sku => sku.is_active && sku.inventory > 0);
         return (
           <article key={product.id} className={home && index >= HOME_COMPACT_PRODUCTS_PER_SECTION ? 'hidden xl:block' : undefined}>
             <Link href={productHref(locale, product)} className="block rounded-[18px] bg-white p-4">
@@ -65,12 +68,24 @@ export function ServerHomeContent({ locale, sections, categories }: { locale: St
   );
 }
 
-export function ServerProductListContent({ locale, products, total }: { locale: StorefrontLocale; products: Product[]; total: number }) {
+export function ServerProductListContent({ locale, products, total, collection = 'products', page = 1, search = '', title, description }: { locale: StorefrontLocale; products: Product[]; total: number; collection?: 'products' | 'recommended'; page?: number; search?: string; title?: string; description?: string }) {
+  const pages = Math.ceil(total / 12);
+  const pageURL = (nextPage: number) => {
+    const params = new URLSearchParams(search);
+    params.delete('page');
+    if (nextPage > 1) params.set('page', String(nextPage));
+    return `/${locale}/${collection}${params.size ? `?${params}` : ''}`;
+  };
   return (
     <main className="seo-server-content store-container">
-      <h1 className="text-4xl font-black">{locale === 'es-CL' ? 'Productos de tecnología y accesorios' : 'Technology products and accessories'}</h1>
+      <h1 className="text-4xl font-black">{title || (locale === 'es-CL' ? 'Productos de tecnología y accesorios' : 'Technology products and accessories')}</h1>
+      {description && <p className="mt-3 text-[var(--sf-subtle)]">{description}</p>}
       <p className="mb-8 mt-3 text-[var(--sf-muted)]">{total} {locale === 'es-CL' ? 'resultados' : 'results'}</p>
       <ServerProductGrid products={products} locale={locale} />
+      {pages > 1 && <nav className="mt-8 flex gap-4" aria-label={locale === 'es-CL' ? 'Paginación' : 'Pagination'}>
+        {page > 1 && <Link href={pageURL(page - 1)} rel="prev" className="sf-button-secondary">{locale === 'es-CL' ? 'Anterior' : 'Previous'}</Link>}
+        {page < pages && <Link href={pageURL(page + 1)} rel="next" className="sf-button-secondary">{locale === 'es-CL' ? 'Siguiente' : 'Next'}</Link>}
+      </nav>}
     </main>
   );
 }
@@ -85,7 +100,8 @@ export function ServerCategoryContent({ locale, categories }: { locale: Storefro
   );
 }
 
-export function ServerProductDetailContent({ locale, product }: { locale: StorefrontLocale; product: Product }) {
+export async function ServerProductDetailContent({ locale, product }: { locale: StorefrontLocale; product: Product }) {
+  const t = await getTranslations({ locale, namespace: 'products' });
   const values = (product.skus || []).filter((sku) => sku.is_active).map((sku) => Number(sku.price)).filter(Number.isFinite);
   const minPrice = values.length ? Math.min(...values) : undefined;
   const available = (product.skus || []).some((sku) => sku.is_active && sku.inventory > 0);
@@ -98,11 +114,21 @@ export function ServerProductDetailContent({ locale, product }: { locale: Storef
         <div>
           {product.brand && <p className="font-bold uppercase text-[var(--sf-muted)]">{product.brand}</p>}
           <h1 className="mt-2 text-4xl font-black">{product.name}</h1>
+          {product.model && <p className="mt-2 text-sm text-[var(--sf-muted)]">{t('modelLabel')}: {product.model}</p>}
           {minPrice !== undefined && <p className="mt-6 text-3xl font-black text-[var(--sf-brand)]">{new Intl.NumberFormat(locale === 'es-CL' ? 'es-CL' : 'en-US', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(minPrice)}</p>}
           <p className="mt-2 font-bold">{available ? (locale === 'es-CL' ? 'Disponible' : 'Available') : (locale === 'es-CL' ? 'Agotado' : 'Sold out')}</p>
           {(product.short_description || product.description) && <p className="mt-8 leading-7 text-[var(--sf-subtle)]">{product.short_description || product.description}</p>}
         </div>
       </article>
+      <section className="mt-12 border-t border-[var(--sf-line)] pt-9">
+        <SpecificationsTable structured={product.structured_specifications} specifications={product.specifications} title={t('specs')} />
+        {(product.description_html || product.description) && <div className="mt-10 max-w-4xl">
+          <h2 className="text-2xl font-black text-[var(--sf-ink)]">{t('description')}</h2>
+          {catalogStorefrontEnabled && product.description_html
+            ? <div className="catalog-product-description mt-4 text-[var(--sf-subtle)]" dangerouslySetInnerHTML={{ __html: product.description_html }} />
+            : <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-[var(--sf-subtle)]">{product.description}</p>}
+        </div>}
+      </section>
     </main>
   );
 }

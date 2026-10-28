@@ -2,12 +2,15 @@ import { loadHomeSections } from '@/lib/home';
 import { CatalogNotFoundError, getPublicCategories, getPublicProductBySlug, getPublicProducts } from '@/lib/server/catalog';
 import type { StorefrontLocale } from '@/lib/seo/policy';
 import { ServerCategoryContent, ServerHomeContent, ServerProductDetailContent, ServerProductListContent } from './ServerCatalogContent';
-import { buildSiteJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
+import { getTranslations } from 'next-intl/server';
+import PublishedLegalDocument, { type LegalDocumentKey } from '@/components/legal/PublishedLegalDocument';
+import LegalCenterContent from '@/components/legal/LegalCenterContent';
+import ContactContent from '@/components/contact/ContactContent';
 
-function positive(value: string | null): number | undefined {
+function positive(value: string | null, minimum = 1): number | undefined {
   if (!value) return undefined;
   const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : undefined;
+  return Number.isFinite(number) && number >= minimum ? number : undefined;
 }
 
 export default async function SEOInitialRouteContent({ locale, pathname, search }: { locale: StorefrontLocale; pathname: string; search: string }) {
@@ -16,43 +19,39 @@ export default async function SEOInitialRouteContent({ locale, pathname, search 
   if (relative === '') {
     const categories = await getPublicCategories();
     const sections = await loadHomeSections(categories, getPublicProducts);
-    return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd(locale)) }} /><ServerHomeContent locale={locale} sections={sections} categories={categories} /></>;
+    return <ServerHomeContent locale={locale} sections={sections} categories={categories} />;
   }
-  if (relative === 'products') {
+  if (relative === 'products' || relative === 'recommended') {
+    const recommendedOnly = relative === 'recommended';
     const query = new URLSearchParams(search);
     const sort = query.get('sort');
-    const sortBy = sort === 'price_asc' || sort === 'price_desc' ? 'price' : sort === 'name_asc' ? 'name' : 'created_at';
+    const sortBy = sort === 'price_asc' || sort === 'price_desc' ? 'price' : sort === 'name_asc' ? 'name' : recommendedOnly && sort !== 'newest' ? 'recommended' : 'created_at';
     const sortOrder = sort === 'price_asc' || sort === 'name_asc' ? 'asc' : 'desc';
     const catalog = await getPublicProducts({
-      page: positive(query.get('page')) || 1,
+      page: Math.floor(positive(query.get('page')) || 1),
       pageSize: 12,
       sortBy,
       sortOrder,
+      ...(recommendedOnly ? { isRecommended: true } : {}),
       categoryId: positive(query.get('category_id')),
-      minPrice: positive(query.get('min_price')),
-      maxPrice: positive(query.get('max_price')),
+      minPrice: positive(query.get('min_price'), 0),
+      maxPrice: positive(query.get('max_price'), 0),
     });
-    return <ServerProductListContent locale={locale} products={catalog.products} total={catalog.total} />;
+    const t = await getTranslations({ locale, namespace: 'products' });
+    return <ServerProductListContent locale={locale} products={catalog.products} total={catalog.total} collection={relative} page={Math.floor(positive(query.get('page')) || 1)} search={search} title={recommendedOnly ? t('recommendedTitle') : undefined} description={recommendedOnly ? t('recommendedDescription') : undefined} />;
   }
   if (relative === 'categories') {
     return <ServerCategoryContent locale={locale} categories={await getPublicCategories()} />;
   }
-  const staticCopy: Partial<Record<string, Record<StorefrontLocale, { title: string; description: string }>>> = {
-    about: {
-      'es-CL': { title: 'Acerca de Plexoria', description: 'Tecnología y accesorios con información clara para tomar mejores decisiones de compra.' },
-      en: { title: 'About Plexoria', description: 'Technology and accessories with clear information for better purchasing decisions.' },
-    },
-    contact: {
-      'es-CL': { title: 'Contacto', description: 'Contacta al equipo de soporte de Plexoria por teléfono, WhatsApp o correo electrónico.' },
-      en: { title: 'Contact', description: 'Contact Plexoria support by phone, WhatsApp, or email.' },
-    },
-    'help/shipping': {
-      'es-CL': { title: 'Información de envíos', description: 'Consulta cómo se calculan y presentan las opciones de envío disponibles.' },
-      en: { title: 'Shipping information', description: 'Learn how available shipping options are calculated and presented.' },
-    },
+  const legalRoutes: Partial<Record<string, LegalDocumentKey>> = {
+    about: 'about', privacy: 'privacy', 'help/shipping': 'shipping', 'help/returns': 'returns_withdrawal',
+    'legal/terms': 'terms', 'legal/returns-withdrawal': 'returns_withdrawal', 'legal/legal-guarantee': 'legal_guarantee',
+    'legal/cookies': 'cookies', 'legal/supplier': 'supplier_identification',
   };
-  const content = staticCopy[relative]?.[locale];
-  if (content) return <main className="seo-server-content store-container"><article className="max-w-3xl"><h1 className="text-4xl font-black">{content.title}</h1><p className="mt-6 text-lg leading-8 text-[var(--sf-subtle)]">{content.description}</p></article></main>;
+  const documentKey = legalRoutes[relative];
+  if (documentKey) return <PublishedLegalDocument locale={locale} documentKey={documentKey} serverFallback />;
+  if (relative === 'legal') return <LegalCenterContent locale={locale} serverFallback />;
+  if (relative === 'contact') return <div className="seo-server-content"><ContactContent supplierTitleId="server-supplier-disclosure-title" /></div>;
   const productMatch = relative.match(/^products\/([^/]+)$/);
   if (productMatch && productMatch[1] !== 'search' && !search.includes('preview_token=')) {
     try {

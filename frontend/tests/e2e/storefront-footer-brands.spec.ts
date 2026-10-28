@@ -24,6 +24,9 @@ for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 960 });
     await page.goto('/es-CL/contact');
     const footer = page.locator('footer.sf-footer');
+    const logo = footer.getByAltText('Plexoria', { exact: true });
+    await expect(logo).toHaveCSS('filter', 'brightness(0) invert(1)');
+    await expect(logo).toHaveCSS('width', '168px');
     const payments = footer.locator('.sf-footer-payments');
     await expect(payments.getByRole('img')).toHaveCount(6);
     for (const name of ['Mercado Pago', 'Visa', 'Mastercard', 'American Express', 'Banco Santander', 'Webpay Plus']) await expect(payments.getByAltText(name, { exact: true })).toHaveCount(1);
@@ -46,7 +49,15 @@ for (const width of [320, 390, 768, 1024, 1440]) {
       expect(await img.getAttribute('alt')).toBeTruthy();
     }
     const channelCards = footer.locator('.sf-footer-brand-card--channel');
-    for (const card of await channelCards.all()) { await expect(card).toHaveCSS('width', '104px'); await expect(card).toHaveCSS('height', '48px'); }
+    for (const card of await channelCards.all()) {
+      await expect(card).toHaveCSS('width', '104px');
+      await expect(card).toHaveCSS('height', '48px');
+      await expect(card).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.08)');
+      await expect(card).toHaveCSS('border-color', 'rgba(255, 255, 255, 0.1)');
+      await expect(card).toHaveCSS('border-radius', '6px');
+      await expect(card.locator('img')).toHaveCSS('filter', 'grayscale(1)');
+      await expect(card.locator('img')).toHaveCSS('opacity', '0.65');
+    }
     const grid = (await footer.locator('.sf-footer-grid').boundingBox())!;
     const copyright = (await footer.locator('.sf-footer-copyright').boundingBox())!;
     const payment = (await payments.boundingBox())!;
@@ -74,7 +85,7 @@ test('mouse hover and keyboard focus restore original marks without affecting la
   await expect(footer.locator('.sf-footer-payment-list img')).toHaveCount(6);
   const card = footer.getByRole('link', { name: 'PLEXORIA on Mercado Libre' });
   await card.hover();
-  await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(card).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.14)');
   await expect(card.locator('img')).toHaveCSS('filter', 'none');
   await expect(card.locator('img')).toHaveCSS('opacity', '1');
   await expect(card).toHaveCSS('transition-duration', '0.22s, 0.22s');
@@ -101,7 +112,7 @@ test.describe('touch input', () => {
     expect(await page.evaluate(() => matchMedia('(hover: none)').matches)).toBe(true);
     const footer = page.locator('footer.sf-footer');
     await expect(footer.locator('.sf-footer-payment-list img')).toHaveCount(6);
-    for (const img of await footer.locator('.sf-footer-brand-image').all()) {
+    for (const img of await footer.locator('.sf-footer-payments .sf-footer-brand-image').all()) {
       await expect(img).toHaveCSS('filter', 'saturate(0.6)');
       await expect(img).toHaveCSS('opacity', '1');
     }
@@ -132,8 +143,28 @@ test.describe('touch input', () => {
     await expect(card).toHaveCSS('outline-style', 'solid');
     await card.blur();
     await expect(card.locator('img')).toHaveCSS('filter', 'saturate(0.6)');
+    await expect(card.locator('img')).toHaveCSS('opacity', '0.85');
     await footer.screenshot({ path: 'test-results/footer-brands-touch-390.png' });
   });
+});
+
+test('footer wordmark has transparent artwork and keeps the header treatment independent', async ({ page }) => {
+  await page.goto('/en/contact');
+  const logo = page.locator('footer.sf-footer').getByAltText('Plexoria', { exact: true });
+  await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  const alpha = await logo.evaluate(async (image: HTMLImageElement) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d')!;
+    context.drawImage(image, 0, 0);
+    const corners = [[0, 0], [canvas.width - 1, 0], [0, canvas.height - 1], [canvas.width - 1, canvas.height - 1]];
+    return corners.map(([x, y]) => context.getImageData(x, y, 1, 1).data[3]);
+  });
+  expect(alpha).toEqual([0, 0, 0, 0]);
+  await expect(page.locator('header').getByAltText('Plexoria Logo', { exact: true })).toHaveCSS('filter', 'none');
+  await logo.locator('..').focus();
+  await expect(logo.locator('..')).toHaveCSS('outline-style', 'solid');
 });
 
 for (const mode of ['webpay-only', 'transfer-only', 'disabled', 'unconfirmed', 'failed']) {

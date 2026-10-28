@@ -1,0 +1,69 @@
+{
+  "version": "2026-10-09",
+  "updated": "9 October 2026",
+  "documents": {
+    "about": {
+      "title": "About PLEXORIA",
+      "paragraphs": [
+        "Technology for everyday life",
+        "We are PLEXORIA SpA, a company established in Chile that imports and sells technology products. We operate from Santiago and offer options for the home, study, work, and the needs of entrepreneurs and businesses.",
+        "We see technology as a way to make everyday tasks easier, improve our spaces, and develop new projects. We aim to offer useful, practical products, with information that helps you choose and a good balance between their features and price.",
+        "A catalog for different needs",
+        "Our catalog covers connectivity and networking, computing, technology accessories, and technology for home and personal use, with options for different settings and needs.",
+        "We select products that make everyday tasks easier, complement different spaces, and improve the experience of using technology. We consider each product's usefulness and the relationship between its features and price, to meet different needs and budgets.",
+        "Our range evolves with our customers' needs, making room for new categories and options that complement our offering.",
+        "Clear information to help you choose",
+        "We want you to understand what you are buying and assess whether it suits your needs. That is why we value product information that is clear, understandable, and relevant to its use.",
+        "We work to explain each product's features and conditions, including considerations that may affect your purchase decision. Our aim is to make it easier to compare the available options and choose with confidence.",
+        "If you have questions before buying, write to us and tell us what you need. We can review the available options and explain their features.",
+        "Online shopping and operations in Chile",
+        "PLEXORIA.cl is our direct sales channel, where you can browse the available catalog, see new arrivals, and shop online. We also sell on Mercado Libre and Falabella under the PLEXORIA name.",
+        "Product selection, stock, prices, promotions, and delivery options may vary between channels. The conditions of each purchase are those stated on the channel where the order is placed.",
+        "We have a warehouse in Macul, in the Santiago Metropolitan Region, where we organize inventory and prepare the orders we ship directly. Depending on the channel and product, we also use the logistics and storage services of the platforms where we sell.",
+        "Shipping options, coverage, cost, and delivery times are provided according to the destination and the methods available for each order.",
+        "Support before and after your purchase",
+        "Contact us to ask about a product, check order information, or arrange after-sales support. For questions about a purchase, providing your order number and the channel where you bought it helps us identify the purchase and review its details.",
+        "Email is our preferred support channel. You can also write to us on WhatsApp.",
+        "Email: soporte@plexoria.cl",
+        "WhatsApp: +56 9 9509 6835",
+        "Customer service hours:",
+        "Monday to Friday, 10:00 to 17:30.",
+        "Saturday, 10:30 to 15:30.",
+        "Santiago, Chile time.",
+        "Visiting our warehouse",
+        "You can arrange an order pickup, an in-person return, or a visit to ask a question at our warehouse in Macul.",
+        "Before visiting, write to us to agree on the date and time and receive the relevant access instructions.",
+        "Company information",
+        "Legal name: PLEXORIA SpA",
+        "RUT: 78.236.393-K",
+        "Branch and warehouse:",
+        "Av. Marathón 2499, Bodega 041, Macul, Región Metropolitana, Chile.",
+        "PLEXORIA — CONNECT · INTEGRATE · ADVANCE"
+      ]
+    },
+    "shipping": {
+      "title": "Shipping and pickup information",
+      "paragraphs": [
+        "1. Coverage, cost and delivery time",
+        "The available shipping and pickup options depend on the address, commune, product and delivery methods enabled for your order. Before payment, you will be shown the shipping cost, the total purchase amount and the applicable delivery date or time range.",
+        "When a delivery time is stated in business days, unless otherwise indicated, this means Monday to Friday, excluding public holidays in Chile. Customer service on Saturdays does not by itself imply shipping or delivery on that day.",
+        "2. Preparation and tracking",
+        "Preparation begins once payment has been approved when that approval is required. If a shipping method has a cutoff time, you will be informed before purchase.",
+        "Where applicable, PLEXORIA will provide a tracking number or another means of tracking. If an order needs to be split into several parcels, this will not result in additional charges you have not accepted.",
+        "3. Delivery address and receipt",
+        "You must provide a complete and correct address, commune, contact details and access instructions. Requests to change the address are subject to feasibility when the order is already being prepared or is in transit.",
+        "The order may be delivered to the recipient or an authorized person at the specified location, including a concierge or reception desk where applicable. PLEXORIA or the carrier may request reasonable identification when the delivery method requires it.",
+        "4. Failed delivery and another delivery attempt",
+        "If a delivery fails for a substantiated reason attributable to the customer, such as an incorrect address, lack of access or absence when receipt is required, an available alternative will be arranged. If another delivery is needed and a charge is legally permissible, its cost will be disclosed for your acceptance before it is arranged.",
+        "The customer will not be required to pay an additional charge for errors by PLEXORIA or the carrier engaged by PLEXORIA. A failed delivery attempt does not by itself mean losing your order or the money you paid.",
+        "5. Damage, missing items or an incorrect product",
+        "Check your order when possible. If you notice damage, missing items or a different product, report it as soon as you can. Photos of the parcel, label and contents can help with the review. This recommendation does not set a 24-hour or 48-hour deadline that removes your legal rights.",
+        "6. Pickup and visits to the warehouse",
+        "Order pickups, in-person returns and occasional visits to the warehouse can be arranged in advance at Av. Marathón 2499, Bodega 041, Macul, Región Metropolitana, Chile.",
+        "Before visiting, confirm the date and time by email or WhatsApp and, for pickup, that your order is ready. If someone else collects your order, we may request the information reasonably needed to verify their authorization.",
+        "7. Contact",
+        "Preferred email: soporte@plexoria.cl. WhatsApp: +56 9 9509 6835. Usual service hours: Monday to Friday, 10:00–17:30, and Saturdays, 10:30–15:30, Santiago, Chile time, excluding public holidays."
+      ]
+    }
+  }
+}

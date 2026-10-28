@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { mockCartContractRoute, mockShippingRoute } from './helpers/shipping';
+import { consentStorageKey } from '../../src/lib/legal/consent';
 
 const supplierAddress = 'Sucursal y bodega: Av. Marathón 2499, Bodega 041, Macul, Región Metropolitana, Chile.';
 const product = {
@@ -7,6 +8,31 @@ const product = {
   status: 'published', is_active: true, created_at: '2026-08-01T09:00:00Z', updated_at: '2026-08-01T09:00:00Z', images: [],
   skus: [{ id: 220, product_id: 22, sku_code: 'HUB-220', price: 15990, inventory: 4, attributes: [], is_active: true }],
 };
+
+for (const locale of ['en', 'es-CL']) {
+  for (const width of [320, 1440]) {
+    test(`cookie banner stays compact with all choices at ${width}px in ${locale}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`/${locale}/contact`);
+      const banner = page.getByRole('dialog', { name: locale === 'en' ? 'Your privacy preferences' : 'Tus preferencias de privacidad' });
+      await expect(banner).toBeVisible();
+      await expect(banner).toHaveAttribute('aria-modal', 'false');
+      const accept = banner.getByRole('button', { name: locale === 'en' ? 'Accept all' : 'Aceptar todas' });
+      const reject = banner.getByRole('button', { name: locale === 'en' ? 'Reject nonessential' : 'Rechazar no necesarias' });
+      const customize = banner.getByRole('button', { name: locale === 'en' ? 'Customize' : 'Personalizar' });
+      for (const action of [accept, reject, customize]) {
+        await expect(action).toBeInViewport();
+        expect((await action.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      }
+      expect((await banner.boundingBox())!.height).toBeLessThanOrEqual(width === 320 ? 280 : 160);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await reject.click();
+      await expect(banner).toBeHidden();
+      const receipt = await page.evaluate(key => JSON.parse(localStorage.getItem(key) || 'null'), consentStorageKey);
+      expect(receipt).toMatchObject({ analytics: false, marketing: false, personalization: false });
+    });
+  }
+}
 
 test('legal center exposes supplied company facts and current published conditions', async ({ page }) => {
   await page.goto('/es-CL/legal');

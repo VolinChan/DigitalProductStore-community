@@ -10,6 +10,8 @@ export default function robots(): MetadataRoute.Robots {
   }
   return {
     rules: [
+      // The wildcard covers search agents such as Googlebot, OAI-SearchBot,
+      // Claude-SearchBot and PerplexityBot, with the same private exclusions.
       { userAgent: '*', allow: '/', disallow: ['/admin/', '/api/v1/admin/', '/api/v1/me/'] },
     ],
     sitemap: absoluteSiteUrl('/sitemap.xml'),

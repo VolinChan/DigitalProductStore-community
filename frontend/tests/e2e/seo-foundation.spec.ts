@@ -60,14 +60,27 @@ test('home, listing, and categories expose primary content without browser API h
   await page.goto('/es-CL/categories');
   await expect(page.getByRole('heading', { name: /Categorías/ })).toBeVisible();
   await expect(page.getByText('Connectivity').first()).toBeVisible();
+  await page.goto('/es-CL/recommended');
+  await expect(page.getByRole('heading', { level: 1, name: 'Productos recomendados' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'SEO USB-C Hub' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Simple USB-C Cable' })).toHaveCount(0);
   await context.close();
 });
 
 test('private and parameter-derived pages cannot inherit indexable metadata', async ({ request }) => {
-  for (const path of ['/es-CL/cart', '/es-CL/checkout', '/es-CL/login', '/es-CL/profile', '/es-CL/orders', '/es-CL/products/search?q=hub', '/es-CL/products?category_id=4']) {
+  for (const path of ['/es-CL/cart', '/es-CL/checkout', '/es-CL/login', '/es-CL/profile', '/es-CL/orders', '/es-CL/products/search?q=hub', '/es-CL/products?category_id=4', '/es-CL/recommended?category_id=4']) {
     const response = await request.get(path);
     expect(response.status(), path).toBe(200);
     expect(await response.text(), path).toMatch(/name="robots" content="noindex, nofollow"/);
+    if (!path.includes('/products') && !path.includes('/recommended')) {
+      expect(await response.text(), path).not.toContain('rel="canonical"');
+      expect(await response.text(), path).not.toContain('hreflang=');
+    }
+  }
+  for (const collection of ['products', 'recommended']) {
+    const response = await request.get(`/es-CL/${collection}?page=1.5`);
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain(`rel="canonical" href="https://www.plexoria.cl/es-CL/${collection}"`);
   }
 });
 
@@ -123,4 +136,61 @@ test('catalog revalidation hook requires its deployment secret', async ({ reques
   });
   expect(categoryAccepted.status()).toBe(200);
   expect(await categoryAccepted.json()).toMatchObject({ revalidated: true, event: 'category_updated' });
+});
+
+test('AI search crawlers receive complete public HTML and connected structured entities without JavaScript', async ({ browser }) => {
+  for (const userAgent of ['Googlebot', 'bingbot', 'OAI-SearchBot', 'Claude-SearchBot', 'PerplexityBot']) {
+    const context = await browser.newContext({ javaScriptEnabled: false, userAgent });
+    const page = await context.newPage();
+    await page.goto('/es-CL/recommended');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: 'SEO USB-C Hub' })).toBeVisible();
+    const collection = await page.locator('script[type="application/ld+json"]').evaluateAll(scripts => scripts.map(script => JSON.parse(script.textContent || '{}')).find(data => data['@type'] === 'CollectionPage'));
+    expect(collection.mainEntity.itemListElement).toHaveLength(1);
+    expect(collection.mainEntity.itemListElement[0].url).toContain('/es-CL/products/seo-usb-c-hub');
+    expect(collection.breadcrumb['@type']).toBe('BreadcrumbList');
+    const site = await page.locator('script[type="application/ld+json"]').evaluateAll(scripts => scripts.map(script => JSON.parse(script.textContent || '{}')).find(data => data['@graph']));
+    const organization = site['@graph'].find((node: Record<string, unknown>) => node['@type'] === 'Organization');
+    expect(organization.legalName).toBe('PLEXORIA SpA');
+    expect(organization.sameAs).toHaveLength(2);
+    expect(collection.publisher['@id']).toBe(organization['@id']);
+    await page.goto('/es-CL/products/seo-usb-c-hub');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+    const visibleProduct = page.locator('main.seo-server-content');
+    await expect(visibleProduct.getByText('Modelo: HUB-7', { exact: true })).toBeVisible();
+    await expect(visibleProduct.getByText('USB-C Power Delivery', { exact: true })).toBeVisible();
+    await expect(visibleProduct.getByText('100 W', { exact: true })).toBeVisible();
+    await expect(visibleProduct.getByText('Connect displays, storage, and power through one compact hub.', { exact: true }).last()).toBeVisible();
+    const product = await page.locator('script[type="application/ld+json"]').evaluateAll(scripts => scripts.map(script => JSON.parse(script.textContent || '{}')).find(data => data['@type'] === 'ProductGroup'));
+    expect(product.model).toBe('HUB-7');
+    expect(product.additionalProperty).toContainEqual({ '@type': 'PropertyValue', name: 'USB-C Power Delivery', value: '100', unitText: 'W' });
+    expect(product.hasVariant[0].offers.seller['@id']).toBe(organization['@id']);
+    await context.close();
+  }
+});
+
+test('published help pages retain complete readable text without JavaScript', async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  for (const locale of ['es-CL', 'en']) {
+    for (const path of ['about', 'contact', 'help/shipping', 'help/returns', 'privacy', 'legal', 'legal/terms', 'legal/returns-withdrawal', 'legal/legal-guarantee', 'legal/cookies', 'legal/supplier']) {
+      await page.goto(`/${locale}/${path}`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+      if (path === 'help/shipping') {
+        await expect(page.getByRole('heading', { name: locale === 'en' ? 'Free warehouse pickup' : 'Retiro gratis en bodega' })).toBeVisible();
+        await expect(page.getByText(/Bodega 041/).first()).toBeVisible();
+      }
+      if (path === 'about' && locale === 'en') {
+        await expect(page.getByRole('heading', { name: 'About PLEXORIA', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Visiting our warehouse', exact: true })).toBeVisible();
+        await expect(page.locator('#main-content')).not.toContainText('Somos PLEXORIA');
+      }
+      if (path.startsWith('legal') || path === 'privacy' || path === 'help/returns') {
+        await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://www.plexoria.cl/${locale}/${path}`);
+        await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+        await expect(page).not.toHaveTitle(/^Plexoria \|/);
+      }
+    }
+  }
+  await context.close();
 });

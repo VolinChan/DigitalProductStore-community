@@ -6,8 +6,8 @@ import { localeAlternates, productCanonicalUrl } from './urls';
 
 export const SITEMAP_PROTOCOL_LIMIT = 50_000;
 export const SITEMAP_PRODUCT_PAGE_SIZE = 1_000;
-const STATIC_UPDATED_AT = '2026-08-03T00:00:00.000Z';
-const staticRoutes = ['', 'products', 'categories', 'about', 'contact', 'help/shipping'] as const;
+const STATIC_UPDATED_AT = '2026-10-20T00:00:00.000Z';
+const staticRoutes = ['', 'products', 'recommended', 'categories', 'about', 'contact', 'help/shipping'] as const;
 
 export interface SitemapEntry {
   url: string;

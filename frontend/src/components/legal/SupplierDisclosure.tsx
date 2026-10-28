@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { supplierProfile, type LegalLocale } from '@/lib/legal/supplier';
 
-export default function SupplierDisclosure({ locale, compact = false, showPhone = true, showHours = true, legalOverview = false }: { locale: string; compact?: boolean; showPhone?: boolean; showHours?: boolean; legalOverview?: boolean }) {
+export default function SupplierDisclosure({ locale, compact = false, showPhone = true, showHours = true, legalOverview = false, headingId = 'supplier-disclosure-title' }: { locale: string; compact?: boolean; showPhone?: boolean; showHours?: boolean; legalOverview?: boolean; headingId?: string }) {
   const language: LegalLocale = locale === 'en' ? 'en' : 'es-CL';
   return (
-    <section aria-labelledby="supplier-disclosure-title" className={compact ? 'text-sm leading-6' : 'rounded-[18px] bg-[var(--sf-soft)] p-5 text-sm leading-6'}>
-      <h2 id="supplier-disclosure-title" className="font-black">{language === 'es-CL' ? 'Identificación del proveedor' : 'Supplier identification'}</h2>
+    <section aria-labelledby={headingId} className={compact ? 'text-sm leading-6' : 'rounded-[18px] bg-[var(--sf-soft)] p-5 text-sm leading-6'}>
+      <h2 id={headingId} className="font-black">{language === 'es-CL' ? 'Identificación del proveedor' : 'Supplier identification'}</h2>
       <p className="mt-3"><strong>{supplierProfile.legalName} · RUT {supplierProfile.rut}</strong></p>
       {legalOverview ? <p className="mt-1 break-words"><strong>{language === 'es-CL' ? 'Sucursal y bodega: ' : 'Branch and warehouse: '}</strong><a href="https://www.google.com/maps/search/Av.+Marath%C3%B3n+2499" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">Av. Marathón 2499</a>, <span className="whitespace-nowrap">Bodega 041</span>, Macul, Región Metropolitana, Chile.</p>
         : <p className="break-words">{compact ? supplierProfile.principalAddress : <>{language === 'es-CL' ? 'Sucursal y bodega: ' : 'Branch and warehouse: '}{supplierProfile.operationalAddress}.</>}</p>}

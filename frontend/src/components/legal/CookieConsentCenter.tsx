@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { consentChangedEvent, openConsentCenterEvent, readConsent, saveConsent, type ConsentReceipt } from '@/lib/legal/consent';
+import styles from './CookieConsentCenter.module.css';
 
 type OptionalChoices = Pick<ConsentReceipt, 'analytics' | 'marketing' | 'personalization'>;
 const rejected: OptionalChoices = { analytics: false, marketing: false, personalization: false };
@@ -35,17 +36,20 @@ export default function CookieConsentCenter() {
   };
 
   if (!visible) return null;
-  return <div className="fixed inset-x-0 bottom-0 z-[120] p-3 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="cookie-consent-title">
-    <div className="mx-auto max-h-[calc(100dvh-24px)] max-w-3xl overflow-y-auto rounded-[20px] border border-[var(--sf-line)] bg-white p-5 shadow-[0_20px_70px_rgba(21,48,66,0.25)] sm:max-h-[calc(100dvh-40px)] sm:p-6">
-      <h2 id="cookie-consent-title" className="text-lg font-black text-[var(--sf-ink)]">{es ? 'Tus preferencias de privacidad' : 'Your privacy preferences'}</h2>
-      <p className="mt-2 text-sm leading-6 text-[var(--sf-muted)]">{es ? 'Usamos almacenamiento necesario para carrito, sesión, seguridad e idioma. El análisis requiere tu autorización. Las preferencias de marketing y personalización no implican que esas herramientas estén actualmente activas.' : 'We use necessary storage for cart, session, security, and language. Analytics requires your consent. Marketing and personalization preferences do not mean those tools are currently active.'} <Link href={`/${locale}/legal/cookies`} className="font-bold underline">{es ? 'Ver política' : 'View policy'}</Link>.</p>
+  return <div data-cookie-consent className={styles.container} role="dialog" aria-modal="false" aria-labelledby="cookie-consent-title" aria-describedby="cookie-consent-description">
+    <div className={`${styles.panel} ${customizing ? styles.customizing : ''}`}>
+      <div className={styles.copy}>
+        <h2 id="cookie-consent-title" className="text-base font-black text-[var(--sf-ink)]">{es ? 'Tus preferencias de privacidad' : 'Your privacy preferences'}</h2>
+        <p id="cookie-consent-description" className="mt-1 text-xs leading-5 text-[var(--sf-muted)]">{es ? 'Usamos almacenamiento necesario para tu carrito y sesión. Tú decides sobre análisis, marketing y personalización opcionales.' : 'Necessary storage keeps your cart and session working. You choose whether to allow optional analytics, marketing and personalization.'} <Link href={`/${locale}/legal/cookies`} className="font-bold underline">{es ? 'Ver política' : 'View policy'}</Link>.</p>
+        {customizing && <p className="mt-2 text-xs leading-5 text-[var(--sf-muted)]">{es ? 'El análisis requiere tu autorización. Las preferencias de marketing y personalización no implican que esas herramientas estén actualmente activas.' : 'Analytics requires your consent. Marketing and personalization preferences do not mean those tools are currently active.'}</p>}
+      </div>
       {customizing && <fieldset className="mt-4 grid gap-3 sm:grid-cols-2"><legend className="sr-only">{es ? 'Categorías de cookies' : 'Cookie categories'}</legend>
         <ConsentChoice label={es ? 'Necesarias (siempre activas)' : 'Necessary (always active)'} checked disabled onChange={() => undefined} />
         <ConsentChoice label={es ? 'Análisis' : 'Analytics'} checked={choices.analytics} onChange={(analytics) => setChoices((value) => ({ ...value, analytics }))} />
         <ConsentChoice label="Marketing" checked={choices.marketing} onChange={(marketing) => setChoices((value) => ({ ...value, marketing }))} />
         <ConsentChoice label={es ? 'Personalización' : 'Personalization'} checked={choices.personalization} onChange={(personalization) => setChoices((value) => ({ ...value, personalization }))} />
       </fieldset>}
-      <div className="mt-5 grid gap-2 md:grid-cols-3 [&>button]:whitespace-nowrap [&>button]:px-4">
+      <div className={styles.actions}>
         <button type="button" className="sf-button-primary w-full" onClick={() => persist(accepted)}>{es ? 'Aceptar todas' : 'Accept all'}</button>
         <button type="button" className="sf-button-secondary w-full" onClick={() => persist(rejected)}>{es ? 'Rechazar no necesarias' : 'Reject nonessential'}</button>
         {customizing ? <button type="button" className="sf-button-secondary w-full" onClick={() => persist(choices)}>{es ? 'Guardar preferencias' : 'Save preferences'}</button> : <button type="button" className="sf-button-secondary w-full" onClick={() => setCustomizing(true)}>{es ? 'Personalizar' : 'Customize'}</button>}

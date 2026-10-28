@@ -7,11 +7,13 @@ import type { Metadata } from 'next';
 import { localizedMetadata } from '@/lib/seo/metadata';
 import { headers } from 'next/headers';
 import SEOInitialRouteContent from '@/components/seo/SEOInitialRouteContent';
+import { buildSiteJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   if (!locales.includes(locale as Locale)) return {};
-  return localizedMetadata(locale as Locale);
+  const requestHeaders = await headers();
+  return localizedMetadata(locale as Locale, requestHeaders.get('x-plexoria-pathname') || `/${locale}`, requestHeaders.get('x-plexoria-search') || '');
 }
 
 export default async function RootLayout({
@@ -35,10 +37,13 @@ export default async function RootLayout({
 
   return (
     <>
-      <SEOInitialRouteContent locale={locale as Locale} pathname={pathname} search={search} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }} />
       <NextIntlClientProvider locale={locale} messages={messages}>
         <LocaleDocument />
-        <MainLayout skipNav={messages.layout.skipNav}>{children}</MainLayout>
+        <MainLayout skipNav={messages.layout.skipNav}>
+          <SEOInitialRouteContent locale={locale as Locale} pathname={pathname} search={search} />
+          {children}
+        </MainLayout>
       </NextIntlClientProvider>
     </>
   );

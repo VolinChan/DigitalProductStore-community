@@ -28,6 +28,16 @@
     "new": "New",
     "offer": "Offer"
   },
+  "accessibility": {
+    "label": "Accessibility options",
+    "description": "Choose the display that is most comfortable for you. Your preferences are remembered in this browser.",
+    "highContrast": "High contrast",
+    "highContrastHint": "Stronger text, borders and controls.",
+    "reduceMotion": "Reduce motion",
+    "reduceMotionHint": "Reduce animations and automatic video previews.",
+    "systemHint": "Keyboard navigation, screen reader labels and browser zoom work with either display. System accessibility preferences are also respected.",
+    "reset": "Use system settings"
+  },
   "layout": {
     "skipNav": "Skip to main content",
     "logo": "PLEXORIA",
@@ -40,6 +50,8 @@
     "cart": "Cart",
     "cartItems": "{count} items in cart",
     "announcement": "Free shipping from $19,900",
+    "pickupAnnouncement": "Free warehouse pickup",
+    "shippingConditions": "Eligible destinations · Confirm at checkout",
     "home": "Home",
     "allProducts": "All products",
     "categories": "Categories",
@@ -75,10 +87,15 @@
     "productsLoadError": "We couldn't load the products.",
     "heroCompactTitle": "Find what you need",
     "heroCompactDescription": "Explore our products. We'll help you choose.",
+    "viewProduct": "View product",
+    "latestRecommendation": "Latest pick",
+    "pickupBenefit": "Free warehouse pickup in Macul",
+    "pickupCoordination": "Choose at checkout · Arrange before visiting",
     "pageTitle": "PLEXORIA · Technology and accessories",
     "categoriesTitle": "Categories",
     "allCategories": "All categories",
     "productsTitle": "Products for you",
+    "moreDiscoveries": "More to discover",
     "categoryPagination": "Category pages",
     "categoryPage": "Page {page} of {total}",
     "tagline": "CONNECT · INTEGRATE · MOVE FORWARD",
@@ -251,6 +268,15 @@
     "step4": "An administrator will confirm your payment within 7 business days"
   },
   "shipping": {
+    "preparingPickup": "Preparing pickup",
+    "deliveryMethod": "Delivery method",
+    "pickup": "Warehouse pickup",
+    "homeDelivery": "Home delivery",
+    "pickupDescription": "Free pickup at our warehouse.",
+    "homeDeliveryDescription": "Shipping is calculated for your address.",
+    "pickupAddress": "Pickup address",
+    "pickupCoordination": "Please coordinate your pickup with us before visiting the warehouse.",
+    "contactInfo": "Contact information",
     "title": "Shipping information",
     "fullName": "Full name",
     "fullNameRequired": "Enter recipient name",
@@ -541,6 +567,12 @@
     "priceRangeInvalid": "The minimum price cannot be greater than the maximum.",
     "sort": "Sort",
     "sortByNewest": "Newest first",
+    "recommendedTitle": "Recommended products",
+    "modelLabel": "Model",
+    "recommendedDescription": "Discover our picks for work, home and everyday tech.",
+    "sortByRecommendation": "Latest picks",
+    "noRecommendations": "No recommendations available yet",
+    "recommendedEmptyDescription": "Browse the full catalog to find what you need.",
     "sortByPriceLow": "Price: low to high",
     "sortByPriceHigh": "Price: high to low",
     "sortByName": "Name: A to Z",
@@ -622,7 +654,7 @@
     "title": "Product categories",
     "empty": "No categories are available",
     "description": "Find cables, chargers, networking gear and accessories for what you need to connect.",
-    "productCount": "{count} products"
+    "productCount": "{count, plural, one {# product} other {# products}}"
   },
   "error": {
     "title": "Something went wrong",
@@ -678,7 +710,7 @@
   },
   "contact": {
     "welcomeTitle": "How can we help?",
-    "desc": "Message us on WhatsApp and tell us what you need. It is our main support channel. If you prefer, you can also contact us by email.",
+    "desc": "Email is our preferred support channel. You can also message us on WhatsApp and tell us what you need.",
     "email": "Customer care email",
     "whatsApp": "Message us on WhatsApp",
     "whatsAppLabel": "WhatsApp",

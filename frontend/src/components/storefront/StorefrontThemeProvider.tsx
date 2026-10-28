@@ -2,6 +2,7 @@
 
 import { ConfigProvider, theme, type ThemeConfig } from 'antd';
 import type { ReactNode } from 'react';
+import { useAccessibilityPreferences } from '@/lib/accessibility/useAccessibilityPreferences';
 
 // Keep storefront controls and their portalled dialogs on the same visual
 // system. This provider is deliberately outside the admin route tree.
@@ -11,9 +12,9 @@ const storefrontTheme: ThemeConfig = {
     colorPrimary: '#173f67',
     colorPrimaryHover: '#0f3151',
     colorPrimaryActive: '#0f3151',
-    colorLink: '#1677b8',
+    colorLink: '#126da5',
     colorText: '#1c2733',
-    colorTextSecondary: '#65727d',
+    colorTextSecondary: '#5c6974',
     colorBorder: '#dce3e9',
     colorBgContainer: '#ffffff',
     colorError: '#a33a32',
@@ -39,7 +40,7 @@ const storefrontTheme: ThemeConfig = {
       defaultBorderColor: '#dce3e9',
       defaultHoverBg: '#e8f4fb',
       defaultHoverColor: '#173f67',
-      defaultHoverBorderColor: '#1677b8',
+      defaultHoverBorderColor: '#126da5',
       primaryShadow: 'none',
       defaultShadow: 'none',
       dangerShadow: 'none',
@@ -52,5 +53,10 @@ const storefrontTheme: ThemeConfig = {
 };
 
 export default function StorefrontThemeProvider({ children }: { children: ReactNode }) {
-  return <ConfigProvider theme={storefrontTheme}>{children}</ConfigProvider>;
+  const { preferences } = useAccessibilityPreferences();
+  const selectedTheme = preferences.highContrast ? {
+    ...storefrontTheme,
+    token: { ...storefrontTheme.token, colorPrimary: '#102a43', colorLink: '#004b91', colorText: '#101828', colorTextSecondary: '#334e68', colorTextPlaceholder: '#334e68', colorBorder: '#526779' },
+  } : storefrontTheme;
+  return <ConfigProvider theme={selectedTheme}>{children}</ConfigProvider>;
 }

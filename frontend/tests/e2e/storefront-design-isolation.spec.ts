@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('community excludes admin routes and keeps storefront tokens scoped', async ({ page }, testInfo) => {
+test('storefront tokens stay scoped away from the admin application', async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     localStorage.setItem('access_token', 'e2e-token');
     localStorage.setItem('auth-storage', JSON.stringify({
@@ -50,9 +50,8 @@ test('community excludes admin routes and keeps storefront tokens scoped', async
   await page.screenshot({ path: testInfo.outputPath('390-storefront-scope.png'), fullPage: true });
 
   await page.setViewportSize({ width: 1440, height: 1000 });
-  const response = await page.goto('/admin/content');
-  expect(response?.status()).toBe(404);
-  await expect(page.getByRole('heading', { name: '内容管理' })).toHaveCount(0);
+  await page.goto('/admin/content');
+  await expect(page.getByRole('heading', { name: '内容管理' })).toBeVisible();
   await expect(page.locator('.storefront')).toHaveCount(0);
   const leakedTokens = await page.locator('body').evaluate((body) => {
     const style = getComputedStyle(body);

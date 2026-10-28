@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { mockCartContractRoute, seedNecessaryCookieConsent } from './helpers/shipping';
+import { mockCartContractRoute, mockShippingRoute, seedNecessaryCookieConsent } from './helpers/shipping';
+import { expectAccessiblePage } from './helpers/accessibility';
 
 const product = {
   id: 22, name: 'Accessible USB-C Hub', description: 'Reliable connections for home and office.', specifications: '{}',
@@ -25,6 +26,9 @@ test.beforeEach(async ({ page }) => {
     if (path === '/api/v1/products/22') return route.fulfill({ json: { data: product } });
     if (path === '/api/v1/products') return route.fulfill({ json: { data: { products: [product], total: 1 } } });
     if (path === '/api/v1/categories') return route.fulfill({ json: { data: { categories: [{ id: 7, name: 'Cables', slug: 'cables', is_active: true }] } } });
+    if (path === '/api/v1/store-config/online-payment') return route.fulfill({ json: { data: { configured: false, transfer_enabled: true, providers: [] } } });
+    if (path === '/api/v1/store-config/transfer-payment') return route.fulfill({ json: { data: { configured: true, accounts: [{ id: 1, bank_name: 'Test Bank', account_name: 'PLEXORIA Test', account_number: '123456789', rut: '76.123.456-7', account_type: 'Cuenta Corriente', email: 'payments@example.test', is_active: true }] } } });
+    if (await mockShippingRoute(route)) return;
     if (await mockCartContractRoute(route, [cartItem])) return;
     return route.fulfill({ json: { data: {} } });
   });
@@ -116,6 +120,9 @@ test('storefront text tokens meet AA contrast against their intended surfaces', 
       brand: style.getPropertyValue('--sf-brand'),
       accent: style.getPropertyValue('--sf-accent'),
       warm: style.getPropertyValue('--sf-warm'),
+      catalog: style.getPropertyValue('--sf-catalog-bg'),
+      soft: style.getPropertyValue('--sf-soft'),
+      softBlue: style.getPropertyValue('--sf-soft-blue'),
     };
   });
 
@@ -125,6 +132,70 @@ test('storefront text tokens meet AA contrast against their intended surfaces', 
   expect(contrastRatio('#ffffff', colors.brand)).toBeGreaterThanOrEqual(4.5);
   expect(contrastRatio('#ffffff', colors.accent)).toBeGreaterThanOrEqual(4.5);
   expect(contrastRatio('#ffffff', colors.warm)).toBeGreaterThanOrEqual(4.5);
+  for (const surface of [colors.background, colors.catalog, colors.soft, colors.softBlue, '#dff1f5']) {
+    for (const text of [colors.ink, colors.subtle, colors.muted, colors.accent]) expect(contrastRatio(text, surface)).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+for (const [locale, width] of [['en', 1440], ['es-CL', 390]] as const) {
+  for (const path of ['', '/products', '/categories', '/products/22', '/cart', '/checkout', '/login', '/register', '/orders/track', '/contact']) {
+    test(`WCAG A/AA checks pass for ${locale}${path || '/'} at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 960 });
+      if (path === '/cart' || path === '/checkout') {
+        await page.addInitScript(() => localStorage.setItem('cart-storage', JSON.stringify({ state: {
+          items: [{ id: 1, sku_id: 220, sku_code: 'HUB-220', sku_name: 'Accessible USB-C Hub', quantity: 1, unit_price: 15990, subtotal: 15990 }],
+          totalPrice: 15990, totalItems: 1,
+        }, version: 0 })));
+      }
+      await page.goto(`/${locale}${path}`);
+      await expect(page.locator('#main-content h1').filter({ visible: true })).toBeVisible();
+      if (path === '/cart' || path === '/checkout') await expect(page.locator('#main-content').getByText('Accessible USB-C Hub', { exact: true }).first()).toBeVisible();
+      await expectAccessiblePage(page);
+    });
+  }
+}
+
+test('accessibility preferences support keyboard use, persistence and restoring system settings', async ({ page }) => {
+  await page.goto('/en/contact');
+  const trigger = page.getByRole('button', { name: 'Accessibility options', exact: true });
+  await trigger.focus();
+  await trigger.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Accessibility options' });
+  const contrast = dialog.getByRole('checkbox', { name: 'High contrast', exact: true });
+  const motion = dialog.getByRole('checkbox', { name: 'Reduce motion', exact: true });
+  await expect(contrast).toBeFocused();
+  await contrast.press('Space');
+  await motion.press('Space');
+  await expect(page.locator('html')).toHaveAttribute('data-accessibility-contrast', 'high');
+  await expect(page.locator('html')).toHaveAttribute('data-accessibility-motion', 'reduce');
+  await expectAccessiblePage(page);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await page.goto('/en/help/shipping');
+  await expect(page.locator('html')).toHaveAttribute('data-accessibility-contrast', 'high');
+  await expect(page.locator('html')).toHaveAttribute('data-accessibility-motion', 'reduce');
+  await expectAccessiblePage(page);
+  await page.getByRole('button', { name: 'Accessibility options', exact: true }).click();
+  await page.getByRole('button', { name: 'Use system settings', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-accessibility-contrast', 'standard');
+  await expect(page.locator('html')).toHaveAttribute('data-accessibility-motion', 'system');
+});
+
+test('forced colours keep search focus visible and password toggles usable by keyboard', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.goto('/en/login');
+  const toggle = page.locator('.ant-input-password-icon[role="button"]');
+  await expect(toggle).toHaveAttribute('tabindex', '0');
+  const bounds = (await toggle.boundingBox())!;
+  expect(bounds.width).toBeGreaterThanOrEqual(24);
+  expect(bounds.height).toBeGreaterThanOrEqual(24);
+  await toggle.focus();
+  await toggle.press('Enter');
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.locator('.sf-header-search-field:focus-within')).toHaveCSS('outline-style', 'solid');
+  await expect(page.locator('.sf-header-search-field:focus-within')).toHaveCSS('outline-width', '2px');
 });
 
 test('Spanish form errors are localized and programmatically associated with fields', async ({ page }) => {

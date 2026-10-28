@@ -48,7 +48,7 @@ export default function ProductCard({ product, highlightQuery, showRecommendatio
           src={primaryImage}
           alt={product.name}
           fill
-          className={`object-contain p-1 transition duration-500 group-hover:scale-[1.025] sm:p-2 ${outOfStock ? 'opacity-55' : ''}`}
+          className={`object-contain p-3 transition duration-500 group-hover:scale-[1.025] sm:p-4 ${outOfStock ? 'opacity-55' : ''}`}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           loading="lazy"
           onLoad={matchImageSurface}

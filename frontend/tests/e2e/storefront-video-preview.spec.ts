@@ -124,10 +124,11 @@ test('autoplay rejection keeps the image and manual video entry without an unhan
   expect(errors).toEqual([]);
 });
 
-for (const preference of ['reduced-motion', 'save-data']) {
+for (const preference of ['reduced-motion', 'accessibility-settings', 'save-data']) {
   test(`${preference} disables automatic video without removing the manual entry`, async ({ page }) => {
     await setup(page);
     if (preference === 'reduced-motion') await page.emulateMedia({ reducedMotion: 'reduce' });
+    else if (preference === 'accessibility-settings') await page.addInitScript(() => localStorage.setItem('plexoria-accessibility:v1', JSON.stringify({ highContrast: false, reduceMotion: true })));
     else await page.addInitScript(() => Object.defineProperty(navigator, 'connection', { value: Object.assign(new EventTarget(), { saveData: true }) }));
     await page.goto('/en/products/28');
     await expect(page.getByRole('button', { name: 'Watch video' })).toBeVisible();

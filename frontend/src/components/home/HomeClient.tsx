@@ -11,6 +11,7 @@ import HomeProductSections from '@/components/home/HomeProductSections';
 import CategoryRail from '@/components/home/CategoryRail';
 import {
   HomeHero,
+  PickupBenefit,
   ShoppingHelp,
   TrustStrip,
 } from '@/components/home/StorefrontSections';
@@ -20,15 +21,17 @@ export interface HomeClientProps {
   announcements: Announcement[];
   categories: Category[];
   sections: HomeProductSection[];
+  recommendedProducts?: Product[];
   clientFetch?: boolean;
 }
 
-export default function HomeClient({ banners: initialBanners, announcements: initialAnnouncements, categories: initialCategories, sections: initialSections, clientFetch = false }: HomeClientProps) {
+export default function HomeClient({ banners: initialBanners, announcements: initialAnnouncements, categories: initialCategories, sections: initialSections, recommendedProducts: initialRecommended = [], clientFetch = false }: HomeClientProps) {
   const t = useTranslations();
   const [banners, setBanners] = useState(initialBanners);
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [categories, setCategories] = useState(initialCategories);
   const [sections, setSections] = useState(initialSections);
+  const [recommendedProducts, setRecommendedProducts] = useState(initialRecommended);
   const [productsFailed, setProductsFailed] = useState(false);
   const [productsLoading, setProductsLoading] = useState(clientFetch);
 
@@ -41,6 +44,8 @@ export default function HomeClient({ banners: initialBanners, announcements: ini
     let active = true;
     void apiClient.get<{ data: { banners: Banner[] } }>('/banners').then((response) => { if (active) setBanners(response.data.data?.banners || []); }).catch(() => undefined);
     void apiClient.get<{ data: { announcements: Announcement[] } }>('/announcements').then((response) => { if (active) setAnnouncements(response.data.data?.announcements || []); }).catch(() => undefined);
+    void apiClient.get<{ data: { products: Product[] } }>('/products', { params: { page: 1, page_size: 12, sort_by: 'recommended' } })
+      .then(response => { if (active) setRecommendedProducts(response.data.data?.products || []); }).catch(() => undefined);
     void apiClient.get<{ data: { categories: Category[] } }>('/categories')
       .then(async response => {
         const loadedCategories = response.data.data?.categories || [];
@@ -59,7 +64,7 @@ export default function HomeClient({ banners: initialBanners, announcements: ini
     return () => { active = false; };
   }, [clientFetch]);
   return (
-    <main className="bg-[#f0f3f5]">
+    <main className="bg-[var(--sf-catalog-bg)]">
       <div className="sf-shell pt-2 sm:pt-4 lg:pt-6">
         {announcements.length > 0 && (
           <section className="mb-4" aria-label={t('home.announcements')}>
@@ -67,7 +72,9 @@ export default function HomeClient({ banners: initialBanners, announcements: ini
           </section>
         )}
         <h1 className="sr-only lg:hidden">{t('home.pageTitle')}</h1>
-        <HomeHero />
+        <HomeHero products={recommendedProducts} />
+        <PickupBenefit />
+        <HomeHero products={recommendedProducts} compact />
         <CategoryRail categories={categories} />
       </div>
 

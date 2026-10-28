@@ -1,0 +1,17 @@
+.storefront .sf-header-logo {
+  display: block;
+  width: 112px;
+  height: auto;
+}
+
+@media (min-width: 360px) {
+  .storefront .sf-header-logo { width: 140px; }
+}
+
+@media (min-width: 640px) {
+  .storefront .sf-header-logo { width: 160px; }
+}
+
+@media (min-width: 1024px) {
+  .storefront .sf-header-logo { width: 176px; }
+}
